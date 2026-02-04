@@ -1,24 +1,33 @@
+/* =========================
+   AMPÈRE — Updated Demo App
+   PART 1/5
+   ========================= */
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  useCallback,
+} from "react";
 
 /**
- * AMPÈRE — Demo that becomes Production-ready (Phase 1 implementation)
- *
- * Implemented in this update:
- * - Locked Header + Locked Footer, with vertical scrolling content area (no horizontal preview scrollbars)
- * - “Streaming Type” renamed to “Genre”
- * - “Services” renamed to “Streaming Platform”
- * - Platform pills support multi-line labels (2–3 rows) so words are readable
- * - Preview sections use responsive grids (no side/bottom sliders)
- * - Search submit fixed (no-op removed); results shown inline on Search screen
- * - Canonical IDs for platforms/providers (reduces naming bugs)
- * - Accessibility: modal aria, ESC close, focus management, visible focus ring, reduced motion support
- * - Demo catalog generation so each Genre + Platform has content (“true demo”)
- * - Header image upload (stored locally for demo)
+ * Implemented in this update (Phase 1):
+ * - Dropdown readability + ESC close
+ * - Remove “All Platforms Preview”
+ * - Remove ALL pills in Browse + Platforms (Reset returns to All)
+ * - Rename Genre -> Browse, Streaming Platform -> Platforms
+ * - Add Browse: Kids, Gaming, LiveTV
+ * - Footer icons
+ * - Fix Wizard Step 1 input losing focus (Modal effect no longer re-runs every keystroke)
+ * - Load-more in heavy See All modals (later parts)
+ * - Cap FAILED_IMG growth
  *
  * Notes:
- * - Accounts + DB are planned Phase 2 (Supabase recommended). This file remains dependency-free.
+ * - Still dependency-free, single-file.
+ * - Phase 2 splits into /components + /lib and adds Supabase auth/data.
  */
 
 // -------------------- Types --------------------
@@ -27,6 +36,9 @@ type TabKey = "home" | "live" | "favs" | "search";
 
 type GenreKey =
   | "All"
+  | "LiveTV"
+  | "Kids"
+  | "Gaming"
   | "Basic Streaming"
   | "Premium Streaming"
   | "Premium Sports Streaming"
@@ -46,9 +58,9 @@ type Card = {
   title: string;
   subtitle?: string;
   badge?: CardBadge;
-  badgeRight?: string; // top-right label
-  platformId?: PlatformId; // canonical
-  platformLabel?: string; // display
+  badgeRight?: string;
+  platformId?: PlatformId;
+  platformLabel?: string;
   league?: string;
   genre?: GenreKey;
   thumb?: string;
@@ -60,12 +72,15 @@ type Card = {
 
 type ProfileState = {
   name: string;
-  profilePhoto?: string | null; // data URL
-  headerPhoto?: string | null; // data URL
+  profilePhoto?: string | null;
+  headerPhoto?: string | null;
   favoritePlatformIds: PlatformId[];
   favoriteLeagues: string[];
   favoriteTeams: string[];
-  connectedPlatformIds: Record<PlatformId, boolean>;
+
+  // demo flag
+  connectedPlatformIds: Partial<Record<PlatformId, boolean>>;
+
   notificationsEnabled: boolean;
 };
 
@@ -94,29 +109,33 @@ function safeNowISO() {
   }
 }
 
-function clamp(n: number, lo: number, hi: number) {
-  return Math.max(lo, Math.min(hi, n));
-}
-
 function uniq<T>(arr: T[]) {
   return Array.from(new Set(arr));
 }
 
 // -------------------- Viewport / density --------------------
 
-function useViewport() {
-  const [vp, setVp] = useState({ w: 1200, h: 800 });
+const useIsoLayoutEffect =
+  typeof window === "undefined" ? useEffect : useLayoutEffect;
 
-  useEffect(() => {
+function useViewport() {
+  const [vp, setVp] = useState<{ w: number; h: number; ready: boolean }>({
+    w: 0,
+    h: 0,
+    ready: false,
+  });
+
+  useIsoLayoutEffect(() => {
     if (typeof window === "undefined") return;
-    const on = () => setVp({ w: window.innerWidth, h: window.innerHeight });
+    const on = () =>
+      setVp({ w: window.innerWidth, h: window.innerHeight, ready: true });
     on();
     window.addEventListener("resize", on);
     return () => window.removeEventListener("resize", on);
   }, []);
 
-  const isMobile = vp.w < 720;
-  const isTablet = vp.w >= 720 && vp.w < 1080;
+  const isMobile = vp.ready ? vp.w < 720 : false;
+  const isTablet = vp.ready ? vp.w >= 720 && vp.w < 1080 : false;
 
   const density = useMemo(() => {
     const base = isMobile ? 0.9 : isTablet ? 0.96 : 1.0;
@@ -129,11 +148,11 @@ function useViewport() {
       small: isMobile ? 12 : 13,
       cardMinW: isMobile ? 210 : 240,
       heroH: isMobile ? 92 : 110,
-      icon: isMobile ? 24 : 26,
+      icon: isMobile ? 22 : 24,
     };
   }, [isMobile, isTablet]);
 
-  return { ...vp, isMobile, isTablet, density };
+  return { w: vp.w, h: vp.h, ready: vp.ready, isMobile, isTablet, density };
 }
 
 // -------------------- Brand artwork candidates --------------------
@@ -227,7 +246,16 @@ type PlatformId =
   | "umc"
   | "blackmedia"
   | "hbcugo"
-  | "hbcugosports";
+  | "hbcugosports"
+  // Kids collection (channels/apps)
+  | "pbskids"
+  | "noggin"
+  | "kidoodletv"
+  | "happykids"
+  | "sensical"
+  | "kabillion"
+  | "toongoggles"
+  | "yippee";
 
 type Platform = {
   id: PlatformId;
@@ -236,79 +264,92 @@ type Platform = {
 };
 
 const PLATFORMS: Platform[] = [
-  { id: "all", label: "ALL" },
-  { id: "livetv", label: "Live TV" },
-  { id: "netflix", label: "Netflix" },
-  { id: "hulu", label: "Hulu" },
-  { id: "primevideo", label: "Prime Video" },
-  { id: "disneyplus", label: "Disney+" },
-  { id: "max", label: "Max" },
-  { id: "peacock", label: "Peacock" },
-  { id: "paramountplus", label: "Paramount+" },
-  { id: "appletv", label: "Apple TV" },
-  { id: "youtube", label: "YouTube" },
-  { id: "youtubetv", label: "YouTube TV" },
-  { id: "betplus", label: "BET+" },
-  { id: "tubi", label: "Tubi" },
-  { id: "sling", label: "Sling" },
-  { id: "twitch", label: "Twitch" },
-  { id: "fubotv", label: "FuboTV" },
-  { id: "espn", label: "ESPN" },
+  // Internal sentinels (NOT shown as pills in Platforms)
+  { id: "all", label: "ALL", kind: "bundle" },
+  { id: "livetv", label: "Live TV", kind: "bundle" },
+
+  // Core
+  { id: "netflix", label: "Netflix", kind: "platform" },
+  { id: "hulu", label: "Hulu", kind: "platform" },
+  { id: "primevideo", label: "Prime Video", kind: "platform" },
+  { id: "disneyplus", label: "Disney+", kind: "platform" },
+  { id: "max", label: "Max", kind: "platform" },
+  { id: "peacock", label: "Peacock", kind: "platform" },
+  { id: "paramountplus", label: "Paramount+", kind: "platform" },
+  { id: "appletv", label: "Apple TV", kind: "platform" },
+  { id: "youtube", label: "YouTube", kind: "platform" },
+  { id: "youtubetv", label: "YouTube TV", kind: "platform" },
+  { id: "betplus", label: "BET+", kind: "platform" },
+  { id: "tubi", label: "Tubi", kind: "platform" },
+  { id: "sling", label: "Sling", kind: "platform" },
+  { id: "fubotv", label: "FuboTV", kind: "platform" },
+  { id: "twitch", label: "Twitch", kind: "platform" },
+  { id: "espn", label: "ESPN", kind: "platform" },
 
   // Extended
-  { id: "espnplus", label: "ESPN+" },
-  { id: "dazn", label: "DAZN" },
-  { id: "nflplus", label: "NFL+" },
-  { id: "nbaleaguepass", label: "NBA League Pass" },
-  { id: "mlbtv", label: "MLB.TV" },
-  { id: "nhl", label: "NHL" },
-  { id: "amcplus", label: "AMC+" },
-  { id: "starz", label: "Starz" },
-  { id: "mgmplus", label: "MGM+" },
-  { id: "criterion", label: "The Criterion Channel" },
-  { id: "mubi", label: "MUBI" },
-  { id: "vudu", label: "Fandango at Home (Vudu)" },
-  { id: "appletvstore", label: "Apple TV Store" },
-  { id: "youtubemovies", label: "YouTube Movies / Google TV" },
-  { id: "moviesanywhere", label: "Movies Anywhere" },
-  { id: "plutotv", label: "Pluto TV" },
-  { id: "roku", label: "The Roku Channel" },
-  { id: "freevee", label: "Amazon Freevee" },
-  { id: "xumo", label: "Xumo Play" },
-  { id: "plex", label: "Plex" },
-  { id: "crackle", label: "Crackle" },
-  { id: "revry", label: "Revry" },
-  { id: "ovid", label: "OVID.tv" },
-  { id: "fandor", label: "Fandor" },
-  { id: "kinocult", label: "Kino Cult" },
-  { id: "kanopy", label: "Kanopy" },
-  { id: "shudder", label: "Shudder" },
-  { id: "screambox", label: "Screambox" },
-  { id: "arrow", label: "Arrow Player" },
-  { id: "curiositystream", label: "CuriosityStream" },
-  { id: "magellantv", label: "MagellanTV" },
-  { id: "pbspassport", label: "PBS Passport" },
-  { id: "crunchyroll", label: "Crunchyroll" },
-  { id: "hidive", label: "HIDIVE" },
-  { id: "viki", label: "Viki" },
-  { id: "iqiyi", label: "iQIYI" },
-  { id: "asiancrush", label: "AsianCrush" },
+  { id: "espnplus", label: "ESPN+", kind: "platform" },
+  { id: "dazn", label: "DAZN", kind: "platform" },
+  { id: "nflplus", label: "NFL+", kind: "platform" },
+  { id: "nbaleaguepass", label: "NBA League Pass", kind: "platform" },
+  { id: "mlbtv", label: "MLB.TV", kind: "platform" },
+  { id: "nhl", label: "NHL", kind: "platform" },
+  { id: "amcplus", label: "AMC+", kind: "platform" },
+  { id: "starz", label: "Starz", kind: "platform" },
+  { id: "mgmplus", label: "MGM+", kind: "platform" },
+  { id: "criterion", label: "The Criterion Channel", kind: "platform" },
+  { id: "mubi", label: "MUBI", kind: "platform" },
+  { id: "vudu", label: "Fandango at Home (Vudu)", kind: "platform" },
+  { id: "appletvstore", label: "Apple TV Store", kind: "platform" },
+  { id: "youtubemovies", label: "YouTube Movies / Google TV", kind: "platform" },
+  { id: "moviesanywhere", label: "Movies Anywhere", kind: "platform" },
+  { id: "plutotv", label: "Pluto TV", kind: "platform" },
+  { id: "roku", label: "The Roku Channel", kind: "platform" },
+  { id: "freevee", label: "Amazon Freevee", kind: "platform" },
+  { id: "xumo", label: "Xumo Play", kind: "platform" },
+  { id: "plex", label: "Plex", kind: "platform" },
+  { id: "crackle", label: "Crackle", kind: "platform" },
+  { id: "revry", label: "Revry", kind: "platform" },
+  { id: "ovid", label: "OVID.tv", kind: "platform" },
+  { id: "fandor", label: "Fandor", kind: "platform" },
+  { id: "kinocult", label: "Kino Cult", kind: "platform" },
+  { id: "kanopy", label: "Kanopy", kind: "platform" },
+  { id: "shudder", label: "Shudder", kind: "platform" },
+  { id: "screambox", label: "Screambox", kind: "platform" },
+  { id: "arrow", label: "Arrow Player", kind: "platform" },
+  { id: "curiositystream", label: "CuriosityStream", kind: "platform" },
+  { id: "magellantv", label: "MagellanTV", kind: "platform" },
+  { id: "pbspassport", label: "PBS Passport", kind: "platform" },
+  { id: "crunchyroll", label: "Crunchyroll", kind: "platform" },
+  { id: "hidive", label: "HIDIVE", kind: "platform" },
+  { id: "viki", label: "Viki", kind: "platform" },
+  { id: "iqiyi", label: "iQIYI", kind: "platform" },
+  { id: "asiancrush", label: "AsianCrush", kind: "platform" },
 
   // Black culture & diaspora
-  { id: "kwelitv", label: "KweliTV" },
-  { id: "mansa", label: "MANSA" },
-  { id: "allblk", label: "ALLBLK" },
-  { id: "brownsugar", label: "Brown Sugar" },
-  { id: "americanu", label: "America Nu" },
-  { id: "afrolandtv", label: "AfroLandTV" },
-  { id: "urbanflixtv", label: "UrbanFlixTV" },
-  { id: "blackstarnetwork", label: "Black Star Network" },
-  { id: "umc", label: "UMC (Urban Movie Channel)" },
+  { id: "kwelitv", label: "KweliTV", kind: "platform" },
+  { id: "mansa", label: "MANSA", kind: "platform" },
+  { id: "allblk", label: "ALLBLK", kind: "platform" },
+  { id: "brownsugar", label: "Brown Sugar", kind: "platform" },
+  { id: "americanu", label: "America Nu", kind: "platform" },
+  { id: "afrolandtv", label: "AfroLandTV", kind: "platform" },
+  { id: "urbanflixtv", label: "UrbanFlixTV", kind: "platform" },
+  { id: "blackstarnetwork", label: "Black Star Network", kind: "platform" },
+  { id: "umc", label: "UMC (Urban Movie Channel)", kind: "platform" },
 
   // Umbrella / HBCU
-  { id: "blackmedia", label: "Black Media" },
-  { id: "hbcugo", label: "HBCUGO" },
-  { id: "hbcugosports", label: "HBCUGO Sports" },
+  { id: "blackmedia", label: "Black Media", kind: "bundle" },
+  { id: "hbcugo", label: "HBCUGO", kind: "platform" },
+  { id: "hbcugosports", label: "HBCUGO Sports", kind: "platform" },
+
+  // Kids collection (mix of popular + not-so-popular)
+  { id: "pbskids", label: "PBS Kids", kind: "channel" },
+  { id: "noggin", label: "Noggin", kind: "channel" },
+  { id: "kidoodletv", label: "Kidoodle.TV", kind: "channel" },
+  { id: "happykids", label: "HappyKids", kind: "channel" },
+  { id: "sensical", label: "Sensical", kind: "channel" },
+  { id: "kabillion", label: "Kabillion", kind: "channel" },
+  { id: "toongoggles", label: "Toon Goggles", kind: "channel" },
+  { id: "yippee", label: "Yippee TV", kind: "channel" },
 ];
 
 function platformById(id: PlatformId) {
@@ -321,14 +362,43 @@ function platformIdFromLabel(label: string): PlatformId | null {
   return hit?.id ?? null;
 }
 
-// -------------------- Genres -> platform membership --------------------
+/* ===== END PART 1/5 ===== */
+/* =========================
+   AMPÈRE — Updated Demo App
+   PART 2/5
+   ========================= */
+
+// -------------------- Browse (Genres) -> platform membership --------------------
+
+// We keep "All" as the internal default state,
+// but we will NOT render an "ALL" pill in the Browse UI (handled in Part 4).
+
+const KIDS_COLLECTION_GROUPS: { key: string; platformIds: PlatformId[] }[] = [
+  {
+    key: "Popular Kids",
+    platformIds: ["disneyplus", "netflix", "paramountplus", "pbskids", "noggin"],
+  },
+  {
+    key: "Free Kids",
+    platformIds: ["kidoodletv", "happykids", "sensical", "kabillion", "toongoggles", "youtube"],
+  },
+  {
+    key: "Educational",
+    platformIds: ["pbskids", "sensical", "youtube", "curiositystream"],
+  },
+  {
+    key: "Faith & Family",
+    platformIds: ["yippee"],
+  },
+];
 
 const GENRES: { key: GenreKey; platformIds: PlatformId[] }[] = [
+  // Internal “All” (default filter state)
   {
     key: "All",
     platformIds: [
-      "all",
-      "livetv",
+      // Keep this “curated” so the main Platforms grid doesn’t become enormous.
+      // Full list is always available in Favorites/Wizard via ALL_PLATFORM_IDS.
       "netflix",
       "hulu",
       "primevideo",
@@ -339,41 +409,74 @@ const GENRES: { key: GenreKey; platformIds: PlatformId[] }[] = [
       "appletv",
       "youtube",
       "youtubetv",
-      "betplus",
       "tubi",
       "sling",
-      "twitch",
       "fubotv",
+      "twitch",
       "espn",
       "blackmedia",
       "hbcugo",
       "hbcugosports",
+      // Kids signals
+      "pbskids",
+      "kidoodletv",
     ],
   },
-  { key: "Basic Streaming", platformIds: ["all", "netflix", "hulu", "primevideo", "disneyplus", "max", "peacock", "paramountplus", "appletv"] },
-  { key: "Premium Streaming", platformIds: ["all", "betplus", "amcplus", "starz", "mgmplus"] },
-  { key: "Premium Sports Streaming", platformIds: ["all", "espnplus", "dazn", "nflplus", "nbaleaguepass", "mlbtv", "nhl"] },
-  { key: "Movie Streaming", platformIds: ["all", "criterion", "mubi", "vudu", "appletvstore", "youtubemovies", "moviesanywhere"] },
-  { key: "Free Streaming", platformIds: ["all", "tubi", "plutotv", "roku", "freevee", "xumo", "plex", "crackle", "revry"] },
-  { key: "Indie and Arthouse Film", platformIds: ["all", "criterion", "mubi", "ovid", "fandor", "kinocult", "kanopy"] },
-  { key: "Horror / Cult", platformIds: ["all", "shudder", "screambox", "arrow"] },
-  { key: "Documentaries", platformIds: ["all", "curiositystream", "magellantv", "pbspassport"] },
-  { key: "Anime / Asian cinema", platformIds: ["all", "crunchyroll", "hidive", "viki", "iqiyi", "asiancrush"] },
+
+  // NEW: LiveTV browse lens
+  {
+    key: "LiveTV",
+    platformIds: ["youtubetv", "sling", "fubotv", "espn", "peacock"],
+  },
+
+  // NEW: Kids browse lens (includes the curated kids collection + mainstream “has kids” platforms)
+  {
+    key: "Kids",
+    platformIds: uniq([
+      "disneyplus",
+      "netflix",
+      "paramountplus",
+      "youtube",
+      ...KIDS_COLLECTION_GROUPS.flatMap((g) => g.platformIds),
+    ]) as PlatformId[],
+  },
+
+  // NEW: Gaming browse lens (puts Twitch where it belongs)
+  {
+    key: "Gaming",
+    platformIds: ["twitch", "youtube"],
+  },
+
+  // Existing genres
+  {
+    key: "Basic Streaming",
+    platformIds: ["netflix", "hulu", "primevideo", "disneyplus", "max", "peacock", "paramountplus", "appletv"],
+  },
+  { key: "Premium Streaming", platformIds: ["betplus", "amcplus", "starz", "mgmplus"] },
+  { key: "Premium Sports Streaming", platformIds: ["espnplus", "dazn", "nflplus", "nbaleaguepass", "mlbtv", "nhl"] },
+  { key: "Movie Streaming", platformIds: ["criterion", "mubi", "vudu", "appletvstore", "youtubemovies", "moviesanywhere"] },
+  { key: "Free Streaming", platformIds: ["tubi", "plutotv", "roku", "freevee", "xumo", "plex", "crackle", "revry"] },
+  { key: "Indie and Arthouse Film", platformIds: ["criterion", "mubi", "ovid", "fandor", "kinocult", "kanopy"] },
+  { key: "Horror / Cult", platformIds: ["shudder", "screambox", "arrow"] },
+  { key: "Documentaries", platformIds: ["curiositystream", "magellantv", "pbspassport"] },
+  { key: "Anime / Asian cinema", platformIds: ["crunchyroll", "hidive", "viki", "iqiyi", "asiancrush"] },
   {
     key: "Black culture & diaspora",
-    platformIds: ["all", "kwelitv", "hbcugo", "hbcugosports", "mansa", "allblk", "brownsugar", "americanu", "afrolandtv", "urbanflixtv", "blackstarnetwork", "umc"],
+    platformIds: ["kwelitv", "hbcugo", "hbcugosports", "mansa", "allblk", "brownsugar", "americanu", "afrolandtv", "urbanflixtv", "blackstarnetwork", "umc"],
   },
-  { key: "LGBT", platformIds: ["all", "revry"] },
+  { key: "LGBT", platformIds: ["revry"] },
 ];
 
 function platformsForGenre(genre: GenreKey) {
   const found = GENRES.find((g) => g.key === genre);
-  return found?.platformIds ?? ["all"];
+  return found?.platformIds ?? [];
 }
 
-const ALL_PLATFORM_IDS: PlatformId[] = uniq(
-  GENRES.flatMap((g) => g.platformIds).filter((x) => x !== "all")
-) as PlatformId[];
+// We exclude these from “Platforms” pills (UI), but they can exist internally.
+const PLATFORM_PILL_EXCLUDE = new Set<PlatformId>(["all", "livetv"]);
+
+// Used for Favorites / Wizard platform selection (full catalog, excluding sentinels)
+const ALL_PLATFORM_IDS: PlatformId[] = PLATFORMS.map((p) => p.id).filter((id) => !PLATFORM_PILL_EXCLUDE.has(id));
 
 // -------------------- Icons & logos (fallback) --------------------
 
@@ -421,102 +524,117 @@ const PLATFORM_ICON_CANDIDATES: Partial<Record<PlatformId, string[]>> = {
   mansa: ["/logos/services/BlackMedia/MANSA.png", "/logos/services/BlackMedia/Mansa.png"],
   brownsugar: ["/logos/services/BlackMedia/BrownSugar.png"],
   americanu: ["/logos/services/BlackMedia/americanu.png", "/logos/services/BlackMedia/AmericaNu.png"],
+
+  // Kids icons (optional: you can add these files later)
+  pbskids: ["/assets/platforms/pbskids.png", "/logos/services/PBSKids.png"],
+  noggin: ["/assets/platforms/noggin.png"],
+  kidoodletv: ["/assets/platforms/kidoodletv.png"],
+  happykids: ["/assets/platforms/happykids.png"],
+  sensical: ["/assets/platforms/sensical.png"],
+  kabillion: ["/assets/platforms/kabillion.png"],
+  toongoggles: ["/assets/platforms/toongoggles.png"],
+  yippee: ["/assets/platforms/yippee.png"],
 };
 
 function platformIconCandidates(id?: PlatformId): string[] {
   if (!id) return [];
-  return PLATFORM_ICON_CANDIDATES[id] ?? [`/logos/services/${id}.png`];
+  return PLATFORM_ICON_CANDIDATES[id] ?? [`/logos/services/${id}.png`, `/assets/platforms/${id}.png`];
 }
 
-// -------------------- Inline Icons --------------------
+// Browse pill icons (optional overrides)
+const BROWSE_ICON_CANDIDATES: Partial<Record<GenreKey, string[]>> = {
+  Kids: ["/assets/browse/kids.png"],
+  Gaming: ["/assets/browse/gaming.png"],
+  LiveTV: ["/assets/browse/livetv.png"],
+};
 
-function IconMic() {
+// Footer icons (optional overrides)
+const FOOTER_ICON_CANDIDATES: Partial<Record<TabKey, string[]>> = {
+  home: ["/assets/icons/footer/home.png"],
+  live: ["/assets/icons/footer/live.png"],
+  favs: ["/assets/icons/footer/favs.png"],
+  search: ["/assets/icons/footer/search.png"],
+};
+
+// -------------------- Inline Icons (fallback if you don’t have image assets yet) --------------------
+
+function IconHome() {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M12 14a3.5 3.5 0 0 0 3.5-3.5V6.3A3.5 3.5 0 1 0 8.5 6.3v4.2A3.5 3.5 0 0 0 12 14Z"
-        stroke="white"
-        strokeOpacity="0.95"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path d="M19 11a7 7 0 0 1-14 0" stroke="white" strokeOpacity="0.6" strokeWidth="2" strokeLinecap="round" />
-      <path d="M12 18v3" stroke="white" strokeOpacity="0.6" strokeWidth="2" strokeLinecap="round" />
+      <path d="M4 10.5 12 4l8 6.5" stroke="white" strokeOpacity="0.9" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M6.8 10.8V20h10.4v-9.2" stroke="white" strokeOpacity="0.55" strokeWidth="2" strokeLinejoin="round" />
     </svg>
   );
 }
-function IconRemote() {
+function IconLive() {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M9 4h6a4 4 0 0 1 4 4v8a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4V8a4 4 0 0 1 4-4Z"
-        stroke="white"
-        strokeOpacity="0.9"
-        strokeWidth="2"
-        strokeLinejoin="round"
-      />
-      <path d="M10 9h4" stroke="white" strokeOpacity="0.65" strokeWidth="2" strokeLinecap="round" />
-      <path d="M10 13h2" stroke="white" strokeOpacity="0.65" strokeWidth="2" strokeLinecap="round" />
-      <path d="M13.5 13h.5" stroke="white" strokeOpacity="0.65" strokeWidth="2" strokeLinecap="round" />
+      <path d="M7 12a5 5 0 0 1 10 0" stroke="white" strokeOpacity="0.85" strokeWidth="2" strokeLinecap="round" />
+      <path d="M4.5 12a7.5 7.5 0 0 1 15 0" stroke="white" strokeOpacity="0.5" strokeWidth="2" strokeLinecap="round" />
+      <path d="M12 20a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" stroke="white" strokeOpacity="0.9" strokeWidth="2" />
     </svg>
   );
 }
-function IconGear() {
+function IconHeart() {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" stroke="white" strokeOpacity="0.95" strokeWidth="2" />
       <path
-        d="M19.4 15a7.97 7.97 0 0 0 .1-1 7.97 7.97 0 0 0-.1-1l2-1.5-2-3.5-2.4 1a8.4 8.4 0 0 0-1.7-1l-.3-2.6h-4l-.3 2.6a8.4 8.4 0 0 0-1.7 1l-2.4-1-2 3.5 2 1.5a7.97 7.97 0 0 0-.1 1c0 .34.03.67.1 1l-2 1.5 2 3.5 2.4-1c.53.42 1.1.76 1.7 1l.3 2.6h4l.3-2.6c.6-.24 1.17-.58 1.7-1l2.4 1 2-3.5-2-1.5Z"
+        d="M12 21s-7-4.6-9.2-9C1 8.2 3.2 5.5 6.3 5.2c1.8-.2 3.5.7 4.5 2 1-1.3 2.7-2.2 4.5-2 3.1.3 5.3 3 3.5 6.8C19 16.4 12 21 12 21Z"
         stroke="white"
-        strokeOpacity="0.45"
+        strokeOpacity="0.85"
         strokeWidth="2"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-function IconChevronDown() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M6.5 9.5 12 15l5.5-5.5"
-        stroke="white"
-        strokeOpacity="0.75"
-        strokeWidth="2"
-        strokeLinecap="round"
         strokeLinejoin="round"
       />
     </svg>
   );
 }
-function IconPlay() {
+function IconSearch() {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M9 7.5v9l8-4.5-8-4.5Z" stroke="white" strokeOpacity="0.9" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M10.8 18.2a7.4 7.4 0 1 0 0-14.8 7.4 7.4 0 0 0 0 14.8Z" stroke="white" strokeOpacity="0.85" strokeWidth="2" />
+      <path d="M20.5 20.5l-4-4" stroke="white" strokeOpacity="0.6" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }
 
-// -------------------- SmartImg (w/ global failure cache to reduce 404 spam) --------------------
+// -------------------- SmartImg (capped failure cache + optional fill) --------------------
 
 const FAILED_IMG = new Set<string>();
+const FAILED_IMG_QUEUE: string[] = [];
+const FAILED_IMG_MAX = 300;
+
+function rememberFailed(src: string) {
+  if (!src) return;
+  if (FAILED_IMG.has(src)) return;
+  FAILED_IMG.add(src);
+  FAILED_IMG_QUEUE.push(src);
+  if (FAILED_IMG_QUEUE.length > FAILED_IMG_MAX) {
+    const oldest = FAILED_IMG_QUEUE.shift();
+    if (oldest) FAILED_IMG.delete(oldest);
+  }
+}
 
 function SmartImg({
   sources,
   alt = "",
-  size,
+  size = 24,
   rounded = 12,
   border = true,
   fit = "cover",
+  fill = false,
 }: {
   sources: string[];
   alt?: string;
-  size: number;
+  size?: number;
   rounded?: number;
   border?: boolean;
   fit?: "cover" | "contain";
+  fill?: boolean; // if true, image fills parent box
 }) {
-  const cleaned = useMemo(() => sources.filter(Boolean).filter((s) => !FAILED_IMG.has(s)), [sources]);
+  const cleaned = useMemo(
+    () => sources.filter(Boolean).filter((s) => !FAILED_IMG.has(s)),
+    [sources]
+  );
   const [idx, setIdx] = useState(0);
   const src = cleaned[idx];
 
@@ -525,8 +643,8 @@ function SmartImg({
       <span
         aria-hidden="true"
         style={{
-          width: size,
-          height: size,
+          width: fill ? "100%" : size,
+          height: fill ? "100%" : size,
           borderRadius: rounded,
           background: "rgba(255,255,255,0.10)",
           display: "inline-flex",
@@ -546,15 +664,15 @@ function SmartImg({
     <img
       src={src}
       alt={alt}
-      width={size}
-      height={size}
+      width={fill ? undefined : size}
+      height={fill ? undefined : size}
       onError={() => {
-        FAILED_IMG.add(src);
+        rememberFailed(src);
         setIdx((n) => n + 1);
       }}
       style={{
-        width: size,
-        height: size,
+        width: fill ? "100%" : size,
+        height: fill ? "100%" : size,
         borderRadius: rounded,
         objectFit: fit,
         display: "block",
@@ -565,10 +683,27 @@ function SmartImg({
   );
 }
 
+/* ===== END PART 2/5 ===== */
+/* =========================
+   AMPÈRE — Updated Demo App
+   PART 3/5
+   (Local storage + provider links + full teams + logo placeholders)
+   ========================= */
+
 // -------------------- Local storage --------------------
 
-const STORAGE_KEY = "ampere_profile_v3";
-const VIEWING_KEY = "ampere_viewing_v2";
+const STORAGE_KEY = "ampere_profile_v4";
+const VIEWING_KEY = "ampere_viewing_v3";
+
+// (Optional) small helper for Phase 1 demo: consistent localStorage patterns
+function safeJsonParse<T>(raw: string | null): T | null {
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
+}
 
 function defaultProfile(): ProfileState {
   return {
@@ -577,133 +712,141 @@ function defaultProfile(): ProfileState {
     headerPhoto: null,
     favoritePlatformIds: ["netflix", "espn", "blackmedia"],
     favoriteLeagues: ["NFL", "NBA", "NCAAF"],
-    favoriteTeams: ["Lakers", "Celtics", "Chiefs"],
-    connectedPlatformIds: {} as any,
+    favoriteTeams: ["Los Angeles Lakers", "Boston Celtics", "Kansas City Chiefs"],
+    connectedPlatformIds: {} as Partial<Record<PlatformId, boolean>>,
     notificationsEnabled: true,
+  };
+}
+
+function normalizeProfile(p: Partial<ProfileState> | null): ProfileState {
+  const d = defaultProfile();
+
+  const favoritePlatformIds = Array.isArray(p?.favoritePlatformIds)
+    ? (p!.favoritePlatformIds.filter(Boolean) as PlatformId[])
+    : d.favoritePlatformIds;
+
+  const favoriteLeagues = Array.isArray(p?.favoriteLeagues) ? p!.favoriteLeagues.filter(Boolean) : d.favoriteLeagues;
+  const favoriteTeams = Array.isArray(p?.favoriteTeams) ? p!.favoriteTeams.filter(Boolean) : d.favoriteTeams;
+
+  const connectedPlatformIds =
+    p?.connectedPlatformIds && typeof p.connectedPlatformIds === "object"
+      ? (p.connectedPlatformIds as Partial<Record<PlatformId, boolean>>)
+      : ({} as Partial<Record<PlatformId, boolean>>);
+
+  return {
+    ...d,
+    ...p,
+    favoritePlatformIds,
+    favoriteLeagues,
+    favoriteTeams,
+    connectedPlatformIds,
+    notificationsEnabled: typeof p?.notificationsEnabled === "boolean" ? p!.notificationsEnabled : d.notificationsEnabled,
   };
 }
 
 function loadProfile(): ProfileState {
   if (typeof window === "undefined") return defaultProfile();
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultProfile();
-    const p = JSON.parse(raw) as Partial<ProfileState>;
-    return {
-      ...defaultProfile(),
-      ...p,
-      favoritePlatformIds: Array.isArray(p.favoritePlatformIds) ? (p.favoritePlatformIds as PlatformId[]) : defaultProfile().favoritePlatformIds,
-      favoriteLeagues: Array.isArray(p.favoriteLeagues) ? p.favoriteLeagues : defaultProfile().favoriteLeagues,
-      favoriteTeams: Array.isArray(p.favoriteTeams) ? p.favoriteTeams : defaultProfile().favoriteTeams,
-      connectedPlatformIds: (p.connectedPlatformIds ?? {}) as any,
-      notificationsEnabled: typeof p.notificationsEnabled === "boolean" ? p.notificationsEnabled : defaultProfile().notificationsEnabled,
-    };
-  } catch {
-    return defaultProfile();
-  }
+  const parsed = safeJsonParse<Partial<ProfileState>>(window.localStorage.getItem(STORAGE_KEY));
+  return normalizeProfile(parsed);
 }
 
 function saveProfile(p: ProfileState) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
+  } catch {}
 }
 
 function loadViewing(): ViewingEvent[] {
   if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem(VIEWING_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as ViewingEvent[]) : [];
-  } catch {
-    return [];
-  }
+  const parsed = safeJsonParse<any>(window.localStorage.getItem(VIEWING_KEY));
+  return Array.isArray(parsed) ? (parsed as ViewingEvent[]) : [];
 }
 
 function saveViewing(events: ViewingEvent[]) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(VIEWING_KEY, JSON.stringify(events.slice(-300)));
-}
-
-// -------------------- Tracking (demo) --------------------
-
-function track(action: string, payload: any) {
   try {
-    const record = { action, payload, at: safeNowISO() };
-    // eslint-disable-next-line no-console
-    console.log("[AMPÈRE]", record);
-    if (typeof window !== "undefined") window.localStorage.setItem("ampere_last_action", JSON.stringify(record));
+    // cap to last 300
+    window.localStorage.setItem(VIEWING_KEY, JSON.stringify(events.slice(-300)));
   } catch {}
-}
-
-// -------------------- “AI” For You (MVP heuristic) --------------------
-
-function scoreForYou(card: Card, profile: ProfileState, viewing: ViewingEvent[]) {
-  const pid = card.platformId ?? platformIdFromLabel(card.platformLabel ?? "") ?? null;
-  const leagueKey = normalizeKey(card.league ?? "");
-
-  const favPlatformBoost = pid && profile.favoritePlatformIds.includes(pid) ? 3.0 : 0;
-  const favLeagueBoost = profile.favoriteLeagues.some((l) => normalizeKey(l) === leagueKey) ? 2.0 : 0;
-
-  const now = Date.now();
-  let habit = 0;
-  for (const v of viewing) {
-    const ageHrs = Math.max(0, (now - new Date(v.at).getTime()) / 36e5);
-    const decay = Math.exp(-ageHrs / 72);
-    if (pid && v.platformId === pid) habit += 1.2 * decay;
-    if (leagueKey && normalizeKey(v.league ?? "") === leagueKey) habit += 0.8 * decay;
-  }
-
-  const urgency = card.badge === "LIVE" ? 1.5 : card.badge === "UPCOMING" ? 0.6 : 0.2;
-  const last = viewing[viewing.length - 1];
-  const variety = last && normalizeKey(last.title) === normalizeKey(card.title) ? -0.6 : 0;
-
-  return favPlatformBoost + favLeagueBoost + habit + urgency + variety;
-}
-
-function rankForYou(cards: Card[], profile: ProfileState, viewing: ViewingEvent[]) {
-  return [...cards]
-    .map((c) => ({ c, s: scoreForYou(c, profile, viewing) }))
-    .sort((a, b) => b.s - a.s)
-    .map((x) => x.c);
-}
-
-function logViewing(card: Card) {
-  if (typeof window === "undefined") return;
-  const prev = loadViewing();
-  const evt: ViewingEvent = {
-    id: String(card.id ?? Math.random()),
-    title: String(card.title ?? "Untitled"),
-    platformId: card.platformId,
-    league: card.league,
-    at: safeNowISO(),
-  };
-  saveViewing([...prev, evt]);
-  track("view_log", { title: evt.title, platformId: evt.platformId, league: evt.league });
 }
 
 // -------------------- Provider links (safe allowlist client-side) --------------------
 
-type ProviderLink = { openBase: string; subscribe?: string; search?: (q: string) => string };
+type ProviderLink = {
+  openBase: string;
+  subscribe?: string;
+  search?: (q: string) => string;
+};
 
 const PROVIDER_LINKS: Partial<Record<PlatformId, ProviderLink>> = {
-  netflix: { openBase: "https://www.netflix.com/browse", subscribe: "https://www.netflix.com/signup", search: (q) => `https://www.netflix.com/search?q=${encodeURIComponent(q)}` },
-  hulu: { openBase: "https://www.hulu.com/hub/home", subscribe: "https://www.hulu.com/welcome", search: (q) => `https://www.hulu.com/search?q=${encodeURIComponent(q)}` },
-  primevideo: { openBase: "https://www.primevideo.com", subscribe: "https://www.primevideo.com", search: (q) => `https://www.primevideo.com/search/ref=atv_nb_sug?phrase=${encodeURIComponent(q)}` },
-  disneyplus: { openBase: "https://www.disneyplus.com/home", subscribe: "https://www.disneyplus.com", search: (q) => `https://www.disneyplus.com/search/${encodeURIComponent(q)}` },
+  netflix: {
+    openBase: "https://www.netflix.com/browse",
+    subscribe: "https://www.netflix.com/signup",
+    search: (q) => `https://www.netflix.com/search?q=${encodeURIComponent(q)}`,
+  },
+  hulu: {
+    openBase: "https://www.hulu.com/hub/home",
+    subscribe: "https://www.hulu.com/welcome",
+    search: (q) => `https://www.hulu.com/search?q=${encodeURIComponent(q)}`,
+  },
+  primevideo: {
+    openBase: "https://www.primevideo.com",
+    subscribe: "https://www.primevideo.com",
+    search: (q) => `https://www.primevideo.com/search/ref=atv_nb_sug?phrase=${encodeURIComponent(q)}`,
+  },
+  disneyplus: {
+    openBase: "https://www.disneyplus.com/home",
+    subscribe: "https://www.disneyplus.com",
+    search: (q) => `https://www.disneyplus.com/search/${encodeURIComponent(q)}`,
+  },
   max: { openBase: "https://play.max.com", subscribe: "https://www.max.com" },
-  peacock: { openBase: "https://www.peacocktv.com/watch/home", subscribe: "https://www.peacocktv.com/plans/all-monthly", search: (q) => `https://www.peacocktv.com/search?q=${encodeURIComponent(q)}` },
-  paramountplus: { openBase: "https://www.paramountplus.com", subscribe: "https://www.paramountplus.com/account/signup/", search: (q) => `https://www.paramountplus.com/search/${encodeURIComponent(q)}` },
-  youtube: { openBase: "https://www.youtube.com", subscribe: "https://www.youtube.com/premium", search: (q) => `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}` },
+  peacock: {
+    openBase: "https://www.peacocktv.com/watch/home",
+    subscribe: "https://www.peacocktv.com/plans/all-monthly",
+    search: (q) => `https://www.peacocktv.com/search?q=${encodeURIComponent(q)}`,
+  },
+  paramountplus: {
+    openBase: "https://www.paramountplus.com",
+    subscribe: "https://www.paramountplus.com/account/signup/",
+    search: (q) => `https://www.paramountplus.com/search/${encodeURIComponent(q)}`,
+  },
+  youtube: {
+    openBase: "https://www.youtube.com",
+    subscribe: "https://www.youtube.com/premium",
+    search: (q) => `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`,
+  },
   youtubetv: { openBase: "https://tv.youtube.com", subscribe: "https://tv.youtube.com/welcome/" },
-  appletv: { openBase: "https://tv.apple.com", subscribe: "https://tv.apple.com", search: (q) => `https://tv.apple.com/search?term=${encodeURIComponent(q)}` },
-  espn: { openBase: "https://www.espn.com/watch/", subscribe: "https://plus.espn.com", search: (q) => `https://www.espn.com/search/results?q=${encodeURIComponent(q)}` },
+  appletv: {
+    openBase: "https://tv.apple.com",
+    subscribe: "https://tv.apple.com",
+    search: (q) => `https://tv.apple.com/search?term=${encodeURIComponent(q)}`,
+  },
+  espn: {
+    openBase: "https://www.espn.com/watch/",
+    subscribe: "https://plus.espn.com",
+    search: (q) => `https://www.espn.com/search/results?q=${encodeURIComponent(q)}`,
+  },
   tubi: { openBase: "https://tubitv.com", subscribe: "https://tubitv.com" },
   twitch: { openBase: "https://www.twitch.tv", search: (q) => `https://www.twitch.tv/search?term=${encodeURIComponent(q)}` },
+  sling: { openBase: "https://www.sling.com", subscribe: "https://www.sling.com" },
+  fubotv: { openBase: "https://www.fubo.tv/welcome", subscribe: "https://www.fubo.tv/welcome" },
+
+  // Kids (fallbacks; safe + stable)
+  pbskids: { openBase: "https://pbskids.org" },
+  noggin: { openBase: "https://www.nick.com/apps/noggin", subscribe: "https://www.nick.com/apps/noggin" },
+  kidoodletv: { openBase: "https://www.kidoodle.tv" },
+  happykids: { openBase: "https://happykids.tv" },
+  sensical: { openBase: "https://sensical.tv" },
+  kabillion: { openBase: "https://kabillion.com" },
+  toongoggles: { openBase: "https://www.toongoggles.com" },
+  yippee: { openBase: "https://www.yippee.tv", subscribe: "https://www.yippee.tv" },
+
   hbcugo: { openBase: "https://hbcugo.tv", subscribe: "https://hbcugo.tv" },
   hbcugosports: { openBase: "https://hbcugo.tv/Sports", subscribe: "https://hbcugo.tv/Sports" },
+
+  // “umbrella” / fallbacks
   blackmedia: { openBase: "https://www.google.com/search?q=black+media+streaming" },
-  livetv: { openBase: "https://www.google.com/search?q=live+tv+provider" },
 };
 
 function providerUrlOpen(pid: PlatformId | null, title: string) {
@@ -712,6 +855,7 @@ function providerUrlOpen(pid: PlatformId | null, title: string) {
   if (link?.openBase) return link.openBase;
   return "https://www.google.com/search?q=" + encodeURIComponent(`${pid ?? "streaming"} ${title}`);
 }
+
 function providerUrlSubscribe(pid: PlatformId | null) {
   const link = pid ? PROVIDER_LINKS[pid] : undefined;
   if (link?.subscribe) return link.subscribe;
@@ -719,55 +863,424 @@ function providerUrlSubscribe(pid: PlatformId | null) {
   return "https://www.google.com/search?q=" + encodeURIComponent(`${pid ?? "streaming"} subscribe`);
 }
 
-// -------------------- Teams by league (wizard + notifications) --------------------
+// Phase 2 safety pattern: DO NOT log full URLs in prod
+function redactUrl(u: string) {
+  try {
+    const x = new URL(u);
+    return `${x.origin}${x.pathname}${x.search ? "?…" : ""}`;
+  } catch {
+    return u ? "url" : "";
+  }
+}
 
-const TEAMS_BY_LEAGUE: Record<string, string[]> = {
-  NFL: ["Chiefs", "Bills", "Cowboys", "49ers", "Eagles", "Dolphins", "Jets", "Giants"],
-  NBA: ["Lakers", "Celtics", "Warriors", "Heat", "Bulls", "Knicks", "Nuggets", "Suns"],
-  MLB: ["Yankees", "Red Sox", "Dodgers", "Cubs", "Braves", "Mets", "Astros", "Phillies"],
-  NHL: ["Rangers", "Bruins", "Maple Leafs", "Blackhawks", "Oilers", "Lightning", "Avalanche", "Golden Knights"],
-  NCAAF: ["Alabama", "Georgia", "Michigan", "USC", "Texas", "Ohio State", "Florida State", "LSU"],
-  Soccer: ["Arsenal", "Chelsea", "Barcelona", "Real Madrid", "Inter Miami", "Manchester City", "Liverpool", "PSG"],
-  UFC: ["Fight Night", "Title Card", "PPV Main Event"],
-  HBCUGOSPORTS: ["HBCU Showcase", "Game of the Week", "Classic Rivalry"],
-  HBCUGO: ["Campus Stories", "HBCU Spotlight", "Student Athletes"],
-};
+// -------------------- Team logo placeholders --------------------
+
+function teamLogoCandidates(league: string, team: string): string[] {
+  const l = normalizeKey(league);
+  const t = normalizeKey(team);
+  // You will add real assets later in these folders (see Part 5 directory plan)
+  return [
+    `/assets/teams/${l}/${t}.png`,
+    `/assets/teams/${l}/${t}.svg`,
+    `/logos/teams/${l}/${t}.png`,
+  ];
+}
+
+// -------------------- Teams by league (Wizard + Notifications) --------------------
 
 const LEAGUES = ["ALL", "NFL", "NBA", "MLB", "NHL", "NCAAF", "Soccer", "UFC", "HBCUGOSPORTS", "HBCUGO"] as const;
 
-// -------------------- Image upload helpers --------------------
+// Full team lists (pro leagues complete; NCAAF is curated FBS-ish “starter” list for demo)
+// You can expand/replace in Phase 2 with a DB table and official IDs.
+const TEAMS_BY_LEAGUE: Record<string, string[]> = {
+  NFL: [
+    "Arizona Cardinals",
+    "Atlanta Falcons",
+    "Baltimore Ravens",
+    "Buffalo Bills",
+    "Carolina Panthers",
+    "Chicago Bears",
+    "Cincinnati Bengals",
+    "Cleveland Browns",
+    "Dallas Cowboys",
+    "Denver Broncos",
+    "Detroit Lions",
+    "Green Bay Packers",
+    "Houston Texans",
+    "Indianapolis Colts",
+    "Jacksonville Jaguars",
+    "Kansas City Chiefs",
+    "Las Vegas Raiders",
+    "Los Angeles Chargers",
+    "Los Angeles Rams",
+    "Miami Dolphins",
+    "Minnesota Vikings",
+    "New England Patriots",
+    "New Orleans Saints",
+    "New York Giants",
+    "New York Jets",
+    "Philadelphia Eagles",
+    "Pittsburgh Steelers",
+    "San Francisco 49ers",
+    "Seattle Seahawks",
+    "Tampa Bay Buccaneers",
+    "Tennessee Titans",
+    "Washington Commanders",
+  ],
+  NBA: [
+    "Atlanta Hawks",
+    "Boston Celtics",
+    "Brooklyn Nets",
+    "Charlotte Hornets",
+    "Chicago Bulls",
+    "Cleveland Cavaliers",
+    "Dallas Mavericks",
+    "Denver Nuggets",
+    "Detroit Pistons",
+    "Golden State Warriors",
+    "Houston Rockets",
+    "Indiana Pacers",
+    "LA Clippers",
+    "Los Angeles Lakers",
+    "Memphis Grizzlies",
+    "Miami Heat",
+    "Milwaukee Bucks",
+    "Minnesota Timberwolves",
+    "New Orleans Pelicans",
+    "New York Knicks",
+    "Oklahoma City Thunder",
+    "Orlando Magic",
+    "Philadelphia 76ers",
+    "Phoenix Suns",
+    "Portland Trail Blazers",
+    "Sacramento Kings",
+    "San Antonio Spurs",
+    "Toronto Raptors",
+    "Utah Jazz",
+    "Washington Wizards",
+  ],
+  MLB: [
+    "Arizona Diamondbacks",
+    "Atlanta Braves",
+    "Baltimore Orioles",
+    "Boston Red Sox",
+    "Chicago Cubs",
+    "Chicago White Sox",
+    "Cincinnati Reds",
+    "Cleveland Guardians",
+    "Colorado Rockies",
+    "Detroit Tigers",
+    "Houston Astros",
+    "Kansas City Royals",
+    "Los Angeles Angels",
+    "Los Angeles Dodgers",
+    "Miami Marlins",
+    "Milwaukee Brewers",
+    "Minnesota Twins",
+    "New York Mets",
+    "New York Yankees",
+    "Oakland Athletics",
+    "Philadelphia Phillies",
+    "Pittsburgh Pirates",
+    "San Diego Padres",
+    "San Francisco Giants",
+    "Seattle Mariners",
+    "St. Louis Cardinals",
+    "Tampa Bay Rays",
+    "Texas Rangers",
+    "Toronto Blue Jays",
+    "Washington Nationals",
+  ],
+  NHL: [
+    "Anaheim Ducks",
+    "Arizona Coyotes",
+    "Boston Bruins",
+    "Buffalo Sabres",
+    "Calgary Flames",
+    "Carolina Hurricanes",
+    "Chicago Blackhawks",
+    "Colorado Avalanche",
+    "Columbus Blue Jackets",
+    "Dallas Stars",
+    "Detroit Red Wings",
+    "Edmonton Oilers",
+    "Florida Panthers",
+    "Los Angeles Kings",
+    "Minnesota Wild",
+    "Montreal Canadiens",
+    "Nashville Predators",
+    "New Jersey Devils",
+    "New York Islanders",
+    "New York Rangers",
+    "Ottawa Senators",
+    "Philadelphia Flyers",
+    "Pittsburgh Penguins",
+    "San Jose Sharks",
+    "Seattle Kraken",
+    "St. Louis Blues",
+    "Tampa Bay Lightning",
+    "Toronto Maple Leafs",
+    "Vancouver Canucks",
+    "Vegas Golden Knights",
+    "Washington Capitals",
+    "Winnipeg Jets",
+  ],
 
-async function fileToResizedDataUrl(file: File, maxSize = 720): Promise<string> {
-  const dataUrl: string = await new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result ?? ""));
-    reader.onerror = () => reject(new Error("file read failed"));
-    reader.readAsDataURL(file);
-  });
+  // Curated college list (expand in Phase 2 by conference tables + official IDs)
+  NCAAF: [
+    "Alabama Crimson Tide",
+    "Arizona Wildcats",
+    "Arizona State Sun Devils",
+    "Arkansas Razorbacks",
+    "Auburn Tigers",
+    "Baylor Bears",
+    "Boise State Broncos",
+    "Boston College Eagles",
+    "BYU Cougars",
+    "California Golden Bears",
+    "Clemson Tigers",
+    "Colorado Buffaloes",
+    "Duke Blue Devils",
+    "Florida Gators",
+    "Florida State Seminoles",
+    "Georgia Bulldogs",
+    "Georgia Tech Yellow Jackets",
+    "Illinois Fighting Illini",
+    "Indiana Hoosiers",
+    "Iowa Hawkeyes",
+    "Iowa State Cyclones",
+    "Kansas Jayhawks",
+    "Kansas State Wildcats",
+    "Kentucky Wildcats",
+    "LSU Tigers",
+    "Louisville Cardinals",
+    "Maryland Terrapins",
+    "Miami Hurricanes",
+    "Michigan Wolverines",
+    "Michigan State Spartans",
+    "Minnesota Golden Gophers",
+    "Mississippi State Bulldogs",
+    "Missouri Tigers",
+    "Nebraska Cornhuskers",
+    "North Carolina Tar Heels",
+    "NC State Wolfpack",
+    "Notre Dame Fighting Irish",
+    "Ohio State Buckeyes",
+    "Oklahoma Sooners",
+    "Oklahoma State Cowboys",
+    "Ole Miss Rebels",
+    "Oregon Ducks",
+    "Oregon State Beavers",
+    "Penn State Nittany Lions",
+    "Pittsburgh Panthers",
+    "Purdue Boilermakers",
+    "Rutgers Scarlet Knights",
+    "South Carolina Gamecocks",
+    "Stanford Cardinal",
+    "Syracuse Orange",
+    "TCU Horned Frogs",
+    "Tennessee Volunteers",
+    "Texas Longhorns",
+    "Texas A&M Aggies",
+    "Texas Tech Red Raiders",
+    "UCLA Bruins",
+    "USC Trojans",
+    "Utah Utes",
+    "Vanderbilt Commodores",
+    "Virginia Cavaliers",
+    "Virginia Tech Hokies",
+    "Wake Forest Demon Deacons",
+    "Washington Huskies",
+    "West Virginia Mountaineers",
+    "Wisconsin Badgers",
+  ],
 
-  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-    const i = new Image();
-    i.onload = () => resolve(i);
-    i.onerror = () => reject(new Error("image load failed"));
-    i.src = dataUrl;
-  });
+  Soccer: [
+    // Demo set (expand later to MLS / EPL / UEFA etc. with official IDs)
+    "Inter Miami CF",
+    "LA Galaxy",
+    "New York City FC",
+    "Seattle Sounders",
+    "Atlanta United",
+    "Arsenal",
+    "Chelsea",
+    "Liverpool",
+    "Manchester City",
+    "Manchester United",
+    "Tottenham Hotspur",
+    "Barcelona",
+    "Real Madrid",
+    "Bayern Munich",
+    "PSG",
+    "Juventus",
+    "Inter Milan",
+    "AC Milan",
+  ],
 
-  const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
-  const w = Math.max(1, Math.round(img.width * scale));
-  const h = Math.max(1, Math.round(img.height * scale));
+  UFC: ["UFC Fight Night", "UFC Main Card", "UFC PPV Main Event"],
 
-  const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
+  HBCUGOSPORTS: ["HBCU Showcase", "HBCU Game of the Week", "Classic Rivalry"],
+  HBCUGO: ["Campus Stories", "HBCU Spotlight", "Student Athletes"],
+};
 
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return dataUrl;
+/* ===== END PART 3/5 ===== */
+/* =========================
+   AMPÈRE — Updated Demo App
+   PART 4/5
+   (Design tokens + dropdown readability/ESC close + filter accordions/chips + footer icons
+    + wizard focus fix via Modal onClose stabilization + Browse/Platforms labels + remove All/Preview UI)
+   ========================= */
 
-  ctx.drawImage(img, 0, 0, w, h);
-  return canvas.toDataURL("image/jpeg", 0.86);
+// -------------------- Design tokens + global CSS --------------------
+
+const AMPERE_GLOBAL_CSS = `
+:root{
+  --bg0:#050505;
+  --bg1:#0b0b0b;
+  --surface: rgba(255,255,255,0.05);
+  --surface2: rgba(255,255,255,0.08);
+  --stroke: rgba(255,255,255,0.10);
+  --stroke2: rgba(255,255,255,0.14);
+  --text: rgba(255,255,255,0.92);
+  --muted: rgba(255,255,255,0.70);
+  --muted2: rgba(255,255,255,0.55);
+
+  --accent: rgba(58,167,255,1);
+  --accentA: rgba(58,167,255,0.22);
+  --accentB: rgba(58,167,255,0.12);
+
+  --r-xl: 22px;
+  --r-lg: 18px;
+  --r-md: 14px;
+
+  --shadow-lg: 0 20px 90px rgba(0,0,0,0.65);
+  --shadow-md: 0 18px 60px rgba(0,0,0,0.55);
+
+  --focus: rgba(58,167,255,0.90);
+}
+*{ box-sizing:border-box; }
+button, a, input { -webkit-tap-highlight-color: transparent; }
+.ampere-focus:focus-visible{
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(0,0,0,0.55);
+}
+@media (prefers-reduced-motion: reduce) {
+  * { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+}
+`;
+
+// -------------------- Inline Icons (missing set) --------------------
+
+function IconReset() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M20 12a8 8 0 1 1-2.35-5.65"
+        stroke="white"
+        strokeOpacity="0.8"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M20 4v6h-6"
+        stroke="white"
+        strokeOpacity="0.8"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
 }
 
-// -------------------- Modal (a11y + focus + ESC) --------------------
+function IconChevronDown() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M6.5 9.5 12 15l5.5-5.5"
+        stroke="white"
+        strokeOpacity="0.78"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IconMic() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M12 14a3 3 0 0 0 3-3V7a3 3 0 0 0-6 0v4a3 3 0 0 0 3 3Z"
+        stroke="white"
+        strokeOpacity="0.9"
+        strokeWidth="2"
+      />
+      <path
+        d="M7 11a5 5 0 0 0 10 0"
+        stroke="white"
+        strokeOpacity="0.6"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M12 16v4"
+        stroke="white"
+        strokeOpacity="0.6"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M9 20h6"
+        stroke="white"
+        strokeOpacity="0.6"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function IconRemote() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M8 4h8a2 2 0 0 1 2 2v12a3 3 0 0 1-3 3H9a3 3 0 0 1-3-3V6a2 2 0 0 1 2-2Z"
+        stroke="white"
+        strokeOpacity="0.9"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      <path d="M10 8h4" stroke="white" strokeOpacity="0.55" strokeWidth="2" strokeLinecap="round" />
+      <path d="M10 12h4" stroke="white" strokeOpacity="0.55" strokeWidth="2" strokeLinecap="round" />
+      <path d="M10 16h4" stroke="white" strokeOpacity="0.55" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function IconGear() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z"
+        stroke="white"
+        strokeOpacity="0.9"
+        strokeWidth="2"
+      />
+      <path
+        d="M19.4 15a8.5 8.5 0 0 0 .1-2l2-1.2-2-3.5-2.3.7a8.4 8.4 0 0 0-1.7-1l-.3-2.4H10.8l-.3 2.4a8.4 8.4 0 0 0-1.7 1l-2.3-.7-2 3.5 2 1.2a8.5 8.5 0 0 0 .1 2l-2 1.2 2 3.5 2.3-.7c.5.4 1.1.7 1.7 1l.3 2.4h4.4l.3-2.4c.6-.3 1.2-.6 1.7-1l2.3.7 2-3.5-2-1.2Z"
+        stroke="white"
+        strokeOpacity="0.55"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+// -------------------- Modal (focus trap + stable onClose ref; fixes wizard input blur) --------------------
 
 function Modal({
   open,
@@ -783,28 +1296,91 @@ function Modal({
   maxWidth?: number;
 }) {
   const panelRef = useRef<HTMLDivElement | null>(null);
-  const titleId = useMemo(() => `modal_${normalizeKey(title)}_${Math.random().toString(16).slice(2)}`, [title]);
+  const lastActiveRef = useRef<HTMLElement | null>(null);
+  const prevBodyOverflowRef = useRef<string>("");
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  const titleId = useMemo(
+    () => `modal_${normalizeKey(title)}_${Math.random().toString(16).slice(2)}`,
+    [title]
+  );
 
   useEffect(() => {
     if (!open) return;
 
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+    lastActiveRef.current = (document.activeElement as HTMLElement) ?? null;
+
+    prevBodyOverflowRef.current = document.body.style.overflow ?? "";
+    document.body.style.overflow = "hidden";
+
+    const getFocusable = (root: HTMLElement) => {
+      const nodes = Array.from(
+        root.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        )
+      );
+      return nodes.filter((el) => {
+        const disabled = (el as HTMLButtonElement).disabled;
+        const ariaDisabled = el.getAttribute("aria-disabled") === "true";
+        const hidden = el.getAttribute("aria-hidden") === "true";
+        return !disabled && !ariaDisabled && !hidden && el.offsetParent !== null;
+      });
     };
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onCloseRef.current?.();
+        return;
+      }
+      if (e.key === "Tab") {
+        const root = panelRef.current;
+        if (!root) return;
+
+        const focusables = getFocusable(root);
+        if (!focusables.length) {
+          e.preventDefault();
+          root.focus();
+          return;
+        }
+
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        const active = document.activeElement as HTMLElement | null;
+
+        if (e.shiftKey) {
+          if (!active || !root.contains(active) || active === first) {
+            e.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (!active || !root.contains(active) || active === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
+    };
+
     document.addEventListener("keydown", onKey);
 
-    // Focus first focusable
-    setTimeout(() => {
+    requestAnimationFrame(() => {
       const root = panelRef.current;
       if (!root) return;
-      const focusable = root.querySelector<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-      );
-      focusable?.focus?.();
-    }, 0);
+      const focusables = getFocusable(root);
+      const active = document.activeElement as HTMLElement | null;
+      if (active && root.contains(active)) return;
+      if (focusables.length) focusables[0].focus();
+      else root.focus();
+    });
 
-    return () => document.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevBodyOverflowRef.current ?? "";
+      requestAnimationFrame(() => lastActiveRef.current?.focus?.());
+    };
+  }, [open]);
 
   if (!open) return null;
 
@@ -814,16 +1390,16 @@ function Modal({
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(0,0,0,0.60)",
-        backdropFilter: "blur(8px)",
-        zIndex: 70,
+        background: "rgba(0,0,0,0.62)",
+        backdropFilter: "blur(10px)",
+        zIndex: 80,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         padding: 18,
       }}
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) onCloseRef.current?.();
       }}
     >
       <div
@@ -831,13 +1407,15 @@ function Modal({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
+        tabIndex={-1}
         style={{
           width: `min(${maxWidth}px, 100%)`,
-          borderRadius: 22,
-          border: "1px solid rgba(255,255,255,0.10)",
-          background: "rgba(18,18,18,0.95)",
-          boxShadow: "0 20px 90px rgba(0,0,0,0.65)",
+          borderRadius: "var(--r-xl)",
+          border: "1px solid var(--stroke)",
+          background: "rgba(12,12,12,0.98)",
+          boxShadow: "var(--shadow-lg)",
           overflow: "hidden",
+          outline: "none",
         }}
         onMouseDown={(e) => e.stopPropagation()}
       >
@@ -848,21 +1426,24 @@ function Modal({
             alignItems: "center",
             justifyContent: "space-between",
             borderBottom: "1px solid rgba(255,255,255,0.08)",
+            background:
+              "linear-gradient(180deg, rgba(58,167,255,0.10), rgba(0,0,0,0.00) 60%), rgba(0,0,0,0.35)",
           }}
         >
           <div id={titleId} style={{ fontSize: 18, fontWeight: 950, color: "white" }}>
             {title}
           </div>
           <button
-            onClick={onClose}
+            type="button"
+            onClick={() => onCloseRef.current?.()}
             className="ampere-focus"
             aria-label="Close modal"
             style={{
               width: 42,
               height: 42,
               borderRadius: 14,
-              border: "1px solid rgba(255,255,255,0.12)",
-              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.14)",
+              background: "rgba(255,255,255,0.06)",
               color: "white",
               cursor: "pointer",
               fontWeight: 900,
@@ -877,7 +1458,7 @@ function Modal({
   );
 }
 
-// -------------------- Buttons / dropdown --------------------
+// -------------------- Pills / chips / dropdown --------------------
 
 function PillButton({
   label,
@@ -888,6 +1469,7 @@ function PillButton({
   fullWidth,
   multiline,
   ariaLabel,
+  subtle,
 }: {
   label: string;
   iconSources?: string[];
@@ -897,12 +1479,15 @@ function PillButton({
   fullWidth?: boolean;
   multiline?: boolean;
   ariaLabel?: string;
+  subtle?: boolean;
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       className="ampere-focus"
       aria-label={ariaLabel ?? label}
+      aria-pressed={!!active}
       style={{
         width: fullWidth ? "100%" : undefined,
         display: "inline-flex",
@@ -911,18 +1496,25 @@ function PillButton({
         gap: 10,
         padding: "12px 14px",
         borderRadius: 999,
-        border: "1px solid rgba(255,255,255,0.10)",
-        background: active ? "rgba(255,255,255,0.14)" : "rgba(255,255,255,0.05)",
+        border: active ? "1px solid rgba(58,167,255,0.38)" : "1px solid var(--stroke)",
+        background: active
+          ? "linear-gradient(180deg, rgba(58,167,255,0.18), rgba(0,0,0,0.06)), rgba(255,255,255,0.06)"
+          : subtle
+          ? "rgba(0,0,0,0.18)"
+          : "rgba(255,255,255,0.05)",
         color: "white",
         cursor: "pointer",
         fontWeight: 950,
         userSelect: "none",
         minWidth: 0,
         textAlign: "left",
+        boxShadow: active ? "0 0 0 1px rgba(58,167,255,0.10) inset" : undefined,
       }}
     >
       {iconNode ? (
-        <span style={{ width: 24, height: 24, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>{iconNode}</span>
+        <span style={{ width: 24, height: 24, display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+          {iconNode}
+        </span>
       ) : iconSources && iconSources.length ? (
         <SmartImg sources={iconSources} size={24} rounded={9} fit="contain" />
       ) : (
@@ -942,6 +1534,7 @@ function PillButton({
           •
         </span>
       )}
+
       <span
         style={{
           opacity: 0.95,
@@ -953,6 +1546,48 @@ function PillButton({
       >
         {label}
       </span>
+
+      {active ? (
+        <span
+          aria-hidden="true"
+          style={{
+            marginLeft: "auto",
+            width: 10,
+            height: 10,
+            borderRadius: 999,
+            background: "rgba(58,167,255,0.95)",
+            boxShadow: "0 0 0 4px rgba(58,167,255,0.14)",
+            flex: "0 0 auto",
+          }}
+        />
+      ) : null}
+    </button>
+  );
+}
+
+function Chip({ label, onRemove }: { label: string; onRemove?: () => void }) {
+  return (
+    <button
+      type="button"
+      className="ampere-focus"
+      onClick={onRemove}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 8,
+        padding: "8px 10px",
+        borderRadius: 999,
+        border: "1px solid rgba(58,167,255,0.22)",
+        background: "rgba(58,167,255,0.10)",
+        color: "white",
+        fontWeight: 950,
+        cursor: onRemove ? "pointer" : "default",
+        whiteSpace: "nowrap",
+      }}
+      aria-label={onRemove ? `Remove ${label}` : label}
+    >
+      <span style={{ opacity: 0.95 }}>{label}</span>
+      {onRemove ? <span style={{ opacity: 0.85, fontWeight: 950 }}>✕</span> : null}
     </button>
   );
 }
@@ -961,7 +1596,7 @@ function Dropdown({
   label,
   iconLeft,
   children,
-  minWidth = 260,
+  minWidth = 280,
 }: {
   label: string;
   iconLeft?: React.ReactNode;
@@ -976,13 +1611,21 @@ function Dropdown({
       if (!ref.current) return;
       if (!ref.current.contains(e.target as any)) setOpen(false);
     };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
     document.addEventListener("mousedown", on);
-    return () => document.removeEventListener("mousedown", on);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", on);
+      document.removeEventListener("keydown", onKey);
+    };
   }, []);
 
   return (
     <div ref={ref} style={{ position: "relative" }}>
       <button
+        type="button"
         onClick={() => setOpen((s) => !s)}
         className="ampere-focus"
         style={{
@@ -991,12 +1634,13 @@ function Dropdown({
           gap: 10,
           padding: "12px 14px",
           borderRadius: 999,
-          border: "1px solid rgba(255,255,255,0.10)",
-          background: open ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.04)",
+          border: open ? "1px solid rgba(58,167,255,0.26)" : "1px solid var(--stroke)",
+          background: open ? "rgba(58,167,255,0.10)" : "rgba(255,255,255,0.04)",
           color: "white",
           cursor: "pointer",
           fontWeight: 950,
           whiteSpace: "nowrap",
+          boxShadow: open ? "0 0 0 1px rgba(58,167,255,0.10) inset" : undefined,
         }}
         aria-haspopup="menu"
         aria-expanded={open}
@@ -1015,11 +1659,12 @@ function Dropdown({
             top: "calc(100% + 10px)",
             minWidth,
             borderRadius: 18,
-            border: "1px solid rgba(255,255,255,0.10)",
-            background: "rgba(18,18,18,0.98)",
-            boxShadow: "0 18px 60px rgba(0,0,0,0.55)",
+            border: "1px solid rgba(255,255,255,0.14)",
+            background:
+              "linear-gradient(180deg, rgba(58,167,255,0.10), rgba(0,0,0,0.00) 55%), rgba(10,10,10,0.98)",
+            boxShadow: "var(--shadow-md)",
             overflow: "hidden",
-            zIndex: 60,
+            zIndex: 90,
           }}
         >
           <div style={{ padding: 10, display: "grid", gap: 8 }}>{children}</div>
@@ -1042,6 +1687,7 @@ function MenuItem({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       className="ampere-focus"
       role="menuitem"
@@ -1049,8 +1695,8 @@ function MenuItem({
         width: "100%",
         textAlign: "left",
         borderRadius: 14,
-        border: "1px solid rgba(255,255,255,0.10)",
-        background: "rgba(255,255,255,0.05)",
+        border: "1px solid rgba(255,255,255,0.12)",
+        background: "rgba(255,255,255,0.06)",
         padding: 12,
         color: "white",
         cursor: "pointer",
@@ -1061,15 +1707,70 @@ function MenuItem({
       }}
     >
       <div style={{ minWidth: 0 }}>
-        <div style={{ fontWeight: 950, opacity: 0.92 }}>{title}</div>
-        {subtitle ? <div style={{ marginTop: 4, fontWeight: 850, opacity: 0.65, fontSize: 12 }}>{subtitle}</div> : null}
+        <div style={{ fontWeight: 950, opacity: 0.94 }}>{title}</div>
+        {subtitle ? <div style={{ marginTop: 4, fontWeight: 850, opacity: 0.68, fontSize: 12 }}>{subtitle}</div> : null}
       </div>
-      {right ? <div style={{ opacity: 0.85 }}>{right}</div> : null}
+      {right ? <div style={{ opacity: 0.9, fontWeight: 950 }}>{right}</div> : null}
     </button>
   );
 }
 
-// -------------------- Cards (grid preview) --------------------
+// -------------------- Filter UI: mobile accordions + selected chips + reset --------------------
+
+function FilterAccordion({
+  title,
+  right,
+  children,
+  defaultOpen,
+  isMobile,
+}: {
+  title: string;
+  right?: React.ReactNode;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+  isMobile: boolean;
+}) {
+  const [open, setOpen] = useState(!!defaultOpen);
+  useEffect(() => {
+    if (!isMobile) setOpen(true);
+  }, [isMobile]);
+
+  return (
+    <div style={{ display: "grid", gap: 10 }}>
+      <button
+        type="button"
+        onClick={() => (isMobile ? setOpen((s) => !s) : null)}
+        className="ampere-focus"
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+          gap: 10,
+          background: "transparent",
+          border: "none",
+          color: "white",
+          cursor: isMobile ? "pointer" : "default",
+          padding: 0,
+        }}
+        aria-expanded={open}
+      >
+        <span style={{ fontSize: 18, fontWeight: 950 }}>{title}</span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 10, opacity: 0.8, fontWeight: 900, fontSize: 13 }}>
+          {right}
+          {isMobile ? (
+            <span style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 120ms ease" }}>
+              <IconChevronDown />
+            </span>
+          ) : null}
+        </span>
+      </button>
+
+      {open ? children : null}
+    </div>
+  );
+}
+
+// -------------------- Cards + grids (adds lightweight "Load more" for heavy modals) --------------------
 
 function CardThumb({
   card,
@@ -1083,20 +1784,23 @@ function CardThumb({
   const platform = card.platformId ? platformById(card.platformId) : undefined;
   const badgeRight = card.badgeRight ?? platform?.label ?? card.platformLabel ?? "";
 
-  const heroCandidates = card.thumb ? [card.thumb, ...brandWideCandidates(), ...brandMarkCandidates()] : [...brandWideCandidates(), ...brandMarkCandidates()];
-  const platformIcon = card.platformId ? platformIconCandidates(card.platformId) : [];
+  const heroCandidates = card.thumb
+    ? [card.thumb, ...brandWideCandidates(), ...brandMarkCandidates()]
+    : [...brandWideCandidates(), ...brandMarkCandidates()];
 
+  const platformIcon = card.platformId ? platformIconCandidates(card.platformId) : [];
   const leagueSources = leagueLogoCandidates(card.league);
 
   return (
     <button
+      type="button"
       onClick={() => onOpen(card)}
       className="ampere-focus"
       style={{
         width: "100%",
         textAlign: "left",
         cursor: "pointer",
-        border: "1px solid rgba(255,255,255,0.10)",
+        border: "1px solid var(--stroke)",
         background: "rgba(255,255,255,0.04)",
         borderRadius: 18,
         overflow: "hidden",
@@ -1107,11 +1811,11 @@ function CardThumb({
           position: "relative",
           height: heroH,
           background:
-            "radial-gradient(1000px 280px at 30% 0%, rgba(255,255,255,0.14), rgba(0,0,0,0) 60%), linear-gradient(180deg, rgba(255,255,255,0.10), rgba(0,0,0,0.20))",
+            "radial-gradient(900px 260px at 30% 0%, rgba(58,167,255,0.18), rgba(0,0,0,0) 60%), linear-gradient(180deg, rgba(255,255,255,0.10), rgba(0,0,0,0.20))",
         }}
       >
         <div style={{ position: "absolute", inset: 0, opacity: 0.22 }}>
-          <SmartImg sources={heroCandidates} size={900} rounded={0} border={false} fit="cover" />
+          <SmartImg sources={heroCandidates} size={900} rounded={0} border={false} fit="cover" fill />
         </div>
 
         <div style={{ position: "absolute", top: 8, left: 8, display: "flex", gap: 8 }}>
@@ -1125,8 +1829,8 @@ function CardThumb({
                   card.badge === "LIVE"
                     ? "rgba(255,72,72,0.22)"
                     : card.badge === "UPCOMING"
-                      ? "rgba(90,170,255,0.20)"
-                      : "rgba(255,255,255,0.12)",
+                    ? "rgba(58,167,255,0.20)"
+                    : "rgba(255,255,255,0.12)",
                 color: "white",
                 fontWeight: 950,
                 fontSize: 11,
@@ -1145,7 +1849,7 @@ function CardThumb({
                 padding: "5px 9px",
                 borderRadius: 999,
                 border: "1px solid rgba(255,255,255,0.18)",
-                background: "rgba(0,0,0,0.35)",
+                background: "rgba(0,0,0,0.40)",
                 color: "white",
                 fontWeight: 950,
                 fontSize: 11,
@@ -1171,7 +1875,7 @@ function CardThumb({
         <div style={{ color: "white", fontWeight: 950, fontSize: 15, lineHeight: 1.15 }}>{card.title}</div>
 
         {card.subtitle ? (
-          <div style={{ color: "rgba(255,255,255,0.70)", marginTop: 4, fontWeight: 850, fontSize: 12 }}>{card.subtitle}</div>
+          <div style={{ color: "rgba(255,255,255,0.72)", marginTop: 4, fontWeight: 850, fontSize: 12 }}>{card.subtitle}</div>
         ) : null}
 
         {card.metaLeft || card.metaRight ? (
@@ -1206,18 +1910,23 @@ function Section({
   onRightClick?: () => void;
   children: React.ReactNode;
 }) {
+  const showHeader = !!title || !!rightText;
+
+  if (!showHeader) return <>{children}</>;
+
   return (
     <div style={{ display: "grid", gap: 10 }}>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
         <div style={{ fontSize: 18, fontWeight: 950, color: "white" }}>{title}</div>
         {rightText ? (
           <button
+            type="button"
             onClick={onRightClick}
             className="ampere-focus"
             style={{
               background: "transparent",
               border: "none",
-              color: "rgba(255,255,255,0.70)",
+              color: "rgba(255,255,255,0.76)",
               cursor: "pointer",
               fontWeight: 950,
               fontSize: 13,
@@ -1254,7 +1963,7 @@ function CardGrid({
             key={i}
             style={{
               borderRadius: 18,
-              border: "1px solid rgba(255,255,255,0.10)",
+              border: "1px solid var(--stroke)",
               background: "rgba(255,255,255,0.04)",
               overflow: "hidden",
             }}
@@ -1280,233 +1989,78 @@ function CardGrid({
   );
 }
 
-// -------------------- About content blocks (text only; no portraits) --------------------
-
-function RowKV({ left, right }: { left: string; right: string }) {
-  return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "minmax(160px, 260px) 1fr",
-        gap: 12,
-        borderRadius: 14,
-        border: "1px solid rgba(255,255,255,0.08)",
-        background: "rgba(0,0,0,0.18)",
-        padding: 12,
-      }}
-    >
-      <div style={{ fontWeight: 950, opacity: 0.9 }}>{left}</div>
-      <div style={{ opacity: 0.88 }}>{right}</div>
-    </div>
-  );
-}
-
-function StackBlock({
-  title,
-  subtitle,
-  person,
-  role,
-  descendants,
-  why,
+function PagedCardGrid({
+  cards,
+  cardMinW,
+  heroH,
+  onOpen,
+  pageSize = 24,
 }: {
-  title: string;
-  subtitle: string;
-  person: string;
-  role: string[];
-  descendants: string[];
-  why: string;
+  cards: Card[];
+  cardMinW: number;
+  heroH: number;
+  onOpen: (c: Card) => void;
+  pageSize?: number;
 }) {
+  const [shown, setShown] = useState(pageSize);
+  useEffect(() => setShown(pageSize), [cards, pageSize]);
+
+  const slice = cards.slice(0, shown);
+  const more = shown < cards.length;
+
   return (
-    <div
-      style={{
-        borderRadius: 18,
-        border: "1px solid rgba(255,255,255,0.10)",
-        background: "rgba(0,0,0,0.18)",
-        padding: 14,
-      }}
-    >
-      <div style={{ fontWeight: 950, fontSize: 16 }}>{title}</div>
-      <div style={{ opacity: 0.75, marginTop: 4 }}>{subtitle}</div>
-      <div style={{ marginTop: 10, fontWeight: 950, opacity: 0.92 }}>{person}</div>
-
-      <div style={{ marginTop: 10, fontWeight: 950, opacity: 0.9 }}>Role in the stack</div>
-      <ul style={{ marginTop: 6, paddingLeft: 18, opacity: 0.88 }}>
-        {role.map((x) => (
-          <li key={x}>{x}</li>
-        ))}
-      </ul>
-
-      <div style={{ marginTop: 10, fontWeight: 950, opacity: 0.9 }}>Modern descendants</div>
-      <ul style={{ marginTop: 6, paddingLeft: 18, opacity: 0.88 }}>
-        {descendants.map((x) => (
-          <li key={x}>{x}</li>
-        ))}
-      </ul>
-
-      <div style={{ marginTop: 10, opacity: 0.88 }}>
-        <span style={{ fontWeight: 950 }}>Why it matters:</span> {why}
-      </div>
+    <div style={{ display: "grid", gap: 12 }}>
+      <CardGrid cards={slice} cardMinW={cardMinW} heroH={heroH} onOpen={onOpen} />
+      {more ? (
+        <button
+          type="button"
+          onClick={() => setShown((n) => Math.min(cards.length, n + pageSize))}
+          className="ampere-focus"
+          style={{
+            padding: "12px 14px",
+            borderRadius: 16,
+            border: "1px solid rgba(58,167,255,0.22)",
+            background: "rgba(58,167,255,0.10)",
+            color: "white",
+            fontWeight: 950,
+            cursor: "pointer",
+            width: "100%",
+          }}
+        >
+          Load more ({slice.length}/{cards.length})
+        </button>
+      ) : null}
     </div>
   );
 }
 
-// -------------------- Demo data generation (“true demo” coverage) --------------------
-
-const DEMO_TITLES = [
-  "Top Pick",
-  "New Release",
-  "Critics’ Choice",
-  "Community Favorite",
-  "Late Night Watch",
-  "Weekend Binge",
-  "Hidden Gem",
-  "Just Added",
-  "Award Winner",
-  "Trending Now",
-];
-
-const DEMO_SUBS = ["Now", "Tonight", "New Season", "Live", "Premiere", "Featured", "Recommended", "Exclusive"];
-const DEMO_LEAGUE_EVENTS: { league: string; match: string; pid: PlatformId; badge: CardBadge }[] = [
-  { league: "NBA", match: "Celtics vs Lakers", pid: "espn", badge: "LIVE" },
-  { league: "NFL", match: "Chiefs vs Bills", pid: "livetv", badge: "LIVE" },
-  { league: "MLB", match: "Yankees vs Red Sox", pid: "livetv", badge: "UPCOMING" },
-  { league: "NHL", match: "Rangers vs Bruins", pid: "livetv", badge: "UPCOMING" },
-  { league: "UFC", match: "UFC Main Event", pid: "espn", badge: "UPCOMING" },
-  { league: "Soccer", match: "Premier Clash", pid: "peacock", badge: "UPCOMING" },
-  { league: "HBCUGOSPORTS", match: "HBCU Game of the Week", pid: "hbcugosports", badge: "LIVE" },
-  { league: "HBCUGO", match: "Campus Stories Spotlight", pid: "hbcugo", badge: "UPCOMING" },
-];
-
-function buildDemoCatalog(): {
-  forYou: Card[];
-  liveNow: Card[];
-  continueWatching: Card[];
-  trending: Card[];
-  blackMediaCards: Card[];
-} {
-  // Build many platform+genre items so every Genre/Platform has something
-  const allGenreKeys = GENRES.map((g) => g.key);
-  const platformPool = ALL_PLATFORM_IDS.slice(0, 22); // keep sane size; still broad
-
-  const mk = (seed: number, pid: PlatformId, genre: GenreKey, badge?: CardBadge): Card => {
-    const p = platformById(pid);
-    const t = DEMO_TITLES[seed % DEMO_TITLES.length];
-    const s = DEMO_SUBS[(seed + 3) % DEMO_SUBS.length];
-    return {
-      id: `${pid}_${normalizeKey(genre)}_${seed}`,
-      title: `${t} • ${p?.label ?? pid}`,
-      subtitle: `${genre} • ${s}`,
-      badge,
-      badgeRight: p?.label,
-      platformId: pid,
-      platformLabel: p?.label,
-      genre,
-      thumb: safeBrandWide(),
-      startTime: seed % 3 === 0 ? "Tonight" : "Now",
-      timeRemaining: badge === "LIVE" ? "Q3 • 8:42" : "—",
-    };
-  };
-
-  const forYou: Card[] = [];
-  const continueWatching: Card[] = [];
-  const trending: Card[] = [];
-
-  let seed = 1;
-  for (const genre of allGenreKeys) {
-    const members = platformsForGenre(genre).filter((x) => x !== "all");
-    const pick = members.length ? members : platformPool;
-    for (const pid of pick.slice(0, 6)) {
-      forYou.push(mk(seed++, pid, genre, seed % 5 === 0 ? "UPCOMING" : undefined));
-      trending.push(mk(seed++, pid, genre, seed % 6 === 0 ? "LIVE" : "UPCOMING"));
-      continueWatching.push({
-        ...mk(seed++, pid, genre, "UPCOMING"),
-        title: `Continue • ${platformById(pid)?.label ?? pid}`,
-        subtitle: `${genre} • Resume`,
-        timeRemaining: `${(seed % 17) + 3}m left`,
-      });
-    }
-  }
-
-  const liveNow: Card[] = DEMO_LEAGUE_EVENTS.map((e, i) => ({
-    id: `live_${i}_${normalizeKey(e.league)}`,
-    title: e.match,
-    subtitle: e.badge === "LIVE" ? "Live" : "Upcoming",
-    badge: e.badge,
-    badgeRight: platformById(e.pid)?.label,
-    platformId: e.pid,
-    platformLabel: platformById(e.pid)?.label,
-    league: e.league,
-    genre: normalizeKey("Premium Sports Streaming") as GenreKey,
-    thumb: leagueLogoCandidates(e.league)[0] ?? safeBrandWide(),
-    startTime: e.badge === "LIVE" ? "Now" : "Tonight",
-    timeRemaining: e.badge === "LIVE" ? "Q2 • 4:11" : "Starts soon",
-  })).concat(
-    // Additional sports-like filler across more platforms
-    platformPool.slice(0, 8).map((pid, i) => ({
-      id: `sports_${pid}_${i}`,
-      title: `Sports Center Live • ${platformById(pid)?.label ?? pid}`,
-      subtitle: "Live",
-      badge: "LIVE",
-      badgeRight: platformById(pid)?.label,
-      platformId: pid,
-      platformLabel: platformById(pid)?.label,
-      league: "NBA",
-      genre: "Premium Sports Streaming",
-      thumb: "/logos/leagues/nba.png",
-      startTime: "Now",
-      timeRemaining: "Q1 • 11:02",
-    }))
-  );
-
-  const blackMediaCards: Card[] = [
-    { pid: "allblk" as PlatformId, title: "ALLBLK • Original Series Spotlight" },
-    { pid: "kwelitv" as PlatformId, title: "KweliTV • Indie Film Showcase" },
-    { pid: "mansa" as PlatformId, title: "MANSA • Featured Movie Night" },
-    { pid: "brownsugar" as PlatformId, title: "Brown Sugar • Classic Black Cinema" },
-    { pid: "americanu" as PlatformId, title: "America Nu • News & Culture Weekly" },
-    { pid: "hbcugo" as PlatformId, title: "HBCUGO • Campus Stories" },
-    { pid: "hbcugosports" as PlatformId, title: "HBCUGO Sports • Game of the Week" },
-  ].map((x, i) => ({
-    id: `bm_${i}_${x.pid}`,
-    title: x.title,
-    subtitle: "Black culture & diaspora • Preview",
-    badge: "UPCOMING",
-    badgeRight: platformById(x.pid)?.label,
-    platformId: x.pid,
-    platformLabel: platformById(x.pid)?.label,
-    genre: "Black culture & diaspora",
-    thumb: platformIconCandidates("blackmedia")[0] ?? safeBrandWide(),
-    startTime: "—",
-    timeRemaining: "—",
-  }));
-
-  return {
-    forYou: forYou.slice(0, 60),
-    liveNow: liveNow.slice(0, 30),
-    continueWatching: continueWatching.slice(0, 60),
-    trending: trending.slice(0, 60),
-    blackMediaCards,
-  };
-}
-
-// -------------------- Main Component --------------------
+/* =========================
+   MAIN COMPONENT START
+   (Part 4 covers Header + Filters + Footer + Rails)
+   Part 5 finishes modals + wizard + data/demo helpers
+   ========================= */
 
 export default function AmpereApp() {
   const { isMobile, density } = useViewport();
 
   const [activeTab, setActiveTab] = useState<TabKey>("home");
 
-  // Filters
+  // “Browse” — internal default is "All", but we do NOT render an "All" pill.
   const [activeGenre, setActiveGenre] = useState<GenreKey>("All");
+
+  // Platforms — internal default "all", but we do NOT render an "ALL" pill.
   const [activePlatform, setActivePlatform] = useState<PlatformId>("all");
+
+  // Live league filter
   const [activeLeague, setActiveLeague] = useState<string>("ALL");
 
-  // Profile + setup
   const [profile, setProfile] = useState<ProfileState>(() => loadProfile());
 
-  // Modals
   const [openCard, setOpenCard] = useState<Card | null>(null);
-  const [openSeeAll, setOpenSeeAll] = useState<null | "genres" | "platforms" | "for-you" | "live-now" | "continue" | "trending">(null);
+  const [openSeeAll, setOpenSeeAll] = useState<
+    null | "browse" | "platforms" | "for-you" | "live-now" | "continue" | "trending"
+  >(null);
+
   const [openVoice, setOpenVoice] = useState(false);
   const [openRemote, setOpenRemote] = useState(false);
   const [openFavorites, setOpenFavorites] = useState(false);
@@ -1516,18 +2070,15 @@ export default function AmpereApp() {
   const [openAbout, setOpenAbout] = useState(false);
   const [openProfileSettings, setOpenProfileSettings] = useState(false);
 
-  // Setup wizard state
   const [setupStep, setSetupStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [draftName, setDraftName] = useState(profile.name);
   const [draftPlatforms, setDraftPlatforms] = useState<PlatformId[]>(profile.favoritePlatformIds);
   const [draftLeagues, setDraftLeagues] = useState<string[]>(profile.favoriteLeagues);
   const [draftTeams, setDraftTeams] = useState<string[]>(profile.favoriteTeams);
 
-  // Search
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Demo data (generated)
   const demo = useMemo(() => buildDemoCatalog(), []);
   const [loading, setLoading] = useState(true);
 
@@ -1536,12 +2087,10 @@ export default function AmpereApp() {
   }, []);
 
   useEffect(() => {
-    // Fake loading to show skeleton; replace with real fetch in Phase 2
     const t = setTimeout(() => setLoading(false), 450);
     return () => clearTimeout(t);
   }, []);
 
-  // Keep drafts synced
   useEffect(() => {
     setDraftName(profile.name);
     setDraftPlatforms(profile.favoritePlatformIds);
@@ -1549,7 +2098,7 @@ export default function AmpereApp() {
     setDraftTeams(profile.favoriteTeams);
   }, [profile]);
 
-  // Reset platform when switching genre if platform is not inside genre
+  // Keep activePlatform valid for selected Browse category
   useEffect(() => {
     const visible = platformsForGenre(activeGenre);
     const ok = activePlatform === "all" || visible.includes(activePlatform);
@@ -1557,53 +2106,58 @@ export default function AmpereApp() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeGenre]);
 
-  // Viewing history
   const viewing = useMemo(() => (typeof window === "undefined" ? [] : loadViewing()), [openCard]);
-
-  // Ranked For You
   const forYouRanked = useMemo(() => rankForYou(demo.forYou, profile, viewing), [demo.forYou, profile, viewing]);
 
-  // Platform lists
   const visiblePlatformIds = useMemo(() => platformsForGenre(activeGenre), [activeGenre]);
-  const visiblePlatforms = useMemo(
-    () => visiblePlatformIds.map((id) => platformById(id)).filter(Boolean) as Platform[],
-    [visiblePlatformIds]
+
+  // Platforms shown in UI: hide internal sentinels and Live TV pill (requested)
+  const visiblePlatforms = useMemo(() => {
+    const ids = visiblePlatformIds
+      .filter((id) => id !== "all" && id !== "livetv")
+      .map((id) => platformById(id))
+      .filter(Boolean) as Platform[];
+    return ids;
+  }, [visiblePlatformIds]);
+
+  const matchesPlatform = (c: Card) => (activePlatform === "all" ? true : c.platformId === activePlatform);
+  const matchesGenre = (c: Card) => (activeGenre === "All" ? true : c.genre ? c.genre === activeGenre : true);
+  const matchesLeague = (c: Card) =>
+    activeLeague === "ALL" ? true : normalizeKey(c.league ?? "") === normalizeKey(activeLeague);
+
+  const forYou = useMemo(() => forYouRanked.filter(matchesGenre).filter(matchesPlatform), [forYouRanked, activeGenre, activePlatform]);
+  const liveNow = useMemo(
+    () => demo.liveNow.filter(matchesGenre).filter(matchesPlatform).filter(matchesLeague),
+    [demo.liveNow, activeGenre, activePlatform, activeLeague]
+  );
+  const continueWatching = useMemo(
+    () => demo.continueWatching.filter(matchesGenre).filter(matchesPlatform),
+    [demo.continueWatching, activeGenre, activePlatform]
+  );
+  const trending = useMemo(
+    () => demo.trending.filter(matchesGenre).filter(matchesPlatform),
+    [demo.trending, activeGenre, activePlatform]
+  );
+  const blackMediaCards = useMemo(
+    () => demo.blackMediaCards.filter(matchesGenre).filter(matchesPlatform),
+    [demo.blackMediaCards, activeGenre, activePlatform]
   );
 
-  // Filtering helpers
-  const matchesPlatform = (c: Card) => {
-    if (activePlatform === "all") return true;
-    return c.platformId === activePlatform;
-  };
-  const matchesGenre = (c: Card) => {
-    if (activeGenre === "All") return true;
-    return c.genre ? c.genre === activeGenre : true;
-  };
-  const matchesLeague = (c: Card) => {
-    if (activeLeague === "ALL") return true;
-    return normalizeKey(c.league ?? "") === normalizeKey(activeLeague);
-  };
+  const allSearchCards = useMemo(
+    () => uniqByCardKey([...demo.forYou, ...demo.liveNow, ...demo.continueWatching, ...demo.trending, ...demo.blackMediaCards]),
+    [demo]
+  );
 
-  // Section datasets (filtered)
-  const forYou = useMemo(() => forYouRanked.filter(matchesGenre).filter(matchesPlatform), [forYouRanked, activeGenre, activePlatform]);
-  const liveNow = useMemo(() => demo.liveNow.filter(matchesGenre).filter(matchesPlatform).filter(matchesLeague), [demo.liveNow, activeGenre, activePlatform, activeLeague]);
-  const continueWatching = useMemo(() => demo.continueWatching.filter(matchesGenre).filter(matchesPlatform), [demo.continueWatching, activeGenre, activePlatform]);
-  const trending = useMemo(() => demo.trending.filter(matchesGenre).filter(matchesPlatform), [demo.trending, activeGenre, activePlatform]);
-
-  const blackMediaCards = useMemo(() => demo.blackMediaCards.filter(matchesGenre).filter(matchesPlatform), [demo.blackMediaCards, activeGenre, activePlatform]);
-
-  // Search dataset
-  const allSearchCards = useMemo(() => uniqByCardKey([...demo.forYou, ...demo.liveNow, ...demo.continueWatching, ...demo.trending, ...demo.blackMediaCards]), [demo]);
   const searchResults = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     const base = allSearchCards.filter(matchesGenre).filter(matchesPlatform);
     if (!q) return base.slice(0, 36);
-    return base
-      .filter((c) => `${c.title} ${c.subtitle ?? ""} ${c.platformLabel ?? ""} ${c.league ?? ""} ${c.genre ?? ""}`.toLowerCase().includes(q))
-      .slice(0, 60);
+    const out = base.filter((c) =>
+      `${c.title} ${c.subtitle ?? ""} ${c.platformLabel ?? ""} ${c.league ?? ""} ${c.genre ?? ""}`.toLowerCase().includes(q)
+    );
+    return out.slice(0, 60);
   }, [searchQuery, allSearchCards, activeGenre, activePlatform]);
 
-  // “See all” modal dataset
   const seeAllItems = useMemo(() => {
     if (!openSeeAll) return [];
     if (openSeeAll === "for-you") return forYou;
@@ -1613,7 +2167,6 @@ export default function AmpereApp() {
     return [];
   }, [openSeeAll, forYou, liveNow, continueWatching, trending, activeTab, blackMediaCards, searchResults]);
 
-  // Actions
   const openCardAndLog = (c: Card) => {
     logViewing(c);
     setOpenCard(c);
@@ -1641,7 +2194,7 @@ export default function AmpereApp() {
     if (typeof window === "undefined") return;
     const pid = card.platformId ?? platformIdFromLabel(card.platformLabel ?? "") ?? null;
     const url = providerUrlOpen(pid, card.title);
-    track("handoff_open", { platformId: pid, title: card.title, url });
+    track("handoff_open", { platformId: pid, title: card.title, url: redactUrl(url) });
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
@@ -1649,21 +2202,30 @@ export default function AmpereApp() {
     if (typeof window === "undefined") return;
     const pid = card.platformId ?? platformIdFromLabel(card.platformLabel ?? "") ?? null;
     const url = providerUrlSubscribe(pid);
-    track("handoff_subscribe", { platformId: pid, url });
+    track("handoff_subscribe", { platformId: pid, url: redactUrl(url) });
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
-  // Avatar + header image upload
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
   const headerInputRef = useRef<HTMLInputElement | null>(null);
 
   const avatarSources = profile.profilePhoto ? [profile.profilePhoto] : [...brandMarkCandidates()];
   const headerBg = profile.headerPhoto
-    ? `linear-gradient(135deg, rgba(0,0,0,0.62), rgba(0,0,0,0.82)), url(${profile.headerPhoto}) center/cover no-repeat`
+    ? `linear-gradient(135deg, rgba(0,0,0,0.62), rgba(0,0,0,0.84)), url(${profile.headerPhoto}) center/cover no-repeat`
     : "linear-gradient(135deg, #050505 0%, #151515 55%, #070707 100%)";
 
-  // Global “show back” (modal navigation)
-  const showBack = !!openCard || !!openSeeAll || openVoice || openRemote || openFavorites || openNotifications || openConnect || openSetup || openAbout || openProfileSettings;
+  const showBack =
+    !!openCard ||
+    !!openSeeAll ||
+    openVoice ||
+    openRemote ||
+    openFavorites ||
+    openNotifications ||
+    openConnect ||
+    openSetup ||
+    openAbout ||
+    openProfileSettings;
+
   const onBack = () => {
     if (openCard) return setOpenCard(null);
     if (openSeeAll) return setOpenSeeAll(null);
@@ -1677,7 +2239,24 @@ export default function AmpereApp() {
     if (openProfileSettings) return setOpenProfileSettings(false);
   };
 
-  // -------------------- Render --------------------
+  const resetFilters = () => {
+    setActiveGenre("All");
+    setActivePlatform("all");
+    setActiveLeague("ALL");
+    track("filters_reset", {});
+  };
+
+  const selectedChips: { label: string; onRemove: () => void }[] = [];
+  if (activeGenre !== "All") selectedChips.push({ label: `Browse: ${activeGenre}`, onRemove: () => setActiveGenre("All") });
+  if (activePlatform !== "all")
+    selectedChips.push({
+      label: `Platform: ${platformById(activePlatform)?.label ?? activePlatform}`,
+      onRemove: () => setActivePlatform("all"),
+    });
+  if (activeTab === "live" && activeLeague !== "ALL")
+    selectedChips.push({ label: `League: ${activeLeague}`, onRemove: () => setActiveLeague("ALL") });
+
+  const isRailSeeAll = !!openSeeAll && openSeeAll !== "browse" && openSeeAll !== "platforms";
 
   return (
     <div
@@ -1685,25 +2264,15 @@ export default function AmpereApp() {
         height: "100vh",
         width: "100%",
         overflow: "hidden",
-        background: "linear-gradient(135deg, #050505 0%, #161616 55%, #070707 100%)",
+        background: "linear-gradient(135deg, var(--bg0) 0%, #161616 55%, #070707 100%)",
         color: "white",
         display: "grid",
         gridTemplateRows: "auto 1fr auto",
       }}
     >
-      {/* Global styles for focus + reduced motion */}
-      <style>{`
-        .ampere-focus:focus-visible {
-          outline: 2px solid rgba(255,255,255,0.85);
-          outline-offset: 2px;
-          box-shadow: 0 0 0 4px rgba(0,0,0,0.55);
-        }
-        @media (prefers-reduced-motion: reduce) {
-          * { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
-        }
-      `}</style>
+      <style>{AMPERE_GLOBAL_CSS}</style>
 
-      {/* Hidden file inputs */}
+      {/* Hidden uploads */}
       <input
         ref={avatarInputRef}
         type="file"
@@ -1747,19 +2316,21 @@ export default function AmpereApp() {
         }}
       />
 
-      {/* HEADER (locked) */}
+      {/* HEADER */}
       <header
         style={{
           padding: density.pad,
           background: headerBg,
-          borderBottom: "1px solid rgba(255,255,255,0.10)",
+          borderBottom: "1px solid var(--stroke)",
+          paddingTop: "max(env(safe-area-inset-top), 10px)",
         }}
       >
         <div
           style={{
-            borderRadius: 22,
-            border: "1px solid rgba(255,255,255,0.10)",
-            background: "rgba(0,0,0,0.35)",
+            borderRadius: "var(--r-xl)",
+            border: "1px solid var(--stroke)",
+            background:
+              "linear-gradient(180deg, rgba(58,167,255,0.10), rgba(0,0,0,0.00) 55%), rgba(0,0,0,0.36)",
             backdropFilter: "blur(10px)",
             padding: density.pad,
             display: "flex",
@@ -1772,13 +2343,14 @@ export default function AmpereApp() {
           <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
             {showBack ? (
               <button
+                type="button"
                 onClick={onBack}
                 className="ampere-focus"
                 aria-label="Back"
                 style={{
                   padding: "10px 12px",
                   borderRadius: 999,
-                  border: "1px solid rgba(255,255,255,0.12)",
+                  border: "1px solid rgba(255,255,255,0.14)",
                   background: "rgba(255,255,255,0.06)",
                   color: "white",
                   fontWeight: 950,
@@ -1806,11 +2378,20 @@ export default function AmpereApp() {
             </div>
 
             <div style={{ minWidth: 0 }}>
-              <div style={{ opacity: 0.92, fontWeight: 950, fontSize: isMobile ? 14 : 15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              <div
+                style={{
+                  opacity: 0.94,
+                  fontWeight: 950,
+                  fontSize: isMobile ? 14 : 15,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
                 CONTROL, REIMAGINED.
               </div>
-              <div style={{ opacity: 0.70, fontWeight: 900, fontSize: density.small, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                Profile: <span style={{ color: "white", opacity: 0.92 }}>{profile.name}</span>
+              <div style={{ opacity: 0.72, fontWeight: 900, fontSize: density.small, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                Profile: <span style={{ color: "white", opacity: 0.95 }}>{profile.name}</span>
               </div>
             </div>
           </div>
@@ -1820,9 +2401,9 @@ export default function AmpereApp() {
             <PillButton label="Remote" iconNode={<IconRemote />} onClick={() => setOpenRemote(true)} ariaLabel="Remote" />
 
             <Dropdown label="Settings" iconLeft={<IconGear />}>
-              <MenuItem title="Favorites" subtitle="Edit favorite platforms / leagues / teams" onClick={() => setOpenFavorites(true)} right="›" />
-              <MenuItem title="Notifications" subtitle="Enable alerts when favorite teams play" onClick={() => setOpenNotifications(true)} right="›" />
-              <MenuItem title="Connect Platforms" subtitle="Mark platforms as connected (demo flag)" onClick={() => setOpenConnect(true)} right="›" />
+              <MenuItem title="Favorites" subtitle="Edit platforms / leagues / teams" onClick={() => setOpenFavorites(true)} right="›" />
+              <MenuItem title="Notifications" subtitle="Alerts when favorite teams play" onClick={() => setOpenNotifications(true)} right="›" />
+              <MenuItem title="Connect Platforms" subtitle="Mark platforms as connected (demo)" onClick={() => setOpenConnect(true)} right="›" />
               <MenuItem title="Change Header Image" subtitle="Upload a header background" onClick={() => headerInputRef.current?.click()} right="⬆" />
             </Dropdown>
 
@@ -1837,21 +2418,21 @@ export default function AmpereApp() {
               <MenuItem title="Profile Settings" subtitle="Name, avatar, header image" onClick={() => setOpenProfileSettings(true)} right="›" />
               <MenuItem
                 title="Set-Up Wizard"
-                subtitle="Re-run onboarding choices"
+                subtitle="Re-run onboarding"
                 onClick={() => {
                   setOpenSetup(true);
                   setSetupStep(1);
                 }}
                 right="›"
               />
-              <MenuItem title="About AMPÈRE" subtitle="Backstory + inventors + tech stack map" onClick={() => setOpenAbout(true)} right="›" />
+              <MenuItem title="About AMPÈRE" subtitle="Backstory + inventors + tech map" onClick={() => setOpenAbout(true)} right="›" />
               <MenuItem title="Change Photo" subtitle="Upload a profile picture" onClick={() => avatarInputRef.current?.click()} right="⬆" />
             </Dropdown>
           </div>
         </div>
       </header>
 
-      {/* MAIN (scrollable vertical; no horizontal preview scrollbars) */}
+      {/* MAIN */}
       <main
         style={{
           overflowY: "auto",
@@ -1861,82 +2442,117 @@ export default function AmpereApp() {
           gap: density.gap,
         }}
       >
-        {/* Filters panel (wrap; no horizontal scrolling) */}
+        {/* FILTERS */}
         <div
           style={{
-            borderRadius: 22,
-            border: "1px solid rgba(255,255,255,0.10)",
+            borderRadius: "var(--r-xl)",
+            border: "1px solid var(--stroke)",
             background: "rgba(255,255,255,0.04)",
             padding: density.pad,
             display: "grid",
             gap: 12,
           }}
         >
-          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
+          {/* Selected chips + reset */}
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
             <div style={{ fontSize: density.h2, fontWeight: 950 }}>Filters</div>
-            <div style={{ opacity: 0.7, fontWeight: 900, fontSize: density.small }}>
-              Genre: <span style={{ opacity: 0.95 }}>{activeGenre}</span> • Platform:{" "}
-              <span style={{ opacity: 0.95 }}>{platformById(activePlatform)?.label ?? "ALL"}</span>
-            </div>
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="ampere-focus"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "10px 12px",
+                borderRadius: 999,
+                border: "1px solid rgba(58,167,255,0.22)",
+                background: "rgba(58,167,255,0.10)",
+                color: "white",
+                fontWeight: 950,
+                cursor: "pointer",
+              }}
+              aria-label="Reset filters"
+              title="Reset"
+            >
+              <IconReset /> Reset
+            </button>
           </div>
 
-          {/* GENRE */}
-          <Section title="Genre" rightText="See all" onRightClick={() => setOpenSeeAll("genres")}>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 10 }}>
-              {GENRES.map((g) => (
-                <PillButton
-                  key={g.key}
-                  label={g.key}
-                  active={activeGenre === g.key}
-                  onClick={() => setActiveGenre(g.key)}
-                  fullWidth
-                />
+          {selectedChips.length ? (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+              {selectedChips.map((c) => (
+                <Chip key={c.label} label={c.label} onRemove={c.onRemove} />
               ))}
             </div>
-          </Section>
-
-          {/* STREAMING PLATFORM */}
-          <Section title="Streaming Platform" rightText="See all" onRightClick={() => setOpenSeeAll("platforms")}>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(4, minmax(0, 1fr))",
-                gap: 10,
-              }}
-            >
-              {visiblePlatforms.map((p) => (
-                <PillButton
-                  key={`${activeGenre}_${p.id}`}
-                  label={p.label}
-                  iconSources={platformIconCandidates(p.id)}
-                  active={activePlatform === p.id}
-                  onClick={() => setActivePlatform(p.id)}
-                  fullWidth
-                  multiline
-                />
-              ))}
+          ) : (
+            <div style={{ opacity: 0.75, fontWeight: 900 }}>
+              No active filters. <span style={{ opacity: 0.85 }}>Use Browse + Platforms (and League on Live) to narrow.</span>
             </div>
+          )}
 
-            {/* Bonus “All Platforms” preview to satisfy “true demo” */}
-            <div style={{ marginTop: 12, opacity: 0.85, fontWeight: 950, fontSize: 14 }}>All Platforms Preview</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 10 }}>
-              {ALL_PLATFORM_IDS.slice(0, 20).map((pid) => (
-                <PillButton
-                  key={`all_${pid}`}
-                  label={platformById(pid)?.label ?? pid}
-                  iconSources={platformIconCandidates(pid)}
-                  active={activePlatform === pid}
-                  onClick={() => setActivePlatform(pid)}
-                  fullWidth
-                  multiline
-                />
-              ))}
-            </div>
-          </Section>
+          {/* Browse — remove “All” pill */}
+          <FilterAccordion
+            title="Browse"
+            isMobile={isMobile}
+            defaultOpen={!isMobile}
+            right={<span>{activeGenre === "All" ? "Any" : activeGenre}</span>}
+          >
+            <Section title="" rightText="See all" onRightClick={() => setOpenSeeAll("browse")}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 10 }}>
+                {GENRES.filter((g) => g.key !== "All").map((g) => (
+                  <PillButton
+                    key={g.key}
+                    label={g.key}
+                    iconSources={BROWSE_ICON_CANDIDATES[g.key] ?? []}
+                    active={activeGenre === g.key}
+                    onClick={() => setActiveGenre(g.key)}
+                    fullWidth
+                  />
+                ))}
+              </div>
+            </Section>
+          </FilterAccordion>
 
-          {/* LIVE league filter only when Live tab */}
+          {/* Platforms — remove ALL + remove Live TV pill */}
+          <FilterAccordion
+            title="Platforms"
+            isMobile={isMobile}
+            defaultOpen={!isMobile}
+            right={<span>{activePlatform === "all" ? "Any" : platformById(activePlatform)?.label ?? activePlatform}</span>}
+          >
+            <Section title="" rightText="See all" onRightClick={() => setOpenSeeAll("platforms")}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(4, minmax(0, 1fr))",
+                  gap: 10,
+                }}
+              >
+                {visiblePlatforms.map((p) => (
+                  <PillButton
+                    key={`${activeGenre}_${p.id}`}
+                    label={p.label}
+                    iconSources={platformIconCandidates(p.id)}
+                    active={activePlatform === p.id}
+                    onClick={() => setActivePlatform(p.id)}
+                    fullWidth
+                    multiline
+                  />
+                ))}
+              </div>
+              {/* Removed: “All Platforms Preview” */}
+            </Section>
+          </FilterAccordion>
+
+          {/* League (only on Live tab) */}
           {activeTab === "live" ? (
-            <Section title="League">
+            <FilterAccordion
+              title="League"
+              isMobile={isMobile}
+              defaultOpen={!isMobile}
+              right={<span>{activeLeague === "ALL" ? "Any" : activeLeague}</span>}
+            >
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
                 {LEAGUES.map((l) => (
                   <PillButton
@@ -1948,19 +2564,18 @@ export default function AmpereApp() {
                   />
                 ))}
               </div>
-            </Section>
+            </FilterAccordion>
           ) : null}
         </div>
 
-        {/* Screen title */}
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
+        {/* PAGE HEADER + SEARCH BAR */}
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
           <div style={{ fontSize: density.h1, fontWeight: 950 }}>
             {activeTab === "home" ? "Home" : activeTab === "live" ? "Live" : activeTab === "favs" ? "Favs" : "Search"}
           </div>
 
-          {/* Search controls only on Search tab */}
           {activeTab === "search" ? (
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", justifyContent: "flex-end" }}>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", justifyContent: "flex-end", width: "min(900px, 100%)" }}>
               <input
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
@@ -1973,7 +2588,7 @@ export default function AmpereApp() {
                   flex: "1 1 280px",
                   padding: "12px 14px",
                   borderRadius: 14,
-                  border: "1px solid rgba(255,255,255,0.14)",
+                  border: "1px solid var(--stroke2)",
                   background: "rgba(0,0,0,0.35)",
                   color: "white",
                   outline: "none",
@@ -1982,13 +2597,14 @@ export default function AmpereApp() {
                 }}
               />
               <button
+                type="button"
                 onClick={submitSearch}
                 className="ampere-focus"
                 style={{
                   padding: "12px 14px",
                   borderRadius: 14,
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  background: "rgba(255,255,255,0.10)",
+                  border: "1px solid rgba(58,167,255,0.22)",
+                  background: "rgba(58,167,255,0.12)",
                   color: "white",
                   fontWeight: 950,
                   cursor: "pointer",
@@ -1997,6 +2613,7 @@ export default function AmpereApp() {
                 Search
               </button>
               <button
+                type="button"
                 onClick={() => {
                   setSearchInput("");
                   setSearchQuery("");
@@ -2014,11 +2631,22 @@ export default function AmpereApp() {
               >
                 Clear
               </button>
+
+              <div style={{ width: "100%", opacity: 0.75, fontWeight: 900, fontSize: 13 }}>
+                {searchQuery ? (
+                  <>
+                    Results: <span style={{ color: "white" }}>{searchResults.length}</span>
+                    {searchResults.length === 0 ? <span style={{ marginLeft: 8 }}>No matches. Try another query.</span> : null}
+                  </>
+                ) : (
+                  <>Tip: press Enter to submit.</>
+                )}
+              </div>
             </div>
           ) : null}
         </div>
 
-        {/* CONTENT SECTIONS (grid; no horizontal sliders) */}
+        {/* RAILS */}
         {activeTab === "home" ? (
           <div style={{ display: "grid", gap: density.gap }}>
             <Section title="For You" rightText="See all" onRightClick={() => setOpenSeeAll("for-you")}>
@@ -2047,9 +2675,6 @@ export default function AmpereApp() {
             <Section title="Trending" rightText="See all" onRightClick={() => setOpenSeeAll("trending")}>
               <CardGrid cards={trending.filter((c) => c.genre === "Premium Sports Streaming").slice(0, 18)} cardMinW={density.cardMinW} heroH={density.heroH} onOpen={openCardAndLog} skeleton={loading} />
             </Section>
-            <Section title="Continue Watching" rightText="See all" onRightClick={() => setOpenSeeAll("continue")}>
-              <CardGrid cards={continueWatching.slice(0, 18)} cardMinW={density.cardMinW} heroH={density.heroH} onOpen={openCardAndLog} skeleton={loading} />
-            </Section>
           </div>
         ) : null}
 
@@ -2075,14 +2700,6 @@ export default function AmpereApp() {
             <Section title="Black Media Preview" rightText="See all" onRightClick={() => setOpenSeeAll("continue")}>
               <CardGrid cards={blackMediaCards} cardMinW={density.cardMinW} heroH={density.heroH} onOpen={openCardAndLog} skeleton={loading} />
             </Section>
-
-            <Section title="For You" rightText="See all" onRightClick={() => setOpenSeeAll("for-you")}>
-              <CardGrid cards={forYou.slice(0, 18)} cardMinW={density.cardMinW} heroH={density.heroH} onOpen={openCardAndLog} skeleton={loading} />
-            </Section>
-
-            <Section title="Trending" rightText="See all" onRightClick={() => setOpenSeeAll("trending")}>
-              <CardGrid cards={trending.slice(0, 18)} cardMinW={density.cardMinW} heroH={density.heroH} onOpen={openCardAndLog} skeleton={loading} />
-            </Section>
           </div>
         ) : null}
 
@@ -2092,23 +2709,27 @@ export default function AmpereApp() {
               <CardGrid cards={searchResults} cardMinW={density.cardMinW} heroH={density.heroH} onOpen={openCardAndLog} skeleton={loading} />
             </Section>
 
-            <Section title="Trending (search context)" rightText="See all" onRightClick={() => setOpenSeeAll("trending")}>
+            <Section title="Trending" rightText="See all" onRightClick={() => setOpenSeeAll("trending")}>
               <CardGrid cards={trending.slice(0, 18)} cardMinW={density.cardMinW} heroH={density.heroH} onOpen={openCardAndLog} skeleton={loading} />
-            </Section>
-
-            <Section title="For You" rightText="See all" onRightClick={() => setOpenSeeAll("for-you")}>
-              <CardGrid cards={forYou.slice(0, 18)} cardMinW={density.cardMinW} heroH={density.heroH} onOpen={openCardAndLog} skeleton={loading} />
             </Section>
           </div>
         ) : null}
       </main>
 
-      {/* FOOTER (locked nav) */}
-      <footer style={{ padding: density.pad, borderTop: "1px solid rgba(255,255,255,0.10)", background: "rgba(0,0,0,0.55)", backdropFilter: "blur(10px)" }}>
+      {/* FOOTER (icons are the inline SVGs from Part 2) */}
+      <footer
+        style={{
+          padding: density.pad,
+          borderTop: "1px solid var(--stroke)",
+          background: "rgba(0,0,0,0.60)",
+          backdropFilter: "blur(10px)",
+          paddingBottom: "max(env(safe-area-inset-bottom), 10px)",
+        }}
+      >
         <div
           style={{
-            borderRadius: 22,
-            border: "1px solid rgba(255,255,255,0.10)",
+            borderRadius: "var(--r-xl)",
+            border: "1px solid var(--stroke)",
             background: "rgba(255,255,255,0.04)",
             padding: density.pad,
             display: "grid",
@@ -2116,41 +2737,73 @@ export default function AmpereApp() {
             gap: 10,
           }}
         >
-          <PillButton label="HOME" active={activeTab === "home"} onClick={() => setActiveTab("home")} fullWidth ariaLabel="Home tab" />
-          <PillButton label="LIVE" active={activeTab === "live"} onClick={() => setActiveTab("live")} fullWidth ariaLabel="Live tab" />
-          <PillButton label="FAVS" active={activeTab === "favs"} onClick={() => setActiveTab("favs")} fullWidth ariaLabel="Favorites tab" />
-          <PillButton label="SEARCH" active={activeTab === "search"} onClick={() => setActiveTab("search")} fullWidth ariaLabel="Search tab" />
+          <PillButton label="HOME" iconNode={<IconHome />} active={activeTab === "home"} onClick={() => setActiveTab("home")} fullWidth ariaLabel="Home tab" />
+          <PillButton label="LIVE" iconNode={<IconLive />} active={activeTab === "live"} onClick={() => setActiveTab("live")} fullWidth ariaLabel="Live tab" />
+          <PillButton label="FAVS" iconNode={<IconHeart />} active={activeTab === "favs"} onClick={() => setActiveTab("favs")} fullWidth ariaLabel="Favs tab" />
+          <PillButton label="SEARCH" iconNode={<IconSearch />} active={activeTab === "search"} onClick={() => setActiveTab("search")} fullWidth ariaLabel="Search tab" />
         </div>
       </footer>
 
-      {/* -------------------- MODALS -------------------- */}
+      {/* =========================
+         MODALS (Part 4 only includes Rails “See All”)
+         Part 5 adds: Browse/Platforms modals + Card modal + Voice/Remote/etc + Wizard
+         ========================= */}
 
-      {/* See All (cards) */}
       <Modal
-        open={!!openSeeAll && !["genres", "platforms"].includes(openSeeAll ?? "")}
+        open={isRailSeeAll}
         title={
           openSeeAll === "for-you"
             ? "See All — For You"
             : openSeeAll === "live-now"
-              ? "See All — Live Now"
-              : openSeeAll === "continue"
-                ? "See All — Continue"
-                : "See All — Trending"
+            ? "See All — Live Now"
+            : openSeeAll === "continue"
+            ? "See All — Continue"
+            : "See All — Trending"
         }
         onClose={() => setOpenSeeAll(null)}
       >
-        <CardGrid cards={seeAllItems} cardMinW={density.cardMinW} heroH={Math.max(100, density.heroH + 12)} onOpen={openCardAndLog} />
+        <PagedCardGrid cards={seeAllItems} cardMinW={density.cardMinW} heroH={Math.max(100, density.heroH + 12)} onOpen={openCardAndLog} />
       </Modal>
 
-      {/* See All — Genres */}
-      <Modal open={openSeeAll === "genres"} title="See All — Genres" onClose={() => setOpenSeeAll(null)} maxWidth={980}>
+            {/* =========================
+         PART 5/5 — ALL REMAINING MODALS
+         (Browse/Platforms See All + Card + Voice/Remote/Favorites/Notifications/Connect/About/Profile + Wizard)
+         ========================= */}
+
+      {/* SEE ALL — BROWSE */}
+      <Modal open={openSeeAll === "browse"} title="See All — Browse" onClose={() => setOpenSeeAll(null)} maxWidth={920}>
         <div style={{ display: "grid", gap: 12 }}>
-          <div style={{ opacity: 0.8, fontWeight: 900 }}>Tap a genre to filter the whole app.</div>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ fontWeight: 950, opacity: 0.92 }}>
+              Current: <span style={{ color: "white" }}>{activeGenre === "All" ? "Any" : activeGenre}</span>
+            </div>
+            <button
+              type="button"
+              className="ampere-focus"
+              onClick={() => {
+                setActiveGenre("All");
+                setOpenSeeAll(null);
+              }}
+              style={{
+                padding: "10px 12px",
+                borderRadius: 14,
+                border: "1px solid rgba(58,167,255,0.22)",
+                background: "rgba(58,167,255,0.10)",
+                color: "white",
+                fontWeight: 950,
+                cursor: "pointer",
+              }}
+            >
+              Clear (Any)
+            </button>
+          </div>
+
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 10 }}>
-            {GENRES.map((g) => (
+            {GENRES.filter((g) => g.key !== "All").map((g) => (
               <PillButton
                 key={g.key}
                 label={g.key}
+                iconSources={BROWSE_ICON_CANDIDATES[g.key] ?? []}
                 active={activeGenre === g.key}
                 onClick={() => {
                   setActiveGenre(g.key);
@@ -2163,858 +2816,1402 @@ export default function AmpereApp() {
         </div>
       </Modal>
 
-      {/* See All — Platforms */}
-      <Modal open={openSeeAll === "platforms"} title="See All — Streaming Platforms" onClose={() => setOpenSeeAll(null)} maxWidth={980}>
+      {/* SEE ALL — PLATFORMS */}
+      <Modal
+        open={openSeeAll === "platforms"}
+        title={`See All — Platforms (${activeGenre === "All" ? "All" : activeGenre})`}
+        onClose={() => setOpenSeeAll(null)}
+        maxWidth={980}
+      >
         <div style={{ display: "grid", gap: 12 }}>
-          <div style={{ opacity: 0.8, fontWeight: 900 }}>
-            Showing platforms for <span style={{ color: "white" }}>{activeGenre}</span>.
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(4, minmax(0, 1fr))", gap: 10 }}>
-            {visiblePlatforms.map((p) => (
-              <PillButton
-                key={p.id}
-                label={p.label}
-                iconSources={platformIconCandidates(p.id)}
-                active={activePlatform === p.id}
-                onClick={() => {
-                  setActivePlatform(p.id);
-                  setOpenSeeAll(null);
-                }}
-                fullWidth
-                multiline
-              />
-            ))}
-          </div>
-        </div>
-      </Modal>
-
-      {/* Remote */}
-      <Modal open={openRemote} title="Remote Preview" onClose={() => setOpenRemote(false)} maxWidth={860}>
-        <div style={{ color: "rgba(255,255,255,0.9)", fontWeight: 950 }}>
-          Active platform: <span style={{ opacity: 0.95 }}>{platformById(activePlatform)?.label ?? "ALL"}</span>
-        </div>
-
-        <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(3, minmax(0, 1fr))", gap: 10 }}>
-          {["⏪ Back", "⏯ Play/Pause", "⏩ Forward", "⬆ Up", "OK", "⬇ Down", "⬅ Left", "Home", "➡ Right"].map((b) => (
-            <button
-              key={b}
-              className="ampere-focus"
-              style={{
-                padding: "14px 12px",
-                borderRadius: 18,
-                border: "1px solid rgba(255,255,255,0.10)",
-                background: "rgba(255,255,255,0.05)",
-                color: "white",
-                fontWeight: 950,
-                cursor: "pointer",
-              }}
-              onClick={() => track("remote_click", { button: b })}
-            >
-              {b}
-            </button>
-          ))}
-        </div>
-
-        <div style={{ marginTop: 14, opacity: 0.7, fontWeight: 900 }}>(Phase 3) Map these to real devices / deep links / casting.</div>
-      </Modal>
-
-      {/* Voice */}
-      <Modal open={openVoice} title="Voice Command (Demo)" onClose={() => setOpenVoice(false)} maxWidth={860}>
-        <div style={{ color: "rgba(255,255,255,0.88)", fontWeight: 900, lineHeight: 1.8 }}>
-          <div style={{ opacity: 0.9 }}>
-            Voice is demo-only in this build. (Phase 3: command palette + confirmations + device mapping)
-          </div>
-          <div style={{ marginTop: 12, opacity: 0.85 }}>Suggested commands:</div>
-          <ul style={{ marginTop: 8, opacity: 0.9, lineHeight: 1.9 }}>
-            <li>“Go Home”</li>
-            <li>“Open Live”</li>
-            <li>“Search Netflix”</li>
-            <li>“Show NBA”</li>
-          </ul>
-        </div>
-      </Modal>
-
-      {/* Favorites */}
-      <Modal open={openFavorites} title="Favorites" onClose={() => setOpenFavorites(false)} maxWidth={980}>
-        <div style={{ display: "grid", gap: 14, color: "rgba(255,255,255,0.92)", fontWeight: 900 }}>
-          <div style={{ opacity: 0.8 }}>
-            Favorites are stored locally (demo) and influence “For You”.
-          </div>
-
-          <div>
-            <div style={{ fontWeight: 950, marginBottom: 8, opacity: 0.9 }}>Favorite Streaming Platforms</div>
-            <PillGridMultiPlatform
-              items={ALL_PLATFORM_IDS}
-              selected={profile.favoritePlatformIds}
-              onChange={(next) => {
-                setProfile((prev) => {
-                  const p = { ...prev, favoritePlatformIds: next };
-                  saveProfile(p);
-                  track("fav_platforms_update", { next });
-                  return p;
-                });
-              }}
-            />
-          </div>
-
-          <div>
-            <div style={{ fontWeight: 950, marginBottom: 8, opacity: 0.9 }}>Favorite Leagues</div>
-            <PillGridMultiText
-              items={LEAGUES.filter((l) => l !== "ALL") as any}
-              selected={profile.favoriteLeagues}
-              iconFor={(l) => leagueLogoCandidates(l)}
-              onChange={(next) => {
-                setProfile((prev) => {
-                  const p = { ...prev, favoriteLeagues: next };
-                  saveProfile(p);
-                  track("fav_leagues_update", { next });
-                  return p;
-                });
-              }}
-            />
-          </div>
-
-          <div>
-            <div style={{ fontWeight: 950, marginBottom: 8, opacity: 0.9 }}>Favorite Teams</div>
-            <TeamPickerByLeague
-              leagues={profile.favoriteLeagues}
-              selectedTeams={profile.favoriteTeams}
-              onChange={(nextTeams) => {
-                setProfile((prev) => {
-                  const p = { ...prev, favoriteTeams: nextTeams };
-                  saveProfile(p);
-                  track("fav_teams_update", { nextTeams });
-                  return p;
-                });
-              }}
-            />
-          </div>
-        </div>
-      </Modal>
-
-      {/* Notifications */}
-      <Modal open={openNotifications} title="Notifications" onClose={() => setOpenNotifications(false)} maxWidth={860}>
-        <div style={{ color: "rgba(255,255,255,0.9)", fontWeight: 900, lineHeight: 1.7 }}>
-          <div style={{ opacity: 0.85, marginBottom: 12 }}>
-            Demo: stores your preference + teams. Phase 3 adds real scheduling + push notifications.
-          </div>
-
-          <MenuItem
-            title={profile.notificationsEnabled ? "Notifications: ON" : "Notifications: OFF"}
-            subtitle="When a favorite team plays (future push integration)"
-            onClick={() => {
-              setProfile((prev) => {
-                const next = { ...prev, notificationsEnabled: !prev.notificationsEnabled };
-                saveProfile(next);
-                track("notifications_toggle", { on: next.notificationsEnabled });
-                return next;
-              });
-            }}
-            right={profile.notificationsEnabled ? "✓" : "—"}
-          />
-
-          <div style={{ marginTop: 12, opacity: 0.75, fontWeight: 900 }}>
-            Teams tracked: <span style={{ color: "white" }}>{profile.favoriteTeams.join(", ") || "None"}</span>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Connect Platforms */}
-      <Modal open={openConnect} title="Connect Platforms (Demo Flags)" onClose={() => setOpenConnect(false)} maxWidth={980}>
-        <div style={{ color: "rgba(255,255,255,0.9)", fontWeight: 900, lineHeight: 1.7 }}>
-          <div style={{ opacity: 0.85, marginBottom: 10 }}>
-            Demo behavior: we store only a Connected yes/no flag. Phase 2 adds OAuth/device-link + verification.
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(1, minmax(0, 1fr))" : "repeat(2, minmax(0, 1fr))", gap: 12 }}>
-            {platformsForGenre("All")
-              .filter((pid) => pid !== "all" && pid !== "blackmedia")
-              .map((pid) => {
-                const p = platformById(pid);
-                const connected = !!profile.connectedPlatformIds?.[pid];
-                return (
-                  <button
-                    key={pid}
-                    onClick={() => toggleConnected(pid)}
-                    className="ampere-focus"
-                    style={{
-                      borderRadius: 18,
-                      border: "1px solid rgba(255,255,255,0.10)",
-                      background: connected ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.05)",
-                      padding: 14,
-                      color: "white",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 12,
-                      justifyContent: "space-between",
-                      fontWeight: 950,
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-                      <SmartImg sources={platformIconCandidates(pid)} size={26} rounded={10} fit="contain" />
-                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p?.label ?? pid}</span>
-                    </div>
-                    <span style={{ opacity: 0.85 }}>{connected ? "Connected" : "Connect"}</span>
-                  </button>
-                );
-              })}
-          </div>
-        </div>
-      </Modal>
-
-      {/* Profile Settings */}
-      <Modal open={openProfileSettings} title="Profile Settings" onClose={() => setOpenProfileSettings(false)} maxWidth={860}>
-        <div style={{ color: "rgba(255,255,255,0.9)", fontWeight: 900, lineHeight: 1.7 }}>
-          <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
-            <SmartImg sources={avatarSources} size={72} rounded={22} border={true} fit="cover" />
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontWeight: 950, fontSize: 18 }}>{profile.name}</div>
-              <div style={{ opacity: 0.75, fontWeight: 900, fontSize: 13 }}>
-                Favorites: {profile.favoritePlatformIds.length} platforms • {profile.favoriteLeagues.length} leagues • {profile.favoriteTeams.length} teams
-              </div>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ fontWeight: 950, opacity: 0.92 }}>
+              Current:{" "}
+              <span style={{ color: "white" }}>
+                {activePlatform === "all" ? "Any" : platformById(activePlatform)?.label ?? activePlatform}
+              </span>
             </div>
-
             <button
-              onClick={() => avatarInputRef.current?.click()}
+              type="button"
               className="ampere-focus"
-              style={{
-                marginLeft: "auto",
-                padding: "12px 14px",
-                borderRadius: 16,
-                border: "1px solid rgba(255,255,255,0.12)",
-                background: "rgba(255,255,255,0.08)",
-                color: "white",
-                fontWeight: 950,
-                cursor: "pointer",
-              }}
-            >
-              Change Photo
-            </button>
-          </div>
-
-          <div style={{ marginTop: 14 }}>
-            <div style={{ opacity: 0.85, marginBottom: 10 }}>Name</div>
-            <input
-              value={profile.name}
-              onChange={(e) =>
-                setProfile((prev) => {
-                  const next = { ...prev, name: e.target.value };
-                  saveProfile(next);
-                  return next;
-                })
-              }
-              className="ampere-focus"
-              style={{
-                width: "100%",
-                padding: "12px 14px",
-                borderRadius: 14,
-                border: "1px solid rgba(255,255,255,0.14)",
-                background: "rgba(0,0,0,0.35)",
-                color: "white",
-                outline: "none",
-                fontWeight: 850,
-              }}
-              placeholder="Your name"
-            />
-          </div>
-
-          <div style={{ marginTop: 14 }}>
-            <div style={{ opacity: 0.85, marginBottom: 10 }}>Header Image</div>
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              <button
-                onClick={() => headerInputRef.current?.click()}
-                className="ampere-focus"
-                style={{
-                  padding: "12px 14px",
-                  borderRadius: 16,
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  background: "rgba(255,255,255,0.08)",
-                  color: "white",
-                  fontWeight: 950,
-                  cursor: "pointer",
-                }}
-              >
-                Upload Header Image
-              </button>
-              <button
-                onClick={() => {
-                  setProfile((prev) => {
-                    const next = { ...prev, headerPhoto: null };
-                    saveProfile(next);
-                    track("header_image_clear", {});
-                    return next;
-                  });
-                }}
-                className="ampere-focus"
-                style={{
-                  padding: "12px 14px",
-                  borderRadius: 16,
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  background: "rgba(255,255,255,0.05)",
-                  color: "white",
-                  fontWeight: 950,
-                  cursor: "pointer",
-                }}
-              >
-                Clear Header Image
-              </button>
-            </div>
-          </div>
-
-          <div style={{ marginTop: 14, opacity: 0.72, fontWeight: 900 }}>
-            “For You” uses favorites + viewing habits (local history) to rank content.
-          </div>
-        </div>
-      </Modal>
-
-      {/* Setup Wizard */}
-      <Modal open={openSetup} title={`Set-Up Wizard — Step ${setupStep}/5`} onClose={() => setOpenSetup(false)} maxWidth={980}>
-        <div style={{ color: "rgba(255,255,255,0.9)", fontWeight: 900, lineHeight: 1.7 }}>
-          {setupStep === 1 ? (
-            <>
-              <div style={{ fontSize: 16, fontWeight: 950, marginBottom: 8 }}>Create your profile</div>
-              <div style={{ opacity: 0.85, marginBottom: 10 }}>Name</div>
-              <input
-                value={draftName}
-                onChange={(e) => setDraftName(e.target.value)}
-                className="ampere-focus"
-                style={{
-                  width: "100%",
-                  padding: "12px 14px",
-                  borderRadius: 14,
-                  border: "1px solid rgba(255,255,255,0.14)",
-                  background: "rgba(0,0,0,0.35)",
-                  color: "white",
-                  outline: "none",
-                  fontWeight: 850,
-                }}
-                placeholder="Your name"
-              />
-            </>
-          ) : null}
-
-          {setupStep === 2 ? (
-            <>
-              <div style={{ fontSize: 16, fontWeight: 950, marginBottom: 8 }}>Select Streaming Platforms</div>
-              <div style={{ opacity: 0.75, marginBottom: 10 }}>Tap to toggle</div>
-
-              <PillGridMultiPlatform items={ALL_PLATFORM_IDS} selected={draftPlatforms} onChange={setDraftPlatforms} />
-            </>
-          ) : null}
-
-          {setupStep === 3 ? (
-            <>
-              <div style={{ fontSize: 16, fontWeight: 950, marginBottom: 8 }}>Pick leagues</div>
-              <div style={{ opacity: 0.75, marginBottom: 10 }}>Tap to toggle</div>
-
-              <PillGridMultiText
-                items={LEAGUES.filter((l) => l !== "ALL") as any}
-                selected={draftLeagues}
-                iconFor={(l) => leagueLogoCandidates(l)}
-                onChange={setDraftLeagues}
-              />
-            </>
-          ) : null}
-
-          {setupStep === 4 ? (
-            <>
-              <div style={{ fontSize: 16, fontWeight: 950, marginBottom: 8 }}>Pick teams (for notifications)</div>
-              <div style={{ opacity: 0.75, marginBottom: 10 }}>Teams shown based on the leagues you selected.</div>
-
-              <TeamPickerByLeague leagues={draftLeagues} selectedTeams={draftTeams} onChange={setDraftTeams} />
-            </>
-          ) : null}
-
-          {setupStep === 5 ? (
-            <>
-              <div style={{ fontSize: 16, fontWeight: 950, marginBottom: 8 }}>Finish</div>
-              <div style={{ opacity: 0.85 }}>
-                Profile: <span style={{ color: "white" }}>{draftName || "User"}</span>
-              </div>
-              <div style={{ opacity: 0.85, marginTop: 8 }}>
-                Platforms:{" "}
-                <span style={{ color: "white" }}>
-                  {draftPlatforms.map((pid) => platformById(pid)?.label ?? pid).join(", ") || "None"}
-                </span>
-              </div>
-              <div style={{ opacity: 0.85, marginTop: 8 }}>
-                Leagues: <span style={{ color: "white" }}>{draftLeagues.join(", ") || "None"}</span>
-              </div>
-              <div style={{ opacity: 0.85, marginTop: 8 }}>
-                Teams: <span style={{ color: "white" }}>{draftTeams.join(", ") || "None"}</span>
-              </div>
-              <div style={{ marginTop: 12, opacity: 0.75 }}>
-                Stored locally for demo. Phase 2: accounts + DB sync across devices.
-              </div>
-            </>
-          ) : null}
-
-          <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
-            <button
-              onClick={() => setSetupStep((s) => (s > 1 ? ((s - 1) as any) : s))}
-              className="ampere-focus"
-              style={{
-                padding: "12px 14px",
-                borderRadius: 16,
-                border: "1px solid rgba(255,255,255,0.12)",
-                background: "rgba(255,255,255,0.05)",
-                color: "white",
-                fontWeight: 950,
-                cursor: "pointer",
-              }}
-            >
-              Back
-            </button>
-
-            {setupStep < 5 ? (
-              <button
-                onClick={() => setSetupStep((s) => (s < 5 ? ((s + 1) as any) : s))}
-                className="ampere-focus"
-                style={{
-                  padding: "12px 14px",
-                  borderRadius: 16,
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  background: "rgba(255,255,255,0.08)",
-                  color: "white",
-                  fontWeight: 950,
-                  cursor: "pointer",
-                }}
-              >
-                Next
-              </button>
-            ) : (
-              <button
-                onClick={() => {
-                  const next: ProfileState = {
-                    ...profile,
-                    name: draftName.trim() || "User",
-                    favoritePlatformIds: [...draftPlatforms],
-                    favoriteLeagues: [...draftLeagues],
-                    favoriteTeams: [...draftTeams],
-                  };
-                  setProfile(next);
-                  saveProfile(next);
-                  track("wizard_save", { name: next.name, platforms: next.favoritePlatformIds, leagues: next.favoriteLeagues, teams: next.favoriteTeams });
-                  setOpenSetup(false);
-                  setSetupStep(1);
-                }}
-                className="ampere-focus"
-                style={{
-                  padding: "12px 14px",
-                  borderRadius: 16,
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  background: "rgba(255,255,255,0.14)",
-                  color: "white",
-                  fontWeight: 950,
-                  cursor: "pointer",
-                }}
-              >
-                Save
-              </button>
-            )}
-
-            <button
               onClick={() => {
-                setOpenSetup(false);
-                setSetupStep(1);
+                setActivePlatform("all");
+                setOpenSeeAll(null);
               }}
-              className="ampere-focus"
               style={{
-                marginLeft: "auto",
-                padding: "12px 14px",
-                borderRadius: 16,
-                border: "1px solid rgba(255,255,255,0.12)",
-                background: "rgba(0,0,0,0.20)",
-                color: "rgba(255,255,255,0.88)",
+                padding: "10px 12px",
+                borderRadius: 14,
+                border: "1px solid rgba(58,167,255,0.22)",
+                background: "rgba(58,167,255,0.10)",
+                color: "white",
                 fontWeight: 950,
                 cursor: "pointer",
               }}
             >
-              Close
+              Clear (Any)
             </button>
           </div>
-        </div>
-      </Modal>
-
-      {/* About AMPÈRE (text only; no portraits/images) */}
-      <Modal open={openAbout} title="About AMPÈRE" onClose={() => setOpenAbout(false)} maxWidth={1020}>
-        <div style={{ display: "grid", gap: 14, color: "rgba(255,255,255,0.9)", fontWeight: 900, lineHeight: 1.7 }}>
-          <div
-            style={{
-              borderRadius: 18,
-              border: "1px solid rgba(255,255,255,0.10)",
-              background: "rgba(255,255,255,0.05)",
-              padding: 14,
-            }}
-          >
-            <div style={{ fontSize: 18, fontWeight: 950 }}>The Backstory</div>
-            <div style={{ opacity: 0.85, marginTop: 10 }}>
-              AMPÈRE is named after the force that made modern control possible — the invisible current that turns intention into action.
-            </div>
-
-            <div style={{ fontSize: 16, fontWeight: 950, marginTop: 14 }}>Who Ampère Was</div>
-            <div style={{ opacity: 0.9, marginTop: 8 }}>
-              <span style={{ fontWeight: 950 }}>André-Marie Ampère (1775–1836)</span> helped establish the foundations of electrodynamics.
-              His work formalized how electric currents produce magnetic forces — the basis of motors, relays, signals, and modern control systems.
-            </div>
-            <ul style={{ marginTop: 10, paddingLeft: 18, opacity: 0.88 }}>
-              <li>Developed core laws describing electromagnetism</li>
-              <li>Showed how current can create force at a distance</li>
-              <li>Helped enable: electric signals → automation → wireless control → modern electronics</li>
-            </ul>
-            <div style={{ marginTop: 10, opacity: 0.9 }}>
-              The ampere (amp) — the unit of electric current — is named after him.
-            </div>
-            <div style={{ marginTop: 8, opacity: 0.85 }}>
-              <em>Without Ampère, remote control as a concept does not exist.</em>
-            </div>
-          </div>
 
           <div
             style={{
-              borderRadius: 18,
-              border: "1px solid rgba(255,255,255,0.10)",
-              background: "rgba(255,255,255,0.05)",
-              padding: 14,
+              display: "grid",
+              gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(4, minmax(0, 1fr))",
+              gap: 10,
             }}
           >
-            <div style={{ fontSize: 18, fontWeight: 950 }}>Black innovation as control infrastructure</div>
-            <div style={{ opacity: 0.85, marginTop: 8 }}>
-              <em>“Builders of the control infrastructure that modern wireless life depends on.”</em>
-            </div>
-
-            <div style={{ marginTop: 12, fontWeight: 950 }}>Wireless → Control → IoT / Smart Devices</div>
-            <div style={{ opacity: 0.88, marginTop: 10 }}>
-              This mapping shows where foundational work lives inside today’s technology stack (not symbolic credit):
-            </div>
-
-            <div style={{ display: "grid", gap: 12, marginTop: 12 }}>
-              <StackBlock
-                title="A. Wireless Communication & Signaling Layer"
-                subtitle="(Precursor to remote control, radio, IoT connectivity)"
-                person="Granville T. Woods (1856–1910) — Scientist & Inventor"
-                role={["Wireless signaling between moving objects (trains)", "Collision avoidance via communication"]}
-                descendants={["Wireless telemetry", "Radio-based control systems", "Vehicle-to-infrastructure (V2I) communication", "Foundations of remote signaling logic"]}
-                why="Remote control requires reliable signal transmission + interpretation. Woods solved that problem in hostile, moving environments."
-              />
-
-              <StackBlock
-                title="B. Control Systems & Automation Layer"
-                subtitle="(Devices that change state without physical presence)"
-                person="Garrett Morgan (1877–1963) — Inventor"
-                role={["Automated traffic control logic", "Multi-state system behavior (stop / warn / go)"]}
-                descendants={["Control logic in remotes", "State machines in software", "Automation rules in smart devices"]}
-                why="Remote control is meaningless without structured control logic."
-              />
-
-              <StackBlock
-                title="C. Remote Monitoring & Actuation (Smart Home Core)"
-                subtitle="(Functional remote control of physical systems)"
-                person="Marie Van Brittan Brown (1922–1999) — Inventor"
-                role={["Remote video monitoring", "Remote door unlocking", "Two-way communication"]}
-                descendants={["Smart doorbells", "Home security apps", "Remote access systems", "Smartphone-controlled homes"]}
-                why="She built remote monitoring + control decades before “IoT” existed."
-              />
-
-              <StackBlock
-                title="D. Electronic Control Components"
-                subtitle="(Invisible but essential)"
-                person="Otis Boykin (1920–1982) — Scientist & Inventor"
-                role={["Precision electrical control via resistors"]}
-                descendants={["Signal regulation in remotes", "Power management in wireless devices", "Control electronics reliability (medical + aerospace)"]}
-                why="Remote systems fail without stable, predictable control components."
-              />
-            </div>
-
-            <div style={{ marginTop: 14, fontWeight: 950 }}>Stack Summary</div>
-            <div style={{ marginTop: 10, display: "grid", gap: 8, opacity: 0.9 }}>
-              <RowKV left="Wireless signaling" right="Granville T. Woods — Moving wireless communication" />
-              <RowKV left="Control logic" right="Garrett Morgan — Automated multi-state control" />
-              <RowKV left="Remote systems" right="Marie Van Brittan Brown — Remote monitoring & actuation" />
-              <RowKV left="Electronics" right="Otis Boykin — Precision control components" />
-            </div>
-
-            <div style={{ marginTop: 14, fontWeight: 950 }}>Timeline (Black scientists/inventors only)</div>
-            <div style={{ marginTop: 10, display: "grid", gap: 8, opacity: 0.9 }}>
-              <RowKV left="1850s–1900s" right="Granville T. Woods — Wireless induction telegraph → foundation for wireless control & telemetry" />
-              <RowKV left="1920s" right="Garrett Morgan — Automated traffic control systems → control logic & safety automation" />
-              <RowKV left="1950s–1960s" right="Otis Boykin — Precision resistors → reliability in remote & wireless systems" />
-              <RowKV left="1966" right="Marie Van Brittan Brown — Home security system (remote video + door control + two-way audio) → ancestor of smart homes" />
-            </div>
-
-            <div style={{ marginTop: 14, opacity: 0.88 }}>
-              Resulting impact today: smart locks • home cameras • remote monitoring apps • wireless automation systems
-            </div>
+            {platformsForGenre(activeGenre)
+              .filter((id) => id !== "all" && id !== "livetv")
+              .map((id) => platformById(id))
+              .filter(Boolean)
+              .map((p) => (
+                <PillButton
+                  key={`seeall_${activeGenre}_${p!.id}`}
+                  label={p!.label}
+                  iconSources={platformIconCandidates(p!.id)}
+                  active={activePlatform === p!.id}
+                  onClick={() => {
+                    setActivePlatform(p!.id);
+                    setOpenSeeAll(null);
+                  }}
+                  fullWidth
+                  multiline
+                />
+              ))}
           </div>
         </div>
       </Modal>
 
-      {/* Card detail */}
-      <Modal open={!!openCard} title={openCard?.title ?? "Details"} onClose={() => setOpenCard(null)} maxWidth={980}>
+      {/* CARD DETAILS */}
+      <Modal
+        open={!!openCard}
+        title={openCard ? openCard.title : "Details"}
+        onClose={() => setOpenCard(null)}
+        maxWidth={980}
+      >
         {openCard ? (
-          <div style={{ color: "rgba(255,255,255,0.9)", fontWeight: 900, lineHeight: 1.8 }}>
-            <div>
-              <span style={{ opacity: 0.7 }}>Subtitle:</span> <span style={{ color: "white" }}>{openCard.subtitle ?? "-"}</span>
-            </div>
-            <div>
-              <span style={{ opacity: 0.7 }}>Platform:</span>{" "}
-              <span style={{ color: "white" }}>{platformById(openCard.platformId ?? "all")?.label ?? openCard.platformLabel ?? "-"}</span>
-            </div>
-            <div>
-              <span style={{ opacity: 0.7 }}>League:</span> <span style={{ color: "white" }}>{openCard.league ?? "-"}</span>
-            </div>
-            <div>
-              <span style={{ opacity: 0.7 }}>Genre:</span> <span style={{ color: "white" }}>{openCard.genre ?? "-"}</span>
-            </div>
-            <div>
-              <span style={{ opacity: 0.7 }}>Start:</span> <span style={{ color: "white" }}>{openCard.startTime ?? "-"}</span>
-            </div>
-            <div>
-              <span style={{ opacity: 0.7 }}>Time remaining:</span> <span style={{ color: "white" }}>{openCard.timeRemaining ?? "-"}</span>
-            </div>
+          (() => {
+            const pid = openCard.platformId ?? platformIdFromLabel(openCard.platformLabel ?? "") ?? null;
+            const platform = pid ? platformById(pid) : null;
+            const league = openCard.league ?? "";
+            const isFavPlatform = pid ? profile.favoritePlatformIds.includes(pid) : false;
+            const isConnected = pid ? !!profile.connectedPlatformIds?.[pid] : false;
 
-            <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
-              <button
-                onClick={() => openProviderForCard(openCard)}
-                className="ampere-focus"
-                style={{
-                  padding: "12px 14px",
-                  borderRadius: 16,
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  background: "rgba(255,255,255,0.10)",
-                  color: "white",
-                  fontWeight: 950,
-                  cursor: "pointer",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 10,
-                }}
-              >
-                <IconPlay /> Open
-              </button>
+            const hero = openCard.thumb
+              ? [openCard.thumb, ...brandWideCandidates(), ...brandMarkCandidates()]
+              : [...brandWideCandidates(), ...brandMarkCandidates()];
 
-              <button
-                onClick={() => subscribeProvider(openCard)}
-                className="ampere-focus"
-                style={{
-                  padding: "12px 14px",
-                  borderRadius: 16,
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  background: "rgba(255,255,255,0.06)",
-                  color: "white",
-                  fontWeight: 950,
-                  cursor: "pointer",
-                }}
-              >
-                Subscribe
-              </button>
+            return (
+              <div style={{ display: "grid", gap: 14 }}>
+                <div
+                  style={{
+                    borderRadius: 18,
+                    overflow: "hidden",
+                    border: "1px solid var(--stroke)",
+                    background:
+                      "radial-gradient(900px 260px at 30% 0%, rgba(58,167,255,0.18), rgba(0,0,0,0) 60%), rgba(255,255,255,0.04)",
+                  }}
+                >
+                  <div style={{ position: "relative", height: isMobile ? 160 : 220 }}>
+                    <div style={{ position: "absolute", inset: 0, opacity: 0.28 }}>
+                      <SmartImg sources={hero} size={1200} rounded={0} border={false} fit="cover" fill />
+                    </div>
 
-              <button
-                onClick={() => setOpenCard(null)}
-                className="ampere-focus"
-                style={{
-                  marginLeft: "auto",
-                  padding: "12px 14px",
-                  borderRadius: 16,
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  background: "rgba(0,0,0,0.20)",
-                  color: "rgba(255,255,255,0.88)",
-                  fontWeight: 950,
-                  cursor: "pointer",
-                }}
-              >
-                Return to AMPÈRE
-              </button>
-            </div>
-          </div>
-        ) : null}
-      </Modal>
-    </div>
-  );
-}
+                    <div style={{ position: "absolute", top: 12, left: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
+                      {openCard.badge ? (
+                        <span
+                          style={{
+                            padding: "6px 10px",
+                            borderRadius: 999,
+                            border: "1px solid rgba(255,255,255,0.18)",
+                            background:
+                              openCard.badge === "LIVE"
+                                ? "rgba(255,72,72,0.22)"
+                                : openCard.badge === "UPCOMING"
+                                ? "rgba(58,167,255,0.20)"
+                                : "rgba(255,255,255,0.12)",
+                            color: "white",
+                            fontWeight: 950,
+                            fontSize: 12,
+                            letterSpacing: 0.6,
+                          }}
+                        >
+                          {openCard.badge}
+                        </span>
+                      ) : null}
 
-// -------------------- Helper: dedupe cards --------------------
+                      {openCard.genre ? (
+                        <span
+                          style={{
+                            padding: "6px 10px",
+                            borderRadius: 999,
+                            border: "1px solid rgba(255,255,255,0.14)",
+                            background: "rgba(0,0,0,0.40)",
+                            color: "white",
+                            fontWeight: 950,
+                            fontSize: 12,
+                          }}
+                        >
+                          {openCard.genre}
+                        </span>
+                      ) : null}
+                    </div>
 
-function uniqByCardKey(cards: Card[]) {
-  const seen = new Set<string>();
-  const out: Card[] = [];
-  for (const c of cards) {
-    const k = `${normalizeKey(c.title)}|${c.platformId ?? ""}|${normalizeKey(c.league ?? "")}|${normalizeKey(c.genre ?? "")}`;
-    if (seen.has(k)) continue;
-    seen.add(k);
-    out.push(c);
-  }
-  return out;
-}
+                    <div style={{ position: "absolute", bottom: 12, left: 12, display: "flex", gap: 10, alignItems: "center" }}>
+                      {league ? <SmartImg sources={leagueLogoCandidates(league)} size={32} rounded={12} fit="contain" /> : null}
+                      {pid ? <SmartImg sources={platformIconCandidates(pid)} size={32} rounded={12} fit="contain" /> : null}
+                      <div style={{ fontWeight: 950, opacity: 0.92 }}>
+                        {platform?.label ?? openCard.platformLabel ?? (pid ?? "")}
+                        {pid ? (
+                          <span style={{ marginLeft: 10, opacity: 0.75, fontWeight: 900, fontSize: 12 }}>
+                            {isConnected ? "Connected" : "Not connected (demo)"}
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
 
-// -------------------- Multi-select grids --------------------
+                  <div style={{ padding: 14, display: "grid", gap: 10 }}>
+                    {openCard.subtitle ? <div style={{ opacity: 0.82, fontWeight: 900 }}>{openCard.subtitle}</div> : null}
 
-function PillGridMultiPlatform({
-  items,
-  selected,
-  onChange,
-}: {
-  items: PlatformId[];
-  selected: PlatformId[];
-  onChange: (next: PlatformId[]) => void;
-}) {
-  const toggle = (pid: PlatformId) => {
-    const on = selected.includes(pid);
-    if (on) onChange(selected.filter((x) => x !== pid));
-    else onChange([...selected, pid]);
-  };
+                    {(openCard.metaLeft || openCard.metaRight || openCard.startTime || openCard.timeRemaining) ? (
+                      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", opacity: 0.78, fontWeight: 900, fontSize: 13 }}>
+                        {openCard.metaLeft ? <span>{openCard.metaLeft}</span> : null}
+                        {openCard.metaRight ? <span>• {openCard.metaRight}</span> : null}
+                        {openCard.startTime ? <span>• Starts: {openCard.startTime}</span> : null}
+                        {openCard.timeRemaining ? <span>• {openCard.timeRemaining}</span> : null}
+                      </div>
+                    ) : null}
 
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 10 }}>
-      {items.map((pid) => {
-        const p = platformById(pid);
-        const on = selected.includes(pid);
-        return (
-          <PillButton
-            key={pid}
-            label={p?.label ?? pid}
-            iconSources={platformIconCandidates(pid)}
-            active={on}
-            onClick={() => toggle(pid)}
-            fullWidth
-            multiline
-          />
-        );
-      })}
-    </div>
-  );
-}
-
-function PillGridMultiText({
-  items,
-  selected,
-  iconFor,
-  onChange,
-}: {
-  items: string[];
-  selected: string[];
-  iconFor: (x: string) => string[];
-  onChange: (next: string[]) => void;
-}) {
-  const toggle = (x: string) => {
-    const on = selected.some((s) => normalizeKey(s) === normalizeKey(x));
-    if (on) onChange(selected.filter((s) => normalizeKey(s) !== normalizeKey(x)));
-    else onChange([...selected, x]);
-  };
-
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 10 }}>
-      {items.map((x) => {
-        const on = selected.some((s) => normalizeKey(s) === normalizeKey(x));
-        return (
-          <PillButton key={x} label={x} iconSources={iconFor(x)} active={on} onClick={() => toggle(x)} fullWidth />
-        );
-      })}
-    </div>
-  );
-}
-
-// -------------------- Team picker --------------------
-
-function TeamPickerByLeague({
-  leagues,
-  selectedTeams,
-  onChange,
-}: {
-  leagues: string[];
-  selectedTeams: string[];
-  onChange: (next: string[]) => void;
-}) {
-  const [filter, setFilter] = useState("");
-
-  const toggleTeam = (t: string) => {
-    const on = selectedTeams.some((x) => normalizeKey(x) === normalizeKey(t));
-    if (on) onChange(selectedTeams.filter((x) => normalizeKey(x) !== normalizeKey(t)));
-    else onChange([...selectedTeams, t]);
-  };
-
-  const leagueBlocks = useMemo(() => {
-    const useLeagues = (leagues ?? []).filter(Boolean);
-    return useLeagues.map((l) => {
-      const key = TEAMS_BY_LEAGUE[l] ? l : l.toUpperCase();
-      return { league: l, teams: TEAMS_BY_LEAGUE[key] ?? [] };
-    });
-  }, [leagues]);
-
-  return (
-    <div
-      style={{
-        borderRadius: 18,
-        border: "1px solid rgba(255,255,255,0.10)",
-        background: "rgba(255,255,255,0.05)",
-        padding: 14,
-      }}
-    >
-      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-        <div style={{ opacity: 0.9, fontWeight: 950 }}>Teams</div>
-        <input
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          placeholder="Filter teams…"
-          className="ampere-focus"
-          style={{
-            flex: "1 1 240px",
-            padding: "10px 12px",
-            borderRadius: 14,
-            border: "1px solid rgba(255,255,255,0.14)",
-            background: "rgba(0,0,0,0.35)",
-            color: "white",
-            outline: "none",
-            fontWeight: 850,
-          }}
-        />
-      </div>
-
-      <div style={{ marginTop: 12, display: "grid", gap: 12 }}>
-        {leagueBlocks.length ? (
-          leagueBlocks.map((b) => (
-            <div key={b.league} style={{ display: "grid", gap: 10 }}>
-              <div style={{ fontWeight: 950, opacity: 0.9 }}>{b.league}</div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-                {(b.teams ?? [])
-                  .filter((t) => (filter.trim() ? t.toLowerCase().includes(filter.trim().toLowerCase()) : true))
-                  .map((t) => {
-                    const on = selectedTeams.some((x) => normalizeKey(x) === normalizeKey(t));
-                    return (
+                    <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10 }}>
                       <button
-                        key={t}
-                        onClick={() => toggleTeam(t)}
+                        type="button"
                         className="ampere-focus"
+                        onClick={() => openProviderForCard(openCard)}
                         style={{
-                          padding: "8px 12px",
-                          borderRadius: 999,
-                          border: "1px solid rgba(255,255,255,0.12)",
-                          background: on ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.25)",
+                          padding: "12px 14px",
+                          borderRadius: 14,
+                          border: "1px solid rgba(58,167,255,0.22)",
+                          background: "rgba(58,167,255,0.12)",
                           color: "white",
                           fontWeight: 950,
                           cursor: "pointer",
                         }}
-                        title={on ? "Selected" : "Select"}
                       >
-                        {t} <span style={{ opacity: 0.7 }}>{on ? "✓" : "+"}</span>
+                        Open on {platform?.label ?? "Provider"}
                       </button>
-                    );
-                  })}
-                {!b.teams?.length ? <div style={{ opacity: 0.75, fontWeight: 900 }}>No team list configured for this league yet.</div> : null}
+
+                      <button
+                        type="button"
+                        className="ampere-focus"
+                        onClick={() => subscribeProvider(openCard)}
+                        style={{
+                          padding: "12px 14px",
+                          borderRadius: 14,
+                          border: "1px solid rgba(255,255,255,0.14)",
+                          background: "rgba(255,255,255,0.06)",
+                          color: "white",
+                          fontWeight: 950,
+                          cursor: "pointer",
+                        }}
+                      >
+                        Subscribe / Plans
+                      </button>
+
+                      {pid ? (
+                        <button
+                          type="button"
+                          className="ampere-focus"
+                          onClick={() => {
+                            setProfile((prev) => {
+                              const exists = prev.favoritePlatformIds.includes(pid);
+                              const nextFavs = exists
+                                ? prev.favoritePlatformIds.filter((x) => x !== pid)
+                                : uniq([...prev.favoritePlatformIds, pid]) as PlatformId[];
+
+                              const next: ProfileState = { ...prev, favoritePlatformIds: nextFavs };
+                              saveProfile(next);
+                              track("favorite_platform_toggle", { platformId: pid, on: !exists });
+                              return next;
+                            });
+                          }}
+                          style={{
+                            padding: "12px 14px",
+                            borderRadius: 14,
+                            border: "1px solid rgba(58,167,255,0.22)",
+                            background: isFavPlatform ? "rgba(58,167,255,0.14)" : "rgba(0,0,0,0.28)",
+                            color: "white",
+                            fontWeight: 950,
+                            cursor: "pointer",
+                            gridColumn: isMobile ? "auto" : "1 / -1",
+                          }}
+                        >
+                          {isFavPlatform ? "Remove from Favorite Platforms" : "Add to Favorite Platforms"}
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()
+        ) : null}
+      </Modal>
+
+      {/* VOICE */}
+      <Modal open={openVoice} title="Voice" onClose={() => setOpenVoice(false)} maxWidth={760}>
+        <div style={{ display: "grid", gap: 12 }}>
+          <div style={{ fontWeight: 950, fontSize: 16 }}>Try commands like:</div>
+          <div style={{ display: "grid", gap: 10 }}>
+            {[
+              "“Play the Lakers game.”",
+              "“Open Netflix.”",
+              "“Show me kids shows.”",
+              "“What’s live right now?”",
+              "“Search for documentaries about space.”",
+            ].map((t) => (
+              <div key={t} style={{ padding: 12, borderRadius: 14, border: "1px solid var(--stroke)", background: "rgba(255,255,255,0.05)", fontWeight: 900, opacity: 0.9 }}>
+                {t}
+              </div>
+            ))}
+          </div>
+          <div style={{ opacity: 0.72, fontWeight: 900 }}>
+            Demo-only UI. Phase 2 would connect to STT + intent routing.
+          </div>
+        </div>
+      </Modal>
+
+      {/* REMOTE */}
+      <Modal open={openRemote} title="Remote" onClose={() => setOpenRemote(false)} maxWidth={760}>
+        <div style={{ display: "grid", gap: 12 }}>
+          <div style={{ opacity: 0.78, fontWeight: 900 }}>
+            Demo remote — mapped controls would drive the TV/OS in Phase 2.
+          </div>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+              gap: 12,
+            }}
+          >
+            <div style={{ borderRadius: 18, border: "1px solid var(--stroke)", background: "rgba(255,255,255,0.04)", padding: 14, display: "grid", gap: 10 }}>
+              <div style={{ fontWeight: 950 }}>Navigation</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+                {["↑", "OK", "⟲", "←", "↓", "→"].map((k) => (
+                  <button
+                    key={k}
+                    type="button"
+                    className="ampere-focus"
+                    onClick={() => track("remote_press", { key: k })}
+                    style={{
+                      padding: "14px 0",
+                      borderRadius: 14,
+                      border: "1px solid rgba(255,255,255,0.14)",
+                      background: "rgba(0,0,0,0.28)",
+                      color: "white",
+                      fontWeight: 950,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {k}
+                  </button>
+                ))}
               </div>
             </div>
-          ))
-        ) : (
-          <div style={{ opacity: 0.75, fontWeight: 900 }}>Select leagues first to see teams.</div>
-        )}
+
+            <div style={{ borderRadius: 18, border: "1px solid var(--stroke)", background: "rgba(255,255,255,0.04)", padding: 14, display: "grid", gap: 10 }}>
+              <div style={{ fontWeight: 950 }}>Playback</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
+                {["Play/Pause", "Back", "Rewind", "Fast-forward", "Vol -", "Vol +"].map((k) => (
+                  <button
+                    key={k}
+                    type="button"
+                    className="ampere-focus"
+                    onClick={() => track("remote_press", { key: k })}
+                    style={{
+                      padding: "12px 12px",
+                      borderRadius: 14,
+                      border: "1px solid rgba(255,255,255,0.14)",
+                      background: "rgba(0,0,0,0.28)",
+                      color: "white",
+                      fontWeight: 950,
+                      cursor: "pointer",
+                      textAlign: "left",
+                    }}
+                  >
+                    {k}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* FAVORITES */}
+      <Modal
+        open={openFavorites}
+        title="Favorites"
+        onClose={() => {
+          setOpenFavorites(false);
+          setDraftPlatforms(profile.favoritePlatformIds);
+          setDraftLeagues(profile.favoriteLeagues);
+          setDraftTeams(profile.favoriteTeams);
+        }}
+        maxWidth={980}
+      >
+        <div style={{ display: "grid", gap: 14 }}>
+          <div style={{ opacity: 0.78, fontWeight: 900 }}>
+            Edit favorites used to boost “For You” and personalize alerts.
+          </div>
+
+          <div style={{ borderRadius: 18, border: "1px solid var(--stroke)", background: "rgba(255,255,255,0.04)", padding: 14, display: "grid", gap: 12 }}>
+            <div style={{ fontWeight: 950, fontSize: 16 }}>Favorite Platforms</div>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: 10 }}>
+              {ALL_PLATFORM_IDS.map((pid) => {
+                const p = platformById(pid);
+                const on = draftPlatforms.includes(pid);
+                return (
+                  <PillButton
+                    key={`favp_${pid}`}
+                    label={p?.label ?? pid}
+                    iconSources={platformIconCandidates(pid)}
+                    active={on}
+                    onClick={() => {
+                      setDraftPlatforms((prev) => (prev.includes(pid) ? prev.filter((x) => x !== pid) : (uniq([...prev, pid]) as PlatformId[])));
+                    }}
+                    fullWidth
+                    multiline
+                  />
+                );
+              })}
+            </div>
+          </div>
+
+          <div style={{ borderRadius: 18, border: "1px solid var(--stroke)", background: "rgba(255,255,255,0.04)", padding: 14, display: "grid", gap: 12 }}>
+            <div style={{ fontWeight: 950, fontSize: 16 }}>Favorite Leagues</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 10 }}>
+              {LEAGUES.filter((l) => l !== "ALL").map((l) => {
+                const on = draftLeagues.map(normalizeKey).includes(normalizeKey(l));
+                return (
+                  <PillButton
+                    key={`favl_${l}`}
+                    label={l}
+                    active={on}
+                    onClick={() => {
+                      setDraftLeagues((prev) => {
+                        const has = prev.map(normalizeKey).includes(normalizeKey(l));
+                        return has ? prev.filter((x) => normalizeKey(x) !== normalizeKey(l)) : uniq([...prev, l]);
+                      });
+                    }}
+                    fullWidth
+                  />
+                );
+              })}
+            </div>
+          </div>
+
+          <div style={{ borderRadius: 18, border: "1px solid var(--stroke)", background: "rgba(255,255,255,0.04)", padding: 14, display: "grid", gap: 12 }}>
+            <div style={{ fontWeight: 950, fontSize: 16 }}>Favorite Teams / Shows (by League)</div>
+            {!draftLeagues.length ? (
+              <div style={{ opacity: 0.78, fontWeight: 900 }}>Pick at least one league above to choose teams/shows.</div>
+            ) : (
+              <div style={{ display: "grid", gap: 14 }}>
+                {draftLeagues.map((l) => {
+                  const teams = TEAMS_BY_LEAGUE[l] ?? [];
+                  if (!teams.length) return null;
+                  return (
+                    <div key={`teams_${l}`} style={{ display: "grid", gap: 10 }}>
+                      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
+                        <div style={{ fontWeight: 950 }}>{l}</div>
+                        <div style={{ opacity: 0.7, fontWeight: 900, fontSize: 12 }}>
+                          Selected: {draftTeams.filter((t) => teams.includes(t)).length}
+                        </div>
+                      </div>
+
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 }}>
+                        {teams.slice(0, 48).map((team) => {
+                          const on = draftTeams.includes(team);
+                          return (
+                            <PillButton
+                              key={`t_${l}_${team}`}
+                              label={team}
+                              iconSources={teamLogoCandidates(l, team)}
+                              active={on}
+                              onClick={() => setDraftTeams((prev) => (prev.includes(team) ? prev.filter((x) => x !== team) : uniq([...prev, team])))}
+                              fullWidth
+                              multiline
+                            />
+                          );
+                        })}
+                      </div>
+
+                      {teams.length > 48 ? (
+                        <div style={{ opacity: 0.72, fontWeight: 900, fontSize: 12 }}>
+                          Showing 48 of {teams.length} (demo). Phase 2 adds search + full paging.
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
+            <button
+              type="button"
+              className="ampere-focus"
+              onClick={() => {
+                setDraftPlatforms(profile.favoritePlatformIds);
+                setDraftLeagues(profile.favoriteLeagues);
+                setDraftTeams(profile.favoriteTeams);
+              }}
+              style={{
+                padding: "12px 14px",
+                borderRadius: 14,
+                border: "1px solid rgba(255,255,255,0.14)",
+                background: "rgba(255,255,255,0.06)",
+                color: "white",
+                fontWeight: 950,
+                cursor: "pointer",
+              }}
+            >
+              Reset
+            </button>
+            <button
+              type="button"
+              className="ampere-focus"
+              onClick={() => {
+                setProfile((prev) => {
+                  const next: ProfileState = {
+                    ...prev,
+                    favoritePlatformIds: draftPlatforms,
+                    favoriteLeagues: draftLeagues,
+                    favoriteTeams: draftTeams,
+                  };
+                  saveProfile(next);
+                  track("favorites_save", {
+                    platforms: draftPlatforms.length,
+                    leagues: draftLeagues.length,
+                    teams: draftTeams.length,
+                  });
+                  return next;
+                });
+                setOpenFavorites(false);
+              }}
+              style={{
+                padding: "12px 14px",
+                borderRadius: 14,
+                border: "1px solid rgba(58,167,255,0.22)",
+                background: "rgba(58,167,255,0.12)",
+                color: "white",
+                fontWeight: 950,
+                cursor: "pointer",
+              }}
+            >
+              Save Favorites
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* NOTIFICATIONS */}
+      <Modal open={openNotifications} title="Notifications" onClose={() => setOpenNotifications(false)} maxWidth={900}>
+        <div style={{ display: "grid", gap: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+            <div style={{ fontWeight: 950, fontSize: 16 }}>Alerts</div>
+            <button
+              type="button"
+              className="ampere-focus"
+              onClick={() => {
+                setProfile((prev) => {
+                  const next: ProfileState = { ...prev, notificationsEnabled: !prev.notificationsEnabled };
+                  saveProfile(next);
+                  track("notifications_toggle", { on: next.notificationsEnabled });
+                  return next;
+                });
+              }}
+              style={{
+                padding: "10px 12px",
+                borderRadius: 14,
+                border: "1px solid rgba(58,167,255,0.22)",
+                background: profile.notificationsEnabled ? "rgba(58,167,255,0.14)" : "rgba(255,255,255,0.06)",
+                color: "white",
+                fontWeight: 950,
+                cursor: "pointer",
+              }}
+            >
+              {profile.notificationsEnabled ? "Enabled" : "Disabled"}
+            </button>
+          </div>
+
+          <div style={{ opacity: 0.75, fontWeight: 900 }}>
+            Demo: we would generate reminders when your favorites are LIVE or UPCOMING.
+          </div>
+
+          <div style={{ borderRadius: 18, border: "1px solid var(--stroke)", background: "rgba(255,255,255,0.04)", padding: 14, display: "grid", gap: 10 }}>
+            <div style={{ fontWeight: 950 }}>Your Favorites</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+              {profile.favoriteLeagues.slice(0, 8).map((l) => (
+                <Chip key={`nl_${l}`} label={l} />
+              ))}
+              {profile.favoriteTeams.slice(0, 10).map((t) => (
+                <Chip key={`nt_${t}`} label={t} />
+              ))}
+              {!profile.favoriteLeagues.length && !profile.favoriteTeams.length ? (
+                <div style={{ opacity: 0.78, fontWeight: 900 }}>No favorites set yet. Add some in Favorites.</div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* CONNECT PLATFORMS */}
+      <Modal open={openConnect} title="Connect Platforms" onClose={() => setOpenConnect(false)} maxWidth={980}>
+        <div style={{ display: "grid", gap: 12 }}>
+          <div style={{ opacity: 0.78, fontWeight: 900 }}>
+            Demo toggles to simulate “connected” provider accounts.
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: 10 }}>
+            {ALL_PLATFORM_IDS.map((pid) => {
+              const p = platformById(pid);
+              const on = !!profile.connectedPlatformIds?.[pid];
+              return (
+                <PillButton
+                  key={`conn_${pid}`}
+                  label={p?.label ?? pid}
+                  iconSources={platformIconCandidates(pid)}
+                  active={on}
+                  onClick={() => toggleConnected(pid)}
+                  fullWidth
+                  multiline
+                />
+              );
+            })}
+          </div>
+        </div>
+      </Modal>
+
+      {/* ABOUT */}
+      <Modal open={openAbout} title="About AMPÈRE" onClose={() => setOpenAbout(false)} maxWidth={980}>
+        <div style={{ display: "grid", gap: 14 }}>
+          <div style={{ fontWeight: 950, fontSize: 18 }}>Control, Reimagined.</div>
+          <div style={{ opacity: 0.82, fontWeight: 900, lineHeight: 1.5 }}>
+            AMPÈRE is a concept demo for a unified TV experience: browse across services, see what’s live, and launch content fast —
+            from remote, voice, or personalized rails.
+          </div>
+
+          <div style={{ borderRadius: 18, border: "1px solid var(--stroke)", background: "rgba(255,255,255,0.04)", padding: 14, display: "grid", gap: 10 }}>
+            <div style={{ fontWeight: 950 }}>Phase 2 Directory Plan (suggested)</div>
+            <pre style={{ margin: 0, whiteSpace: "pre-wrap", fontWeight: 900, opacity: 0.85, fontSize: 13, lineHeight: 1.45 }}>
+{`/app
+  /ampere
+    page.tsx
+/components
+  /ampere
+    CardGrid.tsx
+    Filters.tsx
+    Header.tsx
+    Footer.tsx
+    Modals.tsx
+/lib
+  catalog.ts
+  providers.ts
+  storage.ts
+  ranking.ts
+  teams.ts
+  tracking.ts`}
+            </pre>
+            <div style={{ opacity: 0.75, fontWeight: 900 }}>
+              This demo is intentionally single-file and dependency-free.
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* PROFILE SETTINGS */}
+      <Modal open={openProfileSettings} title="Profile Settings" onClose={() => setOpenProfileSettings(false)} maxWidth={820}>
+        <ProfileSettingsContent
+          profile={profile}
+          onSave={(next) => {
+            setProfile(next);
+            saveProfile(next);
+            track("profile_save", {});
+            setOpenProfileSettings(false);
+          }}
+          onPickAvatar={() => avatarInputRef.current?.click()}
+          onPickHeader={() => headerInputRef.current?.click()}
+        />
+      </Modal>
+
+      {/* SET-UP WIZARD */}
+      <Modal
+        open={openSetup}
+        title={`Set-Up Wizard — Step ${setupStep} of 5`}
+        onClose={() => {
+          setOpenSetup(false);
+          setSetupStep(1);
+          setDraftName(profile.name);
+          setDraftPlatforms(profile.favoritePlatformIds);
+          setDraftLeagues(profile.favoriteLeagues);
+          setDraftTeams(profile.favoriteTeams);
+        }}
+        maxWidth={980}
+      >
+        <div style={{ display: "grid", gap: 14 }}>
+          {/* Step body */}
+          {setupStep === 1 ? (
+            <div style={{ display: "grid", gap: 12 }}>
+              <div style={{ fontWeight: 950, fontSize: 16 }}>Welcome. What should we call you?</div>
+              <input
+                value={draftName}
+                onChange={(e) => setDraftName(e.target.value)}
+                placeholder="Your name"
+                className="ampere-focus"
+                style={{
+                  padding: "12px 14px",
+                  borderRadius: 14,
+                  border: "1px solid var(--stroke2)",
+                  background: "rgba(0,0,0,0.35)",
+                  color: "white",
+                  outline: "none",
+                  fontWeight: 900,
+                }}
+              />
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  className="ampere-focus"
+                  onClick={() => avatarInputRef.current?.click()}
+                  style={{
+                    padding: "12px 14px",
+                    borderRadius: 14,
+                    border: "1px solid rgba(255,255,255,0.14)",
+                    background: "rgba(255,255,255,0.06)",
+                    color: "white",
+                    fontWeight: 950,
+                    cursor: "pointer",
+                  }}
+                >
+                  Upload Avatar
+                </button>
+                <button
+                  type="button"
+                  className="ampere-focus"
+                  onClick={() => headerInputRef.current?.click()}
+                  style={{
+                    padding: "12px 14px",
+                    borderRadius: 14,
+                    border: "1px solid rgba(255,255,255,0.14)",
+                    background: "rgba(255,255,255,0.06)",
+                    color: "white",
+                    fontWeight: 950,
+                    cursor: "pointer",
+                  }}
+                >
+                  Upload Header
+                </button>
+              </div>
+              <div style={{ opacity: 0.75, fontWeight: 900 }}>
+                Tip: step 1 should not lose focus while typing (Modal focus stabilized).
+              </div>
+            </div>
+          ) : null}
+
+          {setupStep === 2 ? (
+            <div style={{ display: "grid", gap: 12 }}>
+              <div style={{ fontWeight: 950, fontSize: 16 }}>Pick favorite platforms</div>
+              <div style={{ opacity: 0.78, fontWeight: 900 }}>These boost “For You” and Favs tab.</div>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: 10 }}>
+                {ALL_PLATFORM_IDS.map((pid) => {
+                  const p = platformById(pid);
+                  const on = draftPlatforms.includes(pid);
+                  return (
+                    <PillButton
+                      key={`wizp_${pid}`}
+                      label={p?.label ?? pid}
+                      iconSources={platformIconCandidates(pid)}
+                      active={on}
+                      onClick={() => setDraftPlatforms((prev) => (prev.includes(pid) ? prev.filter((x) => x !== pid) : (uniq([...prev, pid]) as PlatformId[])))}
+                      fullWidth
+                      multiline
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+
+          {setupStep === 3 ? (
+            <div style={{ display: "grid", gap: 12 }}>
+              <div style={{ fontWeight: 950, fontSize: 16 }}>Pick favorite leagues</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 10 }}>
+                {LEAGUES.filter((l) => l !== "ALL").map((l) => {
+                  const on = draftLeagues.map(normalizeKey).includes(normalizeKey(l));
+                  return (
+                    <PillButton
+                      key={`wizl_${l}`}
+                      label={l}
+                      active={on}
+                      onClick={() => {
+                        setDraftLeagues((prev) => {
+                          const has = prev.map(normalizeKey).includes(normalizeKey(l));
+                          return has ? prev.filter((x) => normalizeKey(x) !== normalizeKey(l)) : uniq([...prev, l]);
+                        });
+                      }}
+                      fullWidth
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+
+          {setupStep === 4 ? (
+            <div style={{ display: "grid", gap: 12 }}>
+              <div style={{ fontWeight: 950, fontSize: 16 }}>Pick favorite teams / shows</div>
+              {!draftLeagues.length ? (
+                <div style={{ opacity: 0.78, fontWeight: 900 }}>Select leagues first (Step 3).</div>
+              ) : (
+                <div style={{ display: "grid", gap: 14 }}>
+                  {draftLeagues.map((l) => {
+                    const teams = TEAMS_BY_LEAGUE[l] ?? [];
+                    if (!teams.length) return null;
+                    return (
+                      <div key={`wizteams_${l}`} style={{ display: "grid", gap: 10 }}>
+                        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
+                          <div style={{ fontWeight: 950 }}>{l}</div>
+                          <div style={{ opacity: 0.7, fontWeight: 900, fontSize: 12 }}>
+                            Selected: {draftTeams.filter((t) => teams.includes(t)).length}
+                          </div>
+                        </div>
+
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 }}>
+                          {teams.slice(0, 64).map((team) => {
+                            const on = draftTeams.includes(team);
+                            return (
+                              <PillButton
+                                key={`wizt_${l}_${team}`}
+                                label={team}
+                                iconSources={teamLogoCandidates(l, team)}
+                                active={on}
+                                onClick={() => setDraftTeams((prev) => (prev.includes(team) ? prev.filter((x) => x !== team) : uniq([...prev, team])))}
+                                fullWidth
+                                multiline
+                              />
+                            );
+                          })}
+                        </div>
+
+                        {teams.length > 64 ? (
+                          <div style={{ opacity: 0.72, fontWeight: 900, fontSize: 12 }}>
+                            Showing 64 of {teams.length} (demo). Phase 2 adds search + paging.
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ) : null}
+
+          {setupStep === 5 ? (
+            <div style={{ display: "grid", gap: 12 }}>
+              <div style={{ fontWeight: 950, fontSize: 16 }}>Review</div>
+
+              <div style={{ borderRadius: 18, border: "1px solid var(--stroke)", background: "rgba(255,255,255,0.04)", padding: 14, display: "grid", gap: 10 }}>
+                <div style={{ fontWeight: 950 }}>
+                  Name: <span style={{ opacity: 0.9 }}>{draftName || "Demo User"}</span>
+                </div>
+                <div style={{ fontWeight: 950, opacity: 0.9 }}>Platforms: {draftPlatforms.length}</div>
+                <div style={{ fontWeight: 950, opacity: 0.9 }}>Leagues: {draftLeagues.length}</div>
+                <div style={{ fontWeight: 950, opacity: 0.9 }}>Teams: {draftTeams.length}</div>
+              </div>
+
+              <div style={{ opacity: 0.78, fontWeight: 900 }}>
+                Saving updates your Home rails and notification preferences.
+              </div>
+            </div>
+          ) : null}
+
+          {/* Step nav */}
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "space-between", alignItems: "center" }}>
+            <button
+              type="button"
+              className="ampere-focus"
+              onClick={() => setSetupStep((s) => (s > 1 ? ((s - 1) as any) : s))}
+              disabled={setupStep === 1}
+              style={{
+                padding: "12px 14px",
+                borderRadius: 14,
+                border: "1px solid rgba(255,255,255,0.14)",
+                background: "rgba(255,255,255,0.06)",
+                color: "white",
+                fontWeight: 950,
+                cursor: setupStep === 1 ? "not-allowed" : "pointer",
+                opacity: setupStep === 1 ? 0.55 : 1,
+              }}
+            >
+              ← Back
+            </button>
+
+            {setupStep < 5 ? (
+              <button
+                type="button"
+                className="ampere-focus"
+                onClick={() => setSetupStep((s) => ((s + 1) as any))}
+                style={{
+                  padding: "12px 14px",
+                  borderRadius: 14,
+                  border: "1px solid rgba(58,167,255,0.22)",
+                  background: "rgba(58,167,255,0.12)",
+                  color: "white",
+                  fontWeight: 950,
+                  cursor: "pointer",
+                }}
+              >
+                Next →
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="ampere-focus"
+                onClick={() => {
+                  setProfile((prev) => {
+                    const next: ProfileState = {
+                      ...prev,
+                      name: draftName?.trim() ? draftName.trim() : prev.name,
+                      favoritePlatformIds: draftPlatforms,
+                      favoriteLeagues: draftLeagues,
+                      favoriteTeams: draftTeams,
+                    };
+                    saveProfile(next);
+                    track("wizard_save", {
+                      platforms: draftPlatforms.length,
+                      leagues: draftLeagues.length,
+                      teams: draftTeams.length,
+                    });
+                    return next;
+                  });
+                  setOpenSetup(false);
+                  setSetupStep(1);
+                }}
+                style={{
+                  padding: "12px 14px",
+                  borderRadius: 14,
+                  border: "1px solid rgba(58,167,255,0.22)",
+                  background: "rgba(58,167,255,0.16)",
+                  color: "white",
+                  fontWeight: 950,
+                  cursor: "pointer",
+                }}
+              >
+                Save & Finish
+              </button>
+            )}
+          </div>
+        </div>
+      </Modal>
+
+      {/* ===== END PART 5/5 MODALS ===== */}
+
+
+    </div>
+  );
+}
+
+/* ===== END PART 4/5 ===== */
+/* =========================
+   AMPÈRE — Updated Demo App
+   PART 5/5
+   (Helpers + demo catalog + ranking + tracking + image resize + profile settings content)
+   ========================= */
+
+// -------------------- Tracking (demo) --------------------
+
+function track(event: string, payload: Record<string, any>) {
+  try {
+    // eslint-disable-next-line no-console
+    console.log(`[ampere] ${event}`, payload);
+  } catch {}
+}
+
+// -------------------- Viewing log --------------------
+
+function logViewing(card: Card) {
+  const ev: ViewingEvent = {
+    id: card.id,
+    title: card.title,
+    platformId: card.platformId,
+    league: card.league,
+    at: safeNowISO(),
+  };
+  const prev = loadViewing();
+  saveViewing([...prev, ev]);
+  track("viewing_log", { id: card.id, platformId: card.platformId, league: card.league });
+}
+
+// -------------------- Image resize helper (uploads) --------------------
+
+function fileToResizedDataUrl(file: File, maxW: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("read_failed"));
+    reader.onload = () => {
+      const raw = String(reader.result || "");
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const w = img.width || 1;
+          const h = img.height || 1;
+          const scale = Math.min(1, maxW / w);
+          const outW = Math.max(1, Math.round(w * scale));
+          const outH = Math.max(1, Math.round(h * scale));
+
+          const canvas = document.createElement("canvas");
+          canvas.width = outW;
+          canvas.height = outH;
+
+          const ctx = canvas.getContext("2d");
+          if (!ctx) return reject(new Error("canvas_failed"));
+
+          ctx.drawImage(img, 0, 0, outW, outH);
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+          resolve(dataUrl);
+        } catch (e) {
+          reject(e);
+        }
+      };
+      img.onerror = () => reject(new Error("image_decode_failed"));
+      img.src = raw;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// -------------------- Catalog + ranking helpers --------------------
+
+function cardKey(c: Card) {
+  const t = normalizeKey(c.title);
+  const p = c.platformId ? c.platformId : normalizeKey(c.platformLabel ?? "");
+  return `${t}|${p}|${normalizeKey(c.league ?? "")}|${normalizeKey(c.genre ?? "")}`;
+}
+
+function uniqByCardKey(cards: Card[]) {
+  const m = new Map<string, Card>();
+  for (const c of cards) {
+    const k = cardKey(c);
+    if (!m.has(k)) m.set(k, c);
+  }
+  return Array.from(m.values());
+}
+
+function hashStr(s: string) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function rankForYou(cards: Card[], profile: ProfileState, viewing: ViewingEvent[]) {
+  const favP = new Set(profile.favoritePlatformIds);
+  const favL = new Set(profile.favoriteLeagues.map(normalizeKey));
+  const recent = viewing.slice(-60);
+
+  const score = (c: Card) => {
+    let s = 0;
+
+    if (c.platformId && favP.has(c.platformId)) s += 4;
+    if (c.league && favL.has(normalizeKey(c.league))) s += 3;
+
+    if (c.platformId && profile.connectedPlatformIds?.[c.platformId]) s += 1;
+
+    const seenSamePlatform = c.platformId ? recent.some((r) => r.platformId === c.platformId) : false;
+    const seenSameLeague = c.league ? recent.some((r) => normalizeKey(r.league ?? "") === normalizeKey(c.league ?? "")) : false;
+
+    if (seenSamePlatform) s += 0.6;
+    if (seenSameLeague) s += 0.6;
+
+    // Live gets a slight boost
+    if (c.badge === "LIVE") s += 0.8;
+
+    // stable tie-break
+    s += (hashStr(c.id) % 1000) / 100000;
+
+    return s;
+  };
+
+  return [...cards].sort((a, b) => score(b) - score(a));
+}
+
+// -------------------- Demo catalog --------------------
+
+type DemoCatalog = {
+  forYou: Card[];
+  liveNow: Card[];
+  continueWatching: Card[];
+  trending: Card[];
+  blackMediaCards: Card[];
+};
+
+function buildDemoCatalog(): DemoCatalog {
+  const mk = (x: Partial<Card> & { id: string; title: string }): Card => ({
+    id: x.id,
+    title: x.title,
+    subtitle: x.subtitle,
+    badge: x.badge,
+    badgeRight: x.badgeRight,
+    platformId: x.platformId,
+    platformLabel: x.platformLabel ?? (x.platformId ? platformById(x.platformId)?.label : undefined),
+    league: x.league,
+    genre: x.genre,
+    thumb: x.thumb ?? safeBrandWide(),
+    startTime: x.startTime,
+    timeRemaining: x.timeRemaining,
+    metaLeft: x.metaLeft,
+    metaRight: x.metaRight,
+  });
+
+  // Live Now (sports + live TV vibe)
+  const liveNow: Card[] = [
+    mk({
+      id: "live_1",
+      title: "NFL Sunday Showdown",
+      subtitle: "Chiefs vs. Bills",
+      badge: "LIVE",
+      league: "NFL",
+      platformId: "espn",
+      genre: "Premium Sports Streaming",
+      timeRemaining: "Q3 • 8:41",
+      metaLeft: "Sports",
+      metaRight: "HD",
+      thumb: "/assets/demo/live/nfl.png",
+    }),
+    mk({
+      id: "live_2",
+      title: "NBA Tip-Off Live",
+      subtitle: "Lakers vs. Celtics",
+      badge: "LIVE",
+      league: "NBA",
+      platformId: "youtubetv",
+      genre: "LiveTV",
+      timeRemaining: "Q2 • 3:12",
+      metaLeft: "Sports",
+      metaRight: "Live",
+      thumb: "/assets/demo/live/nba.png",
+    }),
+    mk({
+      id: "live_3",
+      title: "HBCU Game of the Week",
+      subtitle: "Classic Rivalry",
+      badge: "LIVE",
+      league: "HBCUGOSPORTS",
+      platformId: "hbcugosports",
+      genre: "Premium Sports Streaming",
+      timeRemaining: "2nd • 11:05",
+      metaLeft: "Sports",
+      metaRight: "Live",
+      thumb: "/assets/demo/live/hbcu.png",
+    }),
+    mk({
+      id: "live_4",
+      title: "MLB Nightcap",
+      subtitle: "Dodgers vs. Yankees",
+      badge: "LIVE",
+      league: "MLB",
+      platformId: "mlbtv",
+      genre: "Premium Sports Streaming",
+      timeRemaining: "7th • 0 Outs",
+      metaLeft: "Sports",
+      metaRight: "Live",
+      thumb: "/assets/demo/live/mlb.png",
+    }),
+    mk({
+      id: "live_5",
+      title: "UFC Fight Night",
+      subtitle: "Main Card",
+      badge: "LIVE",
+      league: "UFC",
+      platformId: "espnplus",
+      genre: "Premium Sports Streaming",
+      timeRemaining: "Round 2",
+      metaLeft: "Combat",
+      metaRight: "Live",
+      thumb: "/assets/demo/live/ufc.png",
+    }),
+  ];
+
+  const continueWatching: Card[] = [
+    mk({
+      id: "cw_1",
+      title: "The Last Frontier",
+      subtitle: "Episode 3 • 18m left",
+      platformId: "netflix",
+      genre: "Basic Streaming",
+      metaLeft: "Series",
+      metaRight: "Continue",
+      thumb: "/assets/demo/cw/1.png",
+    }),
+    mk({
+      id: "cw_2",
+      title: "Kitchen Wars",
+      subtitle: "Episode 7 • 9m left",
+      platformId: "hulu",
+      genre: "Basic Streaming",
+      metaLeft: "Reality",
+      metaRight: "Continue",
+      thumb: "/assets/demo/cw/2.png",
+    }),
+    mk({
+      id: "cw_3",
+      title: "Planet: Deep Space",
+      subtitle: "Documentary • 22m left",
+      platformId: "curiositystream",
+      genre: "Documentaries",
+      metaLeft: "Doc",
+      metaRight: "Continue",
+      thumb: "/assets/demo/cw/3.png",
+    }),
+    mk({
+      id: "cw_4",
+      title: "Cartoon Galaxy",
+      subtitle: "Kids • 12m left",
+      platformId: "disneyplus",
+      genre: "Kids",
+      metaLeft: "Kids",
+      metaRight: "Continue",
+      thumb: "/assets/demo/cw/4.png",
+    }),
+  ];
+
+  const trending: Card[] = [
+    mk({
+      id: "tr_1",
+      title: "Midnight Cult Classics",
+      subtitle: "Trending in Horror",
+      platformId: "shudder",
+      genre: "Horror / Cult",
+      metaLeft: "Horror",
+      metaRight: "Trending",
+      thumb: "/assets/demo/trending/1.png",
+    }),
+    mk({
+      id: "tr_2",
+      title: "Arthouse Spotlight",
+      subtitle: "Festival favorites",
+      platformId: "mubi",
+      genre: "Indie and Arthouse Film",
+      metaLeft: "Film",
+      metaRight: "Trending",
+      thumb: "/assets/demo/trending/2.png",
+    }),
+    mk({
+      id: "tr_3",
+      title: "Live Sports: The Breakdown",
+      subtitle: "Top plays this week",
+      platformId: "espn",
+      genre: "Premium Sports Streaming",
+      metaLeft: "Sports",
+      metaRight: "Trending",
+      thumb: "/assets/demo/trending/3.png",
+    }),
+    mk({
+      id: "tr_4",
+      title: "Free Movie Night",
+      subtitle: "Top picks on Tubi",
+      platformId: "tubi",
+      genre: "Free Streaming",
+      metaLeft: "Free",
+      metaRight: "Trending",
+      thumb: "/assets/demo/trending/4.png",
+    }),
+    mk({
+      id: "tr_5",
+      title: "Anime Weekly",
+      subtitle: "New episodes",
+      platformId: "crunchyroll",
+      genre: "Anime / Asian cinema",
+      metaLeft: "Anime",
+      metaRight: "Trending",
+      thumb: "/assets/demo/trending/5.png",
+    }),
+    mk({
+      id: "tr_6",
+      title: "Big Game Energy",
+      subtitle: "Must-watch matchups",
+      platformId: "youtubetv",
+      genre: "LiveTV",
+      metaLeft: "Live TV",
+      metaRight: "Trending",
+      thumb: "/assets/demo/trending/6.png",
+    }),
+  ];
+
+  const blackMediaCards: Card[] = [
+    mk({
+      id: "bm_1",
+      title: "Black Media Spotlight",
+      subtitle: "New voices, new stories",
+      platformId: "blackmedia",
+      genre: "Black culture & diaspora",
+      metaLeft: "Curated",
+      metaRight: "Preview",
+      thumb: "/assets/demo/blackmedia/1.png",
+    }),
+    mk({
+      id: "bm_2",
+      title: "HBCUGO Originals",
+      subtitle: "Campus Stories",
+      platformId: "hbcugo",
+      league: "HBCUGO",
+      genre: "Black culture & diaspora",
+      metaLeft: "Originals",
+      metaRight: "New",
+      thumb: "/assets/demo/blackmedia/2.png",
+    }),
+    mk({
+      id: "bm_3",
+      title: "KweliTV Feature",
+      subtitle: "Festival-ready films",
+      platformId: "kwelitv",
+      genre: "Black culture & diaspora",
+      metaLeft: "Film",
+      metaRight: "Featured",
+      thumb: "/assets/demo/blackmedia/3.png",
+    }),
+    mk({
+      id: "bm_4",
+      title: "ALLBLK Series",
+      subtitle: "Binge-worthy drama",
+      platformId: "allblk",
+      genre: "Black culture & diaspora",
+      metaLeft: "Series",
+      metaRight: "Trending",
+      thumb: "/assets/demo/blackmedia/4.png",
+    }),
+  ];
+
+  // For You (mix)
+  const forYou: Card[] = [
+    ...trending,
+    ...continueWatching,
+    ...blackMediaCards,
+    ...liveNow.map((c) => ({ ...c, id: `fy_${c.id}` })),
+    mk({ id: "fy_1", title: "Family Movie Night", subtitle: "Kids picks", platformId: "pbskids", genre: "Kids", metaLeft: "Kids", metaRight: "For You" }),
+    mk({ id: "fy_2", title: "Gaming Spotlight", subtitle: "Live streams and highlights", platformId: "twitch", genre: "Gaming", metaLeft: "Gaming", metaRight: "For You" }),
+    mk({ id: "fy_3", title: "Documentary Deep Dive", subtitle: "Science & tech", platformId: "magellantv", genre: "Documentaries", metaLeft: "Doc", metaRight: "For You" }),
+    mk({ id: "fy_4", title: "Weekend Movie Picks", subtitle: "Top rentals", platformId: "appletvstore", genre: "Movie Streaming", metaLeft: "Rent/Buy", metaRight: "For You" }),
+    mk({ id: "fy_5", title: "Premium Drama Night", subtitle: "New episodes", platformId: "starz", genre: "Premium Streaming", metaLeft: "Drama", metaRight: "For You" }),
+  ];
+
+  return { forYou, liveNow, continueWatching, trending, blackMediaCards };
+}
+
+// -------------------- Profile Settings Content --------------------
+
+function ProfileSettingsContent({
+  profile,
+  onSave,
+  onPickAvatar,
+  onPickHeader,
+}: {
+  profile: ProfileState;
+  onSave: (next: ProfileState) => void;
+  onPickAvatar: () => void;
+  onPickHeader: () => void;
+}) {
+  const [name, setName] = useState(profile.name);
+
+  useEffect(() => setName(profile.name), [profile.name]);
+
+  return (
+    <div style={{ display: "grid", gap: 14 }}>
+      <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+        <div style={{ width: 56, height: 56, borderRadius: 18, overflow: "hidden", border: "1px solid var(--stroke)", background: "rgba(255,255,255,0.06)" }}>
+          <SmartImg sources={profile.profilePhoto ? [profile.profilePhoto] : brandMarkCandidates()} size={56} rounded={18} border={false} fit="cover" />
+        </div>
+        <div style={{ minWidth: 240, flex: "1 1 280px" }}>
+          <div style={{ fontWeight: 950, opacity: 0.9 }}>Display name</div>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="ampere-focus"
+            placeholder="Your name"
+            style={{
+              width: "100%",
+              padding: "12px 14px",
+              borderRadius: 14,
+              border: "1px solid var(--stroke2)",
+              background: "rgba(0,0,0,0.35)",
+              color: "white",
+              outline: "none",
+              fontWeight: 900,
+              marginTop: 8,
+            }}
+          />
+        </div>
       </div>
 
-      <div style={{ marginTop: 12, opacity: 0.75, fontWeight: 900 }}>
-        Selected: <span style={{ color: "white" }}>{selectedTeams.join(", ") || "None"}</span>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <button
+          type="button"
+          className="ampere-focus"
+          onClick={onPickAvatar}
+          style={{
+            padding: "12px 14px",
+            borderRadius: 14,
+            border: "1px solid rgba(255,255,255,0.14)",
+            background: "rgba(255,255,255,0.06)",
+            color: "white",
+            fontWeight: 950,
+            cursor: "pointer",
+          }}
+        >
+          Change Photo
+        </button>
+        <button
+          type="button"
+          className="ampere-focus"
+          onClick={onPickHeader}
+          style={{
+            padding: "12px 14px",
+            borderRadius: 14,
+            border: "1px solid rgba(255,255,255,0.14)",
+            background: "rgba(255,255,255,0.06)",
+            color: "white",
+            fontWeight: 950,
+            cursor: "pointer",
+          }}
+        >
+          Change Header
+        </button>
+      </div>
+
+      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
+        <button
+          type="button"
+          className="ampere-focus"
+          onClick={() => onSave({ ...profile, name: name.trim() ? name.trim() : profile.name })}
+          style={{
+            padding: "12px 14px",
+            borderRadius: 14,
+            border: "1px solid rgba(58,167,255,0.22)",
+            background: "rgba(58,167,255,0.12)",
+            color: "white",
+            fontWeight: 950,
+            cursor: "pointer",
+          }}
+        >
+          Save
+        </button>
       </div>
     </div>
   );
 }
 
-
+/* ===== END PART 5/5 ===== */
