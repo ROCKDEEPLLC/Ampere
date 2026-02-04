@@ -1436,7 +1436,7 @@ function buildDemoCatalog(): {
     platformId: e.pid,
     platformLabel: platformById(e.pid)?.label,
     league: e.league,
-    genre: "Premium Sports Streaming",
+    genre: normalizeKey("Premium Sports Streaming") as GenreKey,
     thumb: leagueLogoCandidates(e.league)[0] ?? safeBrandWide(),
     startTime: e.badge === "LIVE" ? "Now" : "Tonight",
     timeRemaining: e.badge === "LIVE" ? "Q2 • 4:11" : "Starts soon",
