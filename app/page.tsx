@@ -1,6 +1,5 @@
-import { redirect } from "next/navigation";
+import AppShell from "../components/AppShell";
 
 export default function Page() {
-  redirect("/prototype");
+  return <AppShell initialRoute="home" />;
 }
-

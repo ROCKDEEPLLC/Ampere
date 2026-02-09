@@ -1,25 +1,19 @@
 "use client";
-// @ts-nocheck   // 
+// @ts-nocheck
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-
 
 /* =========================
    Types
    ========================= */
 
 type TabKey = "home" | "live" | "favs" | "search";
-
 type GenreKey = (typeof GENRES)[number]["key"];
-
 type PlatformId = string;
 
 type Platform = {
   id: PlatformId;
   label: string;
-  // If present, used for filtering platforms by genre
   genres?: GenreKey[];
   kind?: "streaming" | "sports" | "kids" | "livetv" | "gaming" | "niche";
 };
@@ -66,6 +60,15 @@ type AttributionEvent = {
   props: Record<string, any>;
 };
 
+type WizardDraft = {
+  step: 1 | 2 | 3 | 4 | 5;
+  name: string;
+  platforms: PlatformId[];
+  leagues: string[];
+  teams: string[];
+  updatedAt: string;
+};
+
 /* =========================
    Small utilities
    ========================= */
@@ -93,6 +96,18 @@ function normalizeKey(s: string) {
     .replace(/&/g, "and")
     .replace(/[^a-z0-9]+/g, "")
     .trim();
+}
+
+function toggleInArray<T>(arr: T[], item: T) {
+  const has = arr.includes(item);
+  return has ? arr.filter((x) => x !== item) : [...arr, item];
+}
+
+/** basePath / assetPrefix-safe paths */
+function assetPath(p: string) {
+  const prefix = (process.env.NEXT_PUBLIC_ASSET_PREFIX ?? "").replace(/\/$/, "");
+  if (!prefix) return p;
+  return `${prefix}${p.startsWith("/") ? p : `/${p}`}`;
 }
 
 /* =========================
@@ -199,64 +214,98 @@ function platformsForGenre(genre: GenreKey): PlatformId[] {
 
 function brandWideCandidates() {
   return [
-    "/brand/ampere-wide.svg",
-    "/brand/ampere-wide.png",
-    "/assets/brand/ampere-wide.svg",
-    "/assets/brand/ampere-wide.png",
+    assetPath("/brand/ampere-wide.svg"),
+    assetPath("/brand/ampere-wide.png"),
+    assetPath("/assets/brand/ampere-wide.svg"),
+    assetPath("/assets/brand/ampere-wide.png"),
+    // common alternates
+    assetPath("/brand/ampere-wordmark.svg"),
+    assetPath("/brand/ampere-long.svg"),
   ];
 }
 
 function brandMarkCandidates() {
   return [
-    "/brand/ampere-mark.svg",
-    "/brand/ampere-mark.png",
-    "/assets/brand/ampere-mark.svg",
-    "/assets/brand/ampere-mark.png",
+    assetPath("/brand/ampere-mark.svg"),
+    assetPath("/brand/ampere-mark.png"),
+    assetPath("/assets/brand/ampere-mark.svg"),
+    assetPath("/assets/brand/ampere-mark.png"),
+    // common alternates
+    assetPath("/brand/ampere-icon.svg"),
+    assetPath("/brand/ampere-short.svg"),
   ];
 }
 
+/** expanded, real-world filename patterns */
 function platformIconCandidates(pid: PlatformId) {
-  const k = normalizeKey(pid);
-  return [
-    `/logos/services/${k}.png`,
-    `/logos/services/${k}.svg`,
-    `/assets/services/${k}.png`,
-    `/assets/services/${k}.svg`,
-    `/assets/platforms/${k}.png`,
-    `/assets/platforms/${k}.svg`,
-  ];
+  const raw = String(pid ?? "");
+  const base = normalizeKey(raw); // espnplus, youtubetv, disneyplus
+
+  const variants = uniq(
+    [
+      base,
+      raw.toLowerCase(),
+      raw.toLowerCase().replace(/\s+/g, ""),
+      raw.toLowerCase().replace(/\s+/g, "-"),
+      raw.toLowerCase().replace(/\s+/g, "_"),
+      base.endsWith("plus") ? `${base.slice(0, -4)}+` : null, // espn+
+      base.endsWith("plus") ? `${base.slice(0, -4)}-plus` : null,
+      base.endsWith("plus") ? `${base.slice(0, -4)}_plus` : null,
+      raw.toLowerCase().replace(/\+/g, "plus"),
+    ].filter(Boolean) as string[]
+  );
+
+  const roots = ["/logos/services", "/assets/services", "/assets/platforms", "/logos/platforms"];
+
+  const out: string[] = [];
+  for (const r of roots) {
+    for (const v of variants) {
+      out.push(assetPath(`${r}/${v}.png`));
+      out.push(assetPath(`${r}/${v}.svg`));
+    }
+  }
+  return out;
 }
 
 function leagueLogoCandidates(league?: string) {
   const k = normalizeKey(league ?? "");
   if (!k) return [];
   return [
-    `/logos/leagues/${k}.png`,
-    `/logos/leagues/${k}.svg`,
-    `/assets/leagues/${k}.png`,
-    `/assets/leagues/${k}.svg`,
+    assetPath(`/logos/leagues/${k}.png`),
+    assetPath(`/logos/leagues/${k}.svg`),
+    assetPath(`/assets/leagues/${k}.png`),
+    assetPath(`/assets/leagues/${k}.svg`),
   ];
 }
 
 const BROWSE_ICON_CANDIDATES: Partial<Record<GenreKey, string[]>> = {
   All: brandMarkCandidates(),
-  "Basic Streaming": ["/assets/browse/basicstreaming/icon.png", "/assets/browse/basicstreaming/icon.svg"],
-  "Movie Streaming": ["/assets/browse/moviestreaming/icon.png", "/assets/browse/moviestreaming/icon.svg"],
-  Documentaries: ["/assets/browse/documentaries/icon.png", "/assets/browse/documentaries/icon.svg"],
-  "Anime / Asian cinema": ["/assets/browse/animeasiancinema/icon.png", "/assets/browse/animeasiancinema/icon.svg"],
-  Kids: ["/assets/browse/kids/icon.png", "/assets/browse/kids/icon.svg"],
-  LiveTV: ["/assets/browse/livetv/icon.png", "/assets/browse/livetv/icon.svg"],
-  "Premium Sports Streaming": ["/assets/browse/premiumsportsstreaming/icon.png", "/assets/browse/premiumsportsstreaming/icon.svg"],
-  Gaming: ["/assets/browse/gaming/icon.png", "/assets/browse/gaming/icon.svg"],
-  "Free Streaming": ["/assets/browse/freestreaming/icon.png", "/assets/browse/freestreaming/icon.svg"],
-  "Indie and Arthouse Film": ["/assets/browse/indieandarthousefilm/icon.png", "/assets/browse/indieandarthousefilm/icon.svg"],
-  "Horror / Cult": ["/assets/browse/horrorcult/icon.png", "/assets/browse/horrorcult/icon.svg"],
-  LGBT: ["/assets/browse/lgbt/icon.png", "/assets/browse/lgbt/icon.svg"],
-  "Black culture & diaspora": ["/assets/browse/blackcultureanddiaspora/icon.png", "/assets/browse/blackcultureanddiaspora/icon.svg"],
+  "Basic Streaming": [assetPath("/assets/browse/basicstreaming/icon.png"), assetPath("/assets/browse/basicstreaming/icon.svg")],
+  "Movie Streaming": [assetPath("/assets/browse/moviestreaming/icon.png"), assetPath("/assets/browse/moviestreaming/icon.svg")],
+  Documentaries: [assetPath("/assets/browse/documentaries/icon.png"), assetPath("/assets/browse/documentaries/icon.svg")],
+  "Anime / Asian cinema": [assetPath("/assets/browse/animeasiancinema/icon.png"), assetPath("/assets/browse/animeasiancinema/icon.svg")],
+  Kids: [assetPath("/assets/browse/kids/icon.png"), assetPath("/assets/browse/kids/icon.svg")],
+  LiveTV: [assetPath("/assets/browse/livetv/icon.png"), assetPath("/assets/browse/livetv/icon.svg")],
+  "Premium Sports Streaming": [
+    assetPath("/assets/browse/premiumsportsstreaming/icon.png"),
+    assetPath("/assets/browse/premiumsportsstreaming/icon.svg"),
+  ],
+  Gaming: [assetPath("/assets/browse/gaming/icon.png"), assetPath("/assets/browse/gaming/icon.svg")],
+  "Free Streaming": [assetPath("/assets/browse/freestreaming/icon.png"), assetPath("/assets/browse/freestreaming/icon.svg")],
+  "Indie and Arthouse Film": [
+    assetPath("/assets/browse/indieandarthousefilm/icon.png"),
+    assetPath("/assets/browse/indieandarthousefilm/icon.svg"),
+  ],
+  "Horror / Cult": [assetPath("/assets/browse/horrorcult/icon.png"), assetPath("/assets/browse/horrorcult/icon.svg")],
+  LGBT: [assetPath("/assets/browse/lgbt/icon.png"), assetPath("/assets/browse/lgbt/icon.svg")],
+  "Black culture & diaspora": [
+    assetPath("/assets/browse/blackcultureanddiaspora/icon.png"),
+    assetPath("/assets/browse/blackcultureanddiaspora/icon.svg"),
+  ],
 };
 
 /* =========================
-   SmartImg (robust multi-source)
+   SmartImg (never shows broken-image)
    ========================= */
 
 const FAILED_SRC = new Set<string>();
@@ -264,13 +313,6 @@ function rememberFailed(src: string) {
   try {
     FAILED_SRC.add(src);
   } catch {}
-}
-function isFailed(src: string) {
-  try {
-    return FAILED_SRC.has(src);
-  } catch {
-    return false;
-  }
 }
 
 function SmartImg({
@@ -282,6 +324,7 @@ function SmartImg({
   fill,
   border = true,
   style,
+  fallbackText,
 }: {
   sources: string[];
   alt?: string;
@@ -291,15 +334,43 @@ function SmartImg({
   fill?: boolean;
   border?: boolean;
   style?: React.CSSProperties;
+  fallbackText?: string;
 }) {
-  const cleaned = (sources ?? []).filter(Boolean).filter((s) => !isFailed(s));
-  const [idx, setIdx] = useState(0);
+  const key = (sources ?? []).filter(Boolean).join("|");
+  const [resolved, setResolved] = React.useState<string | null>(null);
 
-  useEffect(() => setIdx(0), [cleaned.join("|")]);
+  React.useEffect(() => {
+    let alive = true;
+    setResolved(null);
 
-  const src = cleaned[idx] ?? "";
+    const candidates = (sources ?? []).filter(Boolean).filter((s) => !FAILED_SRC.has(s));
+    if (!candidates.length) return;
 
-  if (!src) {
+    let i = 0;
+    const tryNext = () => {
+      if (!alive) return;
+      if (i >= candidates.length) return;
+
+      const src = candidates[i++];
+      const img = new Image();
+      img.onload = () => {
+        if (!alive) return;
+        setResolved(src);
+      };
+      img.onerror = () => {
+        rememberFailed(src);
+        tryNext();
+      };
+      img.src = src;
+    };
+
+    tryNext();
+    return () => {
+      alive = false;
+    };
+  }, [key]);
+
+  if (!resolved) {
     return (
       <span
         aria-hidden="true"
@@ -312,11 +383,13 @@ function SmartImg({
           alignItems: "center",
           justifyContent: "center",
           fontSize: 12,
-          color: "rgba(255,255,255,0.7)",
+          fontWeight: 950,
+          color: "rgba(255,255,255,0.75)",
+          border: border ? "1px solid rgba(255,255,255,0.10)" : "none",
           ...style,
         }}
       >
-        •
+        {fallbackText ?? "•"}
       </span>
     );
   }
@@ -324,14 +397,10 @@ function SmartImg({
   // eslint-disable-next-line @next/next/no-img-element
   return (
     <img
-      src={src}
+      src={resolved}
       alt={alt}
       width={fill ? undefined : size}
       height={fill ? undefined : size}
-      onError={() => {
-        rememberFailed(src);
-        setIdx((n) => n + 1);
-      }}
       style={{
         width: fill ? "100%" : size,
         height: fill ? "100%" : size,
@@ -354,6 +423,7 @@ const STORAGE_KEY = "ampere_profile_v5";
 const VIEWING_KEY = "ampere_viewing_v4";
 const ATTR_KEY = "ampere_attrib_v1";
 const SESSION_KEY = "ampere_session_v1";
+const WIZ_KEY = "ampere_setup_wiz_v1";
 
 function safeJsonParse<T>(raw: string | null): T | null {
   if (!raw) return null;
@@ -384,13 +454,8 @@ function normalizeProfile(p: Partial<ProfileState> | null): ProfileState {
     ? (p!.favoritePlatformIds.filter(Boolean) as PlatformId[])
     : d.favoritePlatformIds;
 
-  const favoriteLeagues = Array.isArray(p?.favoriteLeagues)
-    ? p!.favoriteLeagues.filter(Boolean)
-    : d.favoriteLeagues;
-
-  const favoriteTeams = Array.isArray(p?.favoriteTeams)
-    ? p!.favoriteTeams.filter(Boolean)
-    : d.favoriteTeams;
+  const favoriteLeagues = Array.isArray(p?.favoriteLeagues) ? p!.favoriteLeagues.filter(Boolean) : d.favoriteLeagues;
+  const favoriteTeams = Array.isArray(p?.favoriteTeams) ? p!.favoriteTeams.filter(Boolean) : d.favoriteTeams;
 
   const connectedPlatformIds =
     p?.connectedPlatformIds && typeof p.connectedPlatformIds === "object"
@@ -400,12 +465,11 @@ function normalizeProfile(p: Partial<ProfileState> | null): ProfileState {
   return {
     ...d,
     ...p,
-    favoritePlatformIds,
-    favoriteLeagues,
-    favoriteTeams,
+    favoritePlatformIds: uniq(favoritePlatformIds),
+    favoriteLeagues: uniq(favoriteLeagues),
+    favoriteTeams: uniq(favoriteTeams),
     connectedPlatformIds,
-    notificationsEnabled:
-      typeof p?.notificationsEnabled === "boolean" ? p!.notificationsEnabled : d.notificationsEnabled,
+    notificationsEnabled: typeof p?.notificationsEnabled === "boolean" ? p!.notificationsEnabled : d.notificationsEnabled,
   };
 }
 
@@ -461,6 +525,35 @@ function saveAttribution(events: AttributionEvent[]) {
   } catch {}
 }
 
+function loadWizardDraft(): WizardDraft | null {
+  if (typeof window === "undefined") return null;
+  const parsed = safeJsonParse<WizardDraft>(window.localStorage.getItem(WIZ_KEY));
+  if (!parsed) return null;
+  const step = (parsed.step ?? 1) as any;
+  return {
+    step: ([1, 2, 3, 4, 5].includes(step) ? step : 1) as any,
+    name: String(parsed.name ?? ""),
+    platforms: Array.isArray(parsed.platforms) ? (parsed.platforms.filter(Boolean) as PlatformId[]) : [],
+    leagues: Array.isArray(parsed.leagues) ? parsed.leagues.filter(Boolean) : [],
+    teams: Array.isArray(parsed.teams) ? parsed.teams.filter(Boolean) : [],
+    updatedAt: String(parsed.updatedAt ?? safeNowISO()),
+  };
+}
+
+function saveWizardDraft(d: WizardDraft) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(WIZ_KEY, JSON.stringify(d));
+  } catch {}
+}
+
+function clearWizardDraft() {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(WIZ_KEY);
+  } catch {}
+}
+
 /* =========================
    Provider links
    ========================= */
@@ -477,61 +570,29 @@ const PROVIDER_LINKS: Partial<Record<PlatformId, ProviderLink>> = {
     subscribe: "https://www.netflix.com/signup",
     search: (q) => `https://www.netflix.com/search?q=${encodeURIComponent(q)}`,
   },
-  hulu: {
-    openBase: "https://www.hulu.com/hub/home",
-    subscribe: "https://www.hulu.com/welcome",
-    search: (q) => `https://www.hulu.com/search?q=${encodeURIComponent(q)}`,
-  },
-  primevideo: {
-    openBase: "https://www.primevideo.com",
-    subscribe: "https://www.primevideo.com",
-    search: (q) => `https://www.primevideo.com/search/ref=atv_nb_sug?phrase=${encodeURIComponent(q)}`,
-  },
-  disneyplus: {
-    openBase: "https://www.disneyplus.com/home",
-    subscribe: "https://www.disneyplus.com",
-    search: (q) => `https://www.disneyplus.com/search/${encodeURIComponent(q)}`,
-  },
+  hulu: { openBase: "https://www.hulu.com/hub/home", subscribe: "https://www.hulu.com/welcome", search: (q) => `https://www.hulu.com/search?q=${encodeURIComponent(q)}` },
+  primevideo: { openBase: "https://www.primevideo.com", subscribe: "https://www.primevideo.com", search: (q) => `https://www.primevideo.com/search/ref=atv_nb_sug?phrase=${encodeURIComponent(q)}` },
+  disneyplus: { openBase: "https://www.disneyplus.com/home", subscribe: "https://www.disneyplus.com", search: (q) => `https://www.disneyplus.com/search/${encodeURIComponent(q)}` },
   max: { openBase: "https://play.max.com", subscribe: "https://www.max.com" },
-  peacock: {
-    openBase: "https://www.peacocktv.com/watch/home",
-    subscribe: "https://www.peacocktv.com/plans/all-monthly",
-    search: (q) => `https://www.peacocktv.com/search?q=${encodeURIComponent(q)}`,
-  },
-  paramountplus: {
-    openBase: "https://www.paramountplus.com",
-    subscribe: "https://www.paramountplus.com/account/signup/",
-    search: (q) => `https://www.paramountplus.com/search/${encodeURIComponent(q)}`,
-  },
-  youtube: {
-    openBase: "https://www.youtube.com",
-    subscribe: "https://www.youtube.com/premium",
-    search: (q) => `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`,
-  },
+  peacock: { openBase: "https://www.peacocktv.com/watch/home", subscribe: "https://www.peacocktv.com/plans/all-monthly", search: (q) => `https://www.peacocktv.com/search?q=${encodeURIComponent(q)}` },
+  paramountplus: { openBase: "https://www.paramountplus.com", subscribe: "https://www.paramountplus.com/account/signup/", search: (q) => `https://www.paramountplus.com/search/${encodeURIComponent(q)}` },
+  youtube: { openBase: "https://www.youtube.com", subscribe: "https://www.youtube.com/premium", search: (q) => `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}` },
   youtubetv: { openBase: "https://tv.youtube.com", subscribe: "https://tv.youtube.com/welcome/" },
-  appletv: {
-    openBase: "https://tv.apple.com",
-    subscribe: "https://tv.apple.com",
-    search: (q) => `https://tv.apple.com/search?term=${encodeURIComponent(q)}`,
-  },
-  espn: {
-    openBase: "https://www.espn.com/watch/",
-    subscribe: "https://plus.espn.com",
-    search: (q) => `https://www.espn.com/search/results?q=${encodeURIComponent(q)}`,
-  },
+  appletv: { openBase: "https://tv.apple.com", subscribe: "https://tv.apple.com", search: (q) => `https://tv.apple.com/search?term=${encodeURIComponent(q)}` },
+
+  espn: { openBase: "https://www.espn.com/watch/", subscribe: "https://plus.espn.com", search: (q) => `https://www.espn.com/search/results?q=${encodeURIComponent(q)}` },
   espnplus: { openBase: "https://plus.espn.com", subscribe: "https://plus.espn.com" },
   dazn: { openBase: "https://www.dazn.com", subscribe: "https://www.dazn.com" },
   nflplus: { openBase: "https://www.nfl.com/plus", subscribe: "https://www.nfl.com/plus" },
   nbaleaguepass: { openBase: "https://www.nba.com/watch/league-pass", subscribe: "https://www.nba.com/watch/league-pass" },
   mlbtv: { openBase: "https://www.mlb.com/live-stream-games/subscribe", subscribe: "https://www.mlb.com/live-stream-games/subscribe" },
   nhl: { openBase: "https://www.nhl.com", subscribe: "https://www.nhl.com/subscribe" },
+  foxsports1: { openBase: "https://www.foxsports.com/live/fs1", subscribe: "https://www.foxsports.com/live/fs1" },
 
   tubi: { openBase: "https://tubitv.com", subscribe: "https://tubitv.com" },
   twitch: { openBase: "https://www.twitch.tv", search: (q) => `https://www.twitch.tv/search?term=${encodeURIComponent(q)}` },
   sling: { openBase: "https://www.sling.com", subscribe: "https://www.sling.com" },
   fubotv: { openBase: "https://www.fubo.tv/welcome", subscribe: "https://www.fubo.tv/welcome" },
-
-  foxsports1: { openBase: "https://www.foxsports.com/live/fs1", subscribe: "https://www.foxsports.com/live/fs1" },
 
   heretv: { openBase: "https://www.heretv.com", subscribe: "https://www.heretv.com" },
   outtv: { openBase: "https://outtvgo.com", subscribe: "https://outtvgo.com" },
@@ -595,77 +656,36 @@ function teamLogoCandidates(league: string, team: string): string[] {
   const l = normalizeKey(league);
   const t = normalizeKey(team);
   return [
-    `/assets/teams/${l}/${t}.png`,
-    `/assets/teams/${l}/${t}.svg`,
-    `/assets/teams/${l}/${t}/logo.png`,
-    `/assets/teams/${l}/${t}/logo.svg`,
-    `/logos/teams/${l}/${t}.png`,
-    `/logos/teams/${l}/${t}.svg`,
-    `/logos/teams/${l}/${t}/logo.png`,
+    assetPath(`/assets/teams/${l}/${t}.png`),
+    assetPath(`/assets/teams/${l}/${t}.svg`),
+    assetPath(`/assets/teams/${l}/${t}/logo.png`),
+    assetPath(`/assets/teams/${l}/${t}/logo.svg`),
+    assetPath(`/logos/teams/${l}/${t}.png`),
+    assetPath(`/logos/teams/${l}/${t}.svg`),
+    assetPath(`/logos/teams/${l}/${t}/logo.png`),
   ];
 }
 
-const LEAGUES = [
-  "ALL",
-  "NFL",
-  "NBA",
-  "MLB",
-  "NHL",
-  "NCAAF",
-  "Soccer",
-  "UFC",
-  "HBCUGOSPORTS",
-  "HBCUGO",
-] as const;
+const LEAGUES = ["ALL", "NFL", "NBA", "MLB", "NHL", "NCAAF", "Soccer", "UFC", "HBCUGOSPORTS", "HBCUGO"] as const;
 
 const TEAMS_BY_LEAGUE: Record<string, string[]> = {
   NFL: [
-    "Arizona Cardinals","Atlanta Falcons","Baltimore Ravens","Buffalo Bills","Carolina Panthers","Chicago Bears",
-    "Cincinnati Bengals","Cleveland Browns","Dallas Cowboys","Denver Broncos","Detroit Lions","Green Bay Packers",
-    "Houston Texans","Indianapolis Colts","Jacksonville Jaguars","Kansas City Chiefs","Las Vegas Raiders","Los Angeles Chargers",
-    "Los Angeles Rams","Miami Dolphins","Minnesota Vikings","New England Patriots","New Orleans Saints","New York Giants",
-    "New York Jets","Philadelphia Eagles","Pittsburgh Steelers","San Francisco 49ers","Seattle Seahawks","Tampa Bay Buccaneers",
-    "Tennessee Titans","Washington Commanders",
+    "Arizona Cardinals","Atlanta Falcons","Baltimore Ravens","Buffalo Bills","Carolina Panthers","Chicago Bears","Cincinnati Bengals","Cleveland Browns","Dallas Cowboys","Denver Broncos","Detroit Lions","Green Bay Packers","Houston Texans","Indianapolis Colts","Jacksonville Jaguars","Kansas City Chiefs","Las Vegas Raiders","Los Angeles Chargers","Los Angeles Rams","Miami Dolphins","Minnesota Vikings","New England Patriots","New Orleans Saints","New York Giants","New York Jets","Philadelphia Eagles","Pittsburgh Steelers","San Francisco 49ers","Seattle Seahawks","Tampa Bay Buccaneers","Tennessee Titans","Washington Commanders",
   ],
   NBA: [
-    "Atlanta Hawks","Boston Celtics","Brooklyn Nets","Charlotte Hornets","Chicago Bulls","Cleveland Cavaliers",
-    "Dallas Mavericks","Denver Nuggets","Detroit Pistons","Golden State Warriors","Houston Rockets","Indiana Pacers",
-    "LA Clippers","Los Angeles Lakers","Memphis Grizzlies","Miami Heat","Milwaukee Bucks","Minnesota Timberwolves",
-    "New Orleans Pelicans","New York Knicks","Oklahoma City Thunder","Orlando Magic","Philadelphia 76ers","Phoenix Suns",
-    "Portland Trail Blazers","Sacramento Kings","San Antonio Spurs","Toronto Raptors","Utah Jazz","Washington Wizards",
+    "Atlanta Hawks","Boston Celtics","Brooklyn Nets","Charlotte Hornets","Chicago Bulls","Cleveland Cavaliers","Dallas Mavericks","Denver Nuggets","Detroit Pistons","Golden State Warriors","Houston Rockets","Indiana Pacers","LA Clippers","Los Angeles Lakers","Memphis Grizzlies","Miami Heat","Milwaukee Bucks","Minnesota Timberwolves","New Orleans Pelicans","New York Knicks","Oklahoma City Thunder","Orlando Magic","Philadelphia 76ers","Phoenix Suns","Portland Trail Blazers","Sacramento Kings","San Antonio Spurs","Toronto Raptors","Utah Jazz","Washington Wizards",
   ],
   MLB: [
-    "Arizona Diamondbacks","Atlanta Braves","Baltimore Orioles","Boston Red Sox","Chicago Cubs","Chicago White Sox",
-    "Cincinnati Reds","Cleveland Guardians","Colorado Rockies","Detroit Tigers","Houston Astros","Kansas City Royals",
-    "Los Angeles Angels","Los Angeles Dodgers","Miami Marlins","Milwaukee Brewers","Minnesota Twins","New York Mets",
-    "New York Yankees","Oakland Athletics","Philadelphia Phillies","Pittsburgh Pirates","San Diego Padres","San Francisco Giants",
-    "Seattle Mariners","St. Louis Cardinals","Tampa Bay Rays","Texas Rangers","Toronto Blue Jays","Washington Nationals",
+    "Arizona Diamondbacks","Atlanta Braves","Baltimore Orioles","Boston Red Sox","Chicago Cubs","Chicago White Sox","Cincinnati Reds","Cleveland Guardians","Colorado Rockies","Detroit Tigers","Houston Astros","Indianapolis Colts","Kansas City Royals","Los Angeles Angels","Los Angeles Dodgers","Miami Marlins","Milwaukee Brewers","Minnesota Twins","New York Mets","New York Yankees","Oakland Athletics","Philadelphia Phillies","Pittsburgh Pirates","San Diego Padres","San Francisco Giants","Seattle Mariners","St. Louis Cardinals","Tampa Bay Rays","Texas Rangers","Toronto Blue Jays","Washington Nationals",
   ],
   NHL: [
-    "Anaheim Ducks","Arizona Coyotes","Boston Bruins","Buffalo Sabres","Calgary Flames","Carolina Hurricanes","Chicago Blackhawks",
-    "Colorado Avalanche","Columbus Blue Jackets","Dallas Stars","Detroit Red Wings","Edmonton Oilers","Florida Panthers",
-    "Los Angeles Kings","Minnesota Wild","Montreal Canadiens","Nashville Predators","New Jersey Devils","New York Islanders",
-    "New York Rangers","Ottawa Senators","Philadelphia Flyers","Pittsburgh Penguins","San Jose Sharks","Seattle Kraken",
-    "St. Louis Blues","Tampa Bay Lightning","Toronto Maple Leafs","Vancouver Canucks","Vegas Golden Knights","Washington Capitals",
-    "Winnipeg Jets",
+    "Anaheim Ducks","Arizona Coyotes","Boston Bruins","Buffalo Sabres","Calgary Flames","Carolina Hurricanes","Chicago Blackhawks","Colorado Avalanche","Columbus Blue Jackets","Dallas Stars","Detroit Red Wings","Edmonton Oilers","Florida Panthers","Los Angeles Kings","Minnesota Wild","Montreal Canadiens","Nashville Predators","New Jersey Devils","New York Islanders","New York Rangers","Ottawa Senators","Philadelphia Flyers","Pittsburgh Penguins","San Jose Sharks","Seattle Kraken","St. Louis Blues","Tampa Bay Lightning","Toronto Maple Leafs","Vancouver Canucks","Vegas Golden Knights","Washington Capitals","Winnipeg Jets",
   ],
   NCAAF: [
-    "Alabama Crimson Tide","Arizona Wildcats","Arizona State Sun Devils","Arkansas Razorbacks","Auburn Tigers","Baylor Bears",
-    "Boise State Broncos","Boston College Eagles","BYU Cougars","California Golden Bears","Clemson Tigers","Colorado Buffaloes",
-    "Duke Blue Devils","Florida Gators","Florida State Seminoles","Georgia Bulldogs","Georgia Tech Yellow Jackets","Illinois Fighting Illini",
-    "Indiana Hoosiers","Iowa Hawkeyes","Iowa State Cyclones","Kansas Jayhawks","Kansas State Wildcats","Kentucky Wildcats",
-    "LSU Tigers","Louisville Cardinals","Maryland Terrapins","Miami Hurricanes","Michigan Wolverines","Michigan State Spartans",
-    "Minnesota Golden Gophers","Mississippi State Bulldogs","Missouri Tigers","Nebraska Cornhuskers","North Carolina Tar Heels",
-    "NC State Wolfpack","Notre Dame Fighting Illini","Ohio State Buckeyes","Oklahoma Sooners","Oklahoma State Cowboys","Ole Miss Rebels",
-    "Oregon Ducks","Oregon State Beavers","Penn State Nittany Lions","Pittsburgh Panthers","Purdue Boilermakers","Rutgers Scarlet Knights",
-    "South Carolina Gamecocks","Stanford Cardinal","Syracuse Orange","TCU Horned Frogs","Tennessee Volunteers","Texas Longhorns",
-    "Texas A&M Aggies","Texas Tech Red Raiders","UCLA Bruins","USC Trojans","Utah Utes","Vanderbilt Commodores",
-    "Virginia Cavaliers","Virginia Tech Hokies","Wake Forest Demon Deacons","Washington Huskies","West Virginia Mountaineers","Wisconsin Badgers",
+    "Alabama Crimson Tide","Arizona Wildcats","Arizona State Sun Devils","Arkansas Razorbacks","Auburn Tigers","Baylor Bears","Boise State Broncos","Boston College Eagles","BYU Cougars","California Golden Bears","Clemson Tigers","Colorado Buffaloes","Duke Blue Devils","Florida Gators","Florida State Seminoles","Georgia Bulldogs","Georgia Tech Yellow Jackets","Illinois Fighting Illini","Indiana Hoosiers","Iowa Hawkeyes","Iowa State Cyclones","Kansas Jayhawks","Kansas State Wildcats","Kentucky Wildcats","LSU Tigers","Louisville Cardinals","Maryland Terrapins","Miami Hurricanes","Michigan Wolverines","Michigan State Spartans","Minnesota Golden Gophers","Mississippi State Bulldogs","Missouri Tigers","Nebraska Cornhuskers","North Carolina Tar Heels","NC State Wolfpack","Notre Dame Fighting Illini","Ohio State Buckeyes","Oklahoma Sooners","Oklahoma State Cowboys","Ole Miss Rebels","Oregon Ducks","Oregon State Beavers","Penn State Nittany Lions","Pittsburgh Panthers","Purdue Boilermakers","Rutgers Scarlet Knights","South Carolina Gamecocks","Stanford Cardinal","Syracuse Orange","TCU Horned Frogs","Tennessee Volunteers","Texas Longhorns","Texas A&M Aggies","Texas Tech Red Raiders","UCLA Bruins","USC Trojans","Utah Utes","Vanderbilt Commodores","Virginia Cavaliers","Virginia Tech Hokies","Wake Forest Demon Deacons","Washington Huskies","West Virginia Mountaineers","Wisconsin Badgers",
   ],
   Soccer: [
-    "Inter Miami CF","LA Galaxy","New York City FC","Seattle Sounders","Atlanta United",
-    "Arsenal","Chelsea","Liverpool","Manchester City","Manchester United","Tottenham Hotspur",
-    "Barcelona","Real Madrid","Bayern Munich","PSG","Juventus","Inter Milan","AC Milan",
+    "Inter Miami CF","LA Galaxy","New York City FC","Seattle Sounders","Atlanta United","Arsenal","Chelsea","Liverpool","Manchester City","Manchester United","Tottenham Hotspur","Barcelona","Real Madrid","Bayern Munich","PSG","Juventus","Inter Milan","AC Milan",
   ],
   UFC: ["UFC Fight Night", "UFC Main Card", "UFC PPV Main Event"],
   HBCUGOSPORTS: ["HBCU Showcase", "HBCU Game of the Week", "Classic Rivalry"],
@@ -772,11 +792,7 @@ function IconChevronDown() {
 function IconGear() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"
-        stroke="currentColor"
-        strokeWidth="2"
-      />
+      <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" stroke="currentColor" strokeWidth="2" />
       <path
         d="M19.4 15a7.9 7.9 0 0 0 .1-1l2-1.5-2-3.5-2.4.7a8 8 0 0 0-1.7-1l-.3-2.5H9l-.3 2.5a8 8 0 0 0-1.7 1L4.6 9l-2 3.5 2 1.5a7.9 7.9 0 0 0 .1 1L2.6 16.5l2 3.5 2.4-.7a8 8 0 0 0 1.7 1l.3 2.5h6l.3-2.5a8 8 0 0 0 1.7-1l2.4.7 2-3.5-2-1.5Z"
         stroke="currentColor"
@@ -877,25 +893,9 @@ function useViewport() {
 
   const density = useMemo(() => {
     if (isMobile) {
-      return {
-        pad: 12,
-        gap: 14,
-        h1: 24,
-        h2: 18,
-        small: 12,
-        cardMinW: 220,
-        heroH: 120,
-      };
+      return { pad: 12, gap: 14, h1: 24, h2: 18, small: 12, cardMinW: 220, heroH: 120 };
     }
-    return {
-      pad: 16,
-      gap: 18,
-      h1: 30,
-      h2: 20,
-      small: 13,
-      cardMinW: 260,
-      heroH: 140,
-    };
+    return { pad: 16, gap: 18, h1: 30, h2: 20, small: 13, cardMinW: 260, heroH: 140 };
   }, [isMobile]);
 
   return { isMobile, density };
@@ -924,10 +924,7 @@ function Modal({
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
-  const titleId = useMemo(
-    () => `modal_${normalizeKey(title)}_${Math.random().toString(16).slice(2)}`,
-    [title]
-  );
+  const titleId = useMemo(() => `modal_${normalizeKey(title)}_${Math.random().toString(16).slice(2)}`, [title]);
 
   useEffect(() => {
     if (!open) return;
@@ -938,9 +935,7 @@ function Modal({
 
     const getFocusable = (root: HTMLElement) => {
       const nodes = Array.from(
-        root.querySelectorAll<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        )
+        root.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
       );
       return nodes.filter((el) => {
         const disabled = (el as HTMLButtonElement).disabled;
@@ -1048,8 +1043,7 @@ function Modal({
             alignItems: "center",
             justifyContent: "space-between",
             borderBottom: "1px solid rgba(255,255,255,0.08)",
-            background:
-              "linear-gradient(180deg, rgba(58,167,255,0.10), rgba(0,0,0,0.00) 60%), rgba(0,0,0,0.35)",
+            background: "linear-gradient(180deg, rgba(58,167,255,0.10), rgba(0,0,0,0.00) 60%), rgba(0,0,0,0.35)",
           }}
         >
           <div id={titleId} style={{ fontSize: 18, fontWeight: 950, color: "white" }}>
@@ -1140,7 +1134,7 @@ function PillButton({
         </span>
       ) : iconSources && iconSources.length ? (
         <span style={{ flex: "0 0 auto" }}>
-          <SmartImg sources={iconSources} size={24} rounded={9} fit="contain" />
+          <SmartImg sources={iconSources} size={24} rounded={9} fit="contain" fallbackText={label.slice(0, 1).toUpperCase()} />
         </span>
       ) : (
         <span
@@ -1223,6 +1217,8 @@ function Chip({ label, onRemove }: { label: string; onRemove?: () => void }) {
   );
 }
 
+const DropdownCtx = React.createContext<{ close: () => void } | null>(null);
+
 function Dropdown({
   label,
   iconLeft,
@@ -1303,14 +1299,16 @@ function Dropdown({
               minWidth,
               borderRadius: 18,
               border: "1px solid rgba(255,255,255,0.14)",
-              background:
-                "linear-gradient(180deg, rgba(58,167,255,0.10), rgba(0,0,0,0.00) 55%), rgba(10,10,10,0.98)",
+              background: "rgba(10,10,10,0.995)",
+              backdropFilter: "blur(16px)",
               boxShadow: "var(--shadow-md)",
               overflow: "hidden",
               zIndex: 89,
             }}
           >
-            <div style={{ padding: 10, display: "grid", gap: 8 }}>{children}</div>
+            <DropdownCtx.Provider value={{ close: () => setOpen(false) }}>
+              <div style={{ padding: 10, display: "grid", gap: 8 }}>{children}</div>
+            </DropdownCtx.Provider>
           </div>
         </>
       ) : null}
@@ -1329,18 +1327,23 @@ function MenuItem({
   onClick?: () => void;
   right?: React.ReactNode;
 }) {
+  const ctx = React.useContext(DropdownCtx);
+
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={() => {
+        ctx?.close(); // ✅ close before opening modal
+        onClick?.();
+      }}
       className="ampere-focus"
       role="menuitem"
       style={{
         width: "100%",
         textAlign: "left",
         borderRadius: 14,
-        border: "1px solid rgba(255,255,255,0.12)",
-        background: "rgba(255,255,255,0.06)",
+        border: "1px solid rgba(255,255,255,0.14)",
+        background: "rgba(255,255,255,0.10)",
         padding: 12,
         color: "white",
         cursor: "pointer",
@@ -1352,9 +1355,7 @@ function MenuItem({
     >
       <div style={{ minWidth: 0 }}>
         <div style={{ fontWeight: 950, opacity: 0.94 }}>{title}</div>
-        {subtitle ? (
-          <div style={{ marginTop: 4, fontWeight: 850, opacity: 0.68, fontSize: 12 }}>{subtitle}</div>
-        ) : null}
+        {subtitle ? <div style={{ marginTop: 4, fontWeight: 850, opacity: 0.68, fontSize: 12 }}>{subtitle}</div> : null}
       </div>
       {right ? <div style={{ opacity: 0.9, fontWeight: 950 }}>{right}</div> : null}
     </button>
@@ -1480,6 +1481,7 @@ function CardThumb({
             fit="contain"
             fill
             style={{ filter: "saturate(0.95) contrast(1.05)" }}
+            fallbackText="AMPÈRE"
           />
         </div>
 
@@ -1545,17 +1547,15 @@ function CardThumb({
         </div>
 
         <div style={{ position: "absolute", left: 10, bottom: 8, display: "flex", gap: 8, alignItems: "center" }}>
-          {leagueSources.length ? <SmartImg sources={leagueSources} size={26} rounded={10} fit="contain" /> : null}
-          {platformIcon.length ? <SmartImg sources={platformIcon} size={26} rounded={10} fit="contain" /> : null}
+          {leagueSources.length ? <SmartImg sources={leagueSources} size={26} rounded={10} fit="contain" fallbackText={(card.league ?? "L")[0]} /> : null}
+          {platformIcon.length ? <SmartImg sources={platformIcon} size={26} rounded={10} fit="contain" fallbackText={(platform?.label ?? "P")[0]} /> : null}
         </div>
       </div>
 
       <div style={{ padding: 12 }}>
         <div style={{ color: "white", fontWeight: 950, fontSize: 15, lineHeight: 1.15 }}>{card.title}</div>
 
-        {card.subtitle ? (
-          <div style={{ color: "rgba(255,255,255,0.72)", marginTop: 4, fontWeight: 850, fontSize: 12 }}>{card.subtitle}</div>
-        ) : null}
+        {card.subtitle ? <div style={{ color: "rgba(255,255,255,0.72)", marginTop: 4, fontWeight: 850, fontSize: 12 }}>{card.subtitle}</div> : null}
 
         {card.metaLeft || card.metaRight ? (
           <div
@@ -1734,12 +1734,7 @@ function track(event: string, props: Record<string, any>) {
 function uniqByCardKey(cards: Card[]) {
   const m = new Map<string, Card>();
   for (const c of cards) {
-    const k = [
-      normalizeKey(c.title),
-      c.platformId ?? normalizeKey(c.platformLabel ?? ""),
-      normalizeKey(c.league ?? ""),
-      normalizeKey(c.genre ?? ""),
-    ].join("|");
+    const k = [normalizeKey(c.title), c.platformId ?? normalizeKey(c.platformLabel ?? ""), normalizeKey(c.league ?? ""), normalizeKey(c.genre ?? "")].join("|");
     if (!m.has(k)) m.set(k, c);
   }
   return Array.from(m.values());
@@ -1748,13 +1743,7 @@ function uniqByCardKey(cards: Card[]) {
 function logViewing(card: Card) {
   try {
     const events = loadViewing();
-    const next: ViewingEvent = {
-      id: card.id,
-      title: card.title,
-      platformId: card.platformId,
-      league: card.league,
-      at: safeNowISO(),
-    };
+    const next: ViewingEvent = { id: card.id, title: card.title, platformId: card.platformId, league: card.league, at: safeNowISO() };
     saveViewing([...events, next]);
     track("viewing_log", { id: card.id, platformId: card.platformId ?? null });
   } catch {}
@@ -1877,9 +1866,7 @@ export default function AmpereApp() {
   const [profile, setProfile] = useState<ProfileState>(() => loadProfile());
 
   const [openCard, setOpenCard] = useState<Card | null>(null);
-  const [openSeeAll, setOpenSeeAll] = useState<
-    null | "browse" | "platforms" | "for-you" | "live-now" | "continue" | "trending" | "black-media"
-  >(null);
+  const [openSeeAll, setOpenSeeAll] = useState<null | "browse" | "platforms" | "for-you" | "live-now" | "continue" | "trending" | "black-media">(null);
 
   const [openVoice, setOpenVoice] = useState(false);
   const [openRemote, setOpenRemote] = useState(false);
@@ -1900,6 +1887,7 @@ export default function AmpereApp() {
   const [draftTeams, setDraftTeams] = useState<string[]>(profile.favoriteTeams);
 
   const [wizShownByLeague, setWizShownByLeague] = useState<Record<string, number>>({});
+  const [wizTeamSearch, setWizTeamSearch] = useState("");
 
   const [browseShown, setBrowseShown] = useState<number>(isMobile ? 6 : 10);
   const [platformsShown, setPlatformsShown] = useState<number>(isMobile ? 8 : 12);
@@ -1919,12 +1907,14 @@ export default function AmpereApp() {
     return () => clearTimeout(t);
   }, []);
 
+  // Sync draft with profile ONLY when wizard is closed (so in-progress wizard isn't overwritten)
   useEffect(() => {
+    if (openSetup) return;
     setDraftName(profile.name);
     setDraftPlatforms(profile.favoritePlatformIds);
     setDraftLeagues(profile.favoriteLeagues);
     setDraftTeams(profile.favoriteTeams);
-  }, [profile]);
+  }, [profile, openSetup]);
 
   useEffect(() => {
     setBrowseShown(isMobile ? 6 : 10);
@@ -1938,17 +1928,54 @@ export default function AmpereApp() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeGenre]);
 
+  // Wizard: initialize "shown teams per league" when step 4 entered
   useEffect(() => {
     if (setupStep !== 4) return;
     const initial = isMobile ? 12 : 20;
     const next: Record<string, number> = {};
-    for (const l of draftLeagues) next[l] = next[l] ?? initial;
+    for (const l of draftLeagues) {
+      const canon = canonicalLeagueForTeams(l) ?? l;
+      next[canon] = next[canon] ?? initial;
+    }
     setWizShownByLeague(next);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [setupStep, draftLeagues.join("|"), isMobile]);
 
-  const viewing = useMemo(() => (typeof window === "undefined" ? [] : loadViewing()), [openCard]);
+  // Wizard persistence: load on open
+  useEffect(() => {
+    if (!openSetup) return;
+    const saved = loadWizardDraft();
+    if (saved) {
+      setSetupStep(saved.step);
+      setDraftName(saved.name || profile.name);
+      setDraftPlatforms(saved.platforms.length ? saved.platforms : profile.favoritePlatformIds);
+      setDraftLeagues(saved.leagues.length ? saved.leagues : profile.favoriteLeagues);
+      setDraftTeams(saved.teams.length ? saved.teams : profile.favoriteTeams);
+    } else {
+      setSetupStep(1);
+      setDraftName(profile.name);
+      setDraftPlatforms(profile.favoritePlatformIds);
+      setDraftLeagues(profile.favoriteLeagues);
+      setDraftTeams(profile.favoriteTeams);
+    }
+    setWizTeamSearch("");
+  }, [openSetup]); // intentionally not including profile as dependency
 
+  // Wizard persistence: save while open
+  useEffect(() => {
+    if (!openSetup) return;
+    saveWizardDraft({
+      step: setupStep,
+      name: draftName,
+      platforms: uniq(draftPlatforms.filter(Boolean)),
+      leagues: uniq(draftLeagues.filter(Boolean)),
+      teams: uniq(draftTeams.filter(Boolean)),
+      updatedAt: safeNowISO(),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openSetup, setupStep, draftName, draftPlatforms.join("|"), draftLeagues.join("|"), draftTeams.join("|")]);
+
+  const viewing = useMemo(() => (typeof window === "undefined" ? [] : loadViewing()), [openCard]);
   const forYouRanked = useMemo(() => rankForYou(demo.forYou, profile, viewing), [demo.forYou, profile, viewing]);
 
   const visiblePlatformIds = useMemo(() => platformsForGenre(activeGenre), [activeGenre]);
@@ -1963,8 +1990,7 @@ export default function AmpereApp() {
 
   const matchesPlatform = (c: Card) => (activePlatform === "all" ? true : c.platformId === activePlatform);
   const matchesGenre = (c: Card) => (activeGenre === "All" ? true : c.genre ? c.genre === activeGenre : true);
-  const matchesLeague = (c: Card) =>
-    activeLeague === "ALL" ? true : normalizeKey(c.league ?? "") === normalizeKey(activeLeague);
+  const matchesLeague = (c: Card) => (activeLeague === "ALL" ? true : normalizeKey(c.league ?? "") === normalizeKey(activeLeague));
 
   const forYou = useMemo(() => forYouRanked.filter(matchesGenre).filter(matchesPlatform), [forYouRanked, activeGenre, activePlatform]);
   const liveNow = useMemo(() => demo.liveNow.filter(matchesGenre).filter(matchesPlatform).filter(matchesLeague), [demo.liveNow, activeGenre, activePlatform, activeLeague]);
@@ -1988,9 +2014,7 @@ export default function AmpereApp() {
     const base = allSearchCards.filter(matchesGenre).filter(matchesPlatform);
     if (!q) return base.slice(0, 36);
     const out = base.filter((c) =>
-      `${c.title} ${c.subtitle ?? ""} ${c.platformLabel ?? ""} ${c.league ?? ""} ${c.genre ?? ""}`
-        .toLowerCase()
-        .includes(q)
+      `${c.title} ${c.subtitle ?? ""} ${c.platformLabel ?? ""} ${c.league ?? ""} ${c.genre ?? ""}`.toLowerCase().includes(q)
     );
     return out.slice(0, 60);
   }, [searchQuery, allSearchCards, activeGenre, activePlatform]);
@@ -2015,10 +2039,7 @@ export default function AmpereApp() {
   const toggleConnected = (pid: PlatformId, on?: boolean) => {
     setProfile((prev) => {
       const nextOn = typeof on === "boolean" ? on : !prev.connectedPlatformIds?.[pid];
-      const next: ProfileState = {
-        ...prev,
-        connectedPlatformIds: { ...prev.connectedPlatformIds, [pid]: nextOn },
-      };
+      const next: ProfileState = { ...prev, connectedPlatformIds: { ...prev.connectedPlatformIds, [pid]: nextOn } };
       saveProfile(next);
       track("connected_toggle", { platformId: pid, on: nextOn });
       return next;
@@ -2100,10 +2121,7 @@ export default function AmpereApp() {
   const selectedChips: { label: string; onRemove: () => void }[] = [];
   if (activeGenre !== "All") selectedChips.push({ label: `Browse: ${activeGenre}`, onRemove: () => setActiveGenre("All") });
   if (activePlatform !== "all")
-    selectedChips.push({
-      label: `Platform: ${platformById(activePlatform)?.label ?? activePlatform}`,
-      onRemove: () => setActivePlatform("all"),
-    });
+    selectedChips.push({ label: `Platform: ${platformById(activePlatform)?.label ?? activePlatform}`, onRemove: () => setActivePlatform("all") });
   if (activeTab === "live" && activeLeague !== "ALL") selectedChips.push({ label: `League: ${activeLeague}`, onRemove: () => setActiveLeague("ALL") });
 
   const isRailSeeAll = !!openSeeAll && openSeeAll !== "browse" && openSeeAll !== "platforms";
@@ -2132,6 +2150,31 @@ export default function AmpereApp() {
     setOpenProfileSettings(false);
     setOpenArchive(false);
     setPowerState("off");
+  };
+
+  const finishWizard = () => {
+    const name = draftName.trim() ? draftName.trim() : profile.name;
+    const next: ProfileState = normalizeProfile({
+      ...profile,
+      name,
+      favoritePlatformIds: uniq(draftPlatforms),
+      favoriteLeagues: uniq(draftLeagues),
+      favoriteTeams: uniq(draftTeams),
+    });
+    setProfile(next);
+    saveProfile(next);
+    track("wizard_finish", { name, platforms: next.favoritePlatformIds.length, leagues: next.favoriteLeagues.length, teams: next.favoriteTeams.length });
+    clearWizardDraft();
+    setOpenSetup(false);
+    setSetupStep(1);
+  };
+
+  const canNextWizard = () => {
+    if (setupStep === 1) return !!draftName.trim();
+    if (setupStep === 2) return draftPlatforms.length > 0;
+    if (setupStep === 3) return true; // leagues optional
+    if (setupStep === 4) return true; // teams optional
+    return true;
   };
 
   return (
@@ -2177,7 +2220,7 @@ export default function AmpereApp() {
           >
             <div style={{ display: "grid", placeItems: "center" }}>
               <div style={{ width: "min(520px, 92%)", height: isMobile ? 44 : 54 }}>
-                <SmartImg sources={brandWideCandidates()} size={900} rounded={0} border={false} fit="contain" fill />
+                <SmartImg sources={brandWideCandidates()} size={900} rounded={0} border={false} fit="contain" fill fallbackText="AMPÈRE" />
               </div>
             </div>
 
@@ -2332,12 +2375,12 @@ export default function AmpereApp() {
                 flex: "0 0 auto",
               }}
             >
-              <SmartImg sources={brandMarkCandidates()} size={isMobile ? 44 : 52} rounded={18} border={false} fit="contain" />
+              <SmartImg sources={brandMarkCandidates()} size={isMobile ? 44 : 52} rounded={18} border={false} fit="contain" fallbackText="A" />
             </div>
 
             <div style={{ minWidth: 0, display: "grid", gap: 6 }}>
               <div style={{ width: isMobile ? 170 : 220, height: isMobile ? 20 : 24 }}>
-                <SmartImg sources={brandWideCandidates()} size={900} rounded={0} border={false} fit="contain" fill />
+                <SmartImg sources={brandWideCandidates()} size={900} rounded={0} border={false} fit="contain" fill fallbackText="AMPÈRE" />
               </div>
 
               <div
@@ -2371,22 +2414,14 @@ export default function AmpereApp() {
               label="Profile"
               iconLeft={
                 <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-                  <SmartImg sources={avatarSources} size={22} rounded={9} border={true} fit="cover" />
+                  <SmartImg sources={avatarSources} size={22} rounded={9} border={true} fit="cover" fallbackText={profile.name.slice(0, 1).toUpperCase()} />
                 </span>
               }
             >
               <MenuItem title="Profile Settings" subtitle="Name, avatar, header image" onClick={() => setOpenProfileSettings(true)} right="›" />
               <MenuItem title="Archive" subtitle="History + attribution log" onClick={() => setOpenArchive(true)} right="›" />
-              <MenuItem
-                title="Set-Up Wizard"
-                subtitle="Re-run onboarding"
-                onClick={() => {
-                  setOpenSetup(true);
-                  setSetupStep(1);
-                }}
-                right="›"
-              />
-              <MenuItem title="About AMPÈRE" subtitle="Roadmap + directories" onClick={() => setOpenAbout(true)} right="›" />
+              <MenuItem title="Set-Up Wizard" subtitle="Resume onboarding" onClick={() => setOpenSetup(true)} right="›" />
+              <MenuItem title="About AMPÈRE" subtitle="Gap analysis + roadmap" onClick={() => setOpenAbout(true)} right="›" />
             </Dropdown>
           </div>
         </div>
@@ -2755,7 +2790,7 @@ export default function AmpereApp() {
       </footer>
 
       {/* =========================
-         MODALS (core)
+         MODALS
          ========================= */}
 
       <Modal
@@ -2911,7 +2946,7 @@ export default function AmpereApp() {
                 >
                   <div style={{ position: "relative", height: isMobile ? 160 : 220 }}>
                     <div style={{ position: "absolute", inset: 0, opacity: 0.24 }}>
-                      <SmartImg sources={watermark} size={1200} rounded={0} border={false} fit="contain" fill />
+                      <SmartImg sources={watermark} size={1200} rounded={0} border={false} fit="contain" fill fallbackText="AMPÈRE" />
                     </div>
 
                     <div style={{ position: "absolute", top: 12, left: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -2955,8 +2990,8 @@ export default function AmpereApp() {
                     </div>
 
                     <div style={{ position: "absolute", bottom: 12, left: 12, display: "flex", gap: 10, alignItems: "center" }}>
-                      {league ? <SmartImg sources={leagueLogoCandidates(league)} size={32} rounded={12} fit="contain" /> : null}
-                      {pid ? <SmartImg sources={platformIconCandidates(pid)} size={32} rounded={12} fit="contain" /> : null}
+                      {league ? <SmartImg sources={leagueLogoCandidates(league)} size={32} rounded={12} fit="contain" fallbackText={league.slice(0, 1)} /> : null}
+                      {pid ? <SmartImg sources={platformIconCandidates(pid)} size={32} rounded={12} fit="contain" fallbackText={(platform?.label ?? "P")[0]} /> : null}
                       <div style={{ fontWeight: 950, opacity: 0.92 }}>
                         {platform?.label ?? openCard.platformLabel ?? (pid ?? "")}
                         {pid ? (
@@ -3052,50 +3087,62 @@ export default function AmpereApp() {
         ) : null}
       </Modal>
 
-      {/* Voice / Remote / Favorites / Notifications / Connect / About / Archive / Profile Settings / Setup */}
-      {/* NOTE: These modals are intentionally kept minimal in this “fixed compilation” version.
-               Your original second block had full content; if you want, paste the remaining modal bodies
-               and I’ll drop them in cleanly with no missing refs. */}
-
       <Modal open={openVoice} title="Voice" onClose={() => setOpenVoice(false)} maxWidth={820}>
-        <div style={{ opacity: 0.8, fontWeight: 900, lineHeight: 1.5 }}>
-          Voice demo placeholder (hook up SpeechRecognition here if you want the full version).
-        </div>
+        <VoiceCenter
+          onCommand={(cmd) => {
+            track("voice_command", { cmd });
+            const c = cmd.trim().toLowerCase();
+            if (c.includes("search")) {
+              setActiveTab("search");
+              const q = cmd.replace(/search/i, "").trim();
+              setSearchInput(q);
+              setSearchQuery(q);
+            } else if (c.includes("live")) {
+              setActiveTab("live");
+            } else if (c.includes("home")) {
+              setActiveTab("home");
+            } else if (c.includes("favs") || c.includes("favorites")) {
+              setActiveTab("favs");
+            }
+          }}
+        />
       </Modal>
 
       <Modal open={openRemote} title="Remote" onClose={() => setOpenRemote(false)} maxWidth={820}>
-        <div style={{ opacity: 0.8, fontWeight: 900, lineHeight: 1.5 }}>
-          Remote demo placeholder.
-        </div>
+        <RemotePad
+          onAction={(a) => {
+            track("remote_action", { a });
+            if (a === "HOME") setActiveTab("home");
+            if (a === "LIVE") setActiveTab("live");
+            if (a === "FAVS") setActiveTab("favs");
+            if (a === "SEARCH") setActiveTab("search");
+            if (a === "BACK") onBack();
+          }}
+        />
       </Modal>
 
       <Modal open={openFavorites} title="Favorites" onClose={() => setOpenFavorites(false)} maxWidth={980}>
-        <div style={{ display: "grid", gap: 12 }}>
-          <div style={{ opacity: 0.8, fontWeight: 900 }}>Favorites editor placeholder.</div>
-          <button
-            type="button"
-            className="ampere-focus"
-            onClick={() => setOpenFavorites(false)}
-            style={{
-              padding: "12px 14px",
-              borderRadius: 14,
-              border: "1px solid rgba(58,167,255,0.22)",
-              background: "rgba(58,167,255,0.12)",
-              color: "white",
-              fontWeight: 950,
-              cursor: "pointer",
-              width: "fit-content",
-            }}
-          >
-            Close
-          </button>
-        </div>
+        <FavoritesEditor
+          isMobile={isMobile}
+          profile={profile}
+          onSave={(next) => {
+            const normalized = normalizeProfile(next);
+            setProfile(normalized);
+            saveProfile(normalized);
+            track("favorites_save", {
+              platforms: normalized.favoritePlatformIds.length,
+              leagues: normalized.favoriteLeagues.length,
+              teams: normalized.favoriteTeams.length,
+            });
+            setOpenFavorites(false);
+          }}
+        />
       </Modal>
 
       <Modal open={openNotifications} title="Notifications" onClose={() => setOpenNotifications(false)} maxWidth={900}>
         <div style={{ display: "grid", gap: 12 }}>
-          <div style={{ opacity: 0.8, fontWeight: 900 }}>
-            Notifications placeholder (toggle stored in profile).
+          <div style={{ opacity: 0.82, fontWeight: 900, lineHeight: 1.5 }}>
+            Demo toggle (stored locally). In a real product this would schedule push notifications (mobile) or OS-level TV notifications.
           </div>
           <button
             type="button"
@@ -3126,8 +3173,11 @@ export default function AmpereApp() {
 
       <Modal open={openConnect} title="Connect Platforms" onClose={() => setOpenConnect(false)} maxWidth={980}>
         <div style={{ display: "grid", gap: 12 }}>
-          <div style={{ opacity: 0.78, fontWeight: 900 }}>
+          <div style={{ opacity: 0.82, fontWeight: 900, lineHeight: 1.5 }}>
             Click <b>Open</b> or <b>Subscribe</b> to hand off to the provider. When you return, we mark the platform connected (demo).
+            <div style={{ marginTop: 10, opacity: 0.85 }}>
+              <b>TV Connect plan (real architecture):</b> Web UI alone can’t reliably discover/control TVs. Real solutions use a native companion app or device runtime (mDNS/SSDP discovery, CEC/eARC control, vendor APIs, or a local hub).
+            </div>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(3, 1fr)", gap: 10 }}>
@@ -3147,7 +3197,7 @@ export default function AmpereApp() {
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-                    <SmartImg sources={platformIconCandidates(pid)} size={34} rounded={12} fit="contain" />
+                    <SmartImg sources={platformIconCandidates(pid)} size={34} rounded={12} fit="contain" fallbackText={(p?.label ?? pid)[0]} />
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontWeight: 950, opacity: 0.94, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p?.label ?? pid}</div>
                       <div style={{ fontWeight: 900, opacity: on ? 0.9 : 0.6, fontSize: 12 }}>{on ? "Connected" : "Not connected"}</div>
@@ -3213,13 +3263,7 @@ export default function AmpereApp() {
       </Modal>
 
       <Modal open={openAbout} title="About AMPÈRE" onClose={() => setOpenAbout(false)} maxWidth={980}>
-        <div style={{ display: "grid", gap: 12 }}>
-          <div style={{ fontWeight: 950, fontSize: 18 }}>Control, Reimagined.</div>
-          <div style={{ opacity: 0.82, fontWeight: 900, lineHeight: 1.5 }}>
-            AMPÈRE is a concept demo for a unified TV experience: browse across services, see what’s live, and launch content fast —
-            from remote, voice, or personalized rails.
-          </div>
-        </div>
+        <AboutContent />
       </Modal>
 
       <Modal open={openArchive} title="Archive" onClose={() => setOpenArchive(false)} maxWidth={980}>
@@ -3230,8 +3274,9 @@ export default function AmpereApp() {
         <ProfileSettingsContent
           profile={profile}
           onSave={(next) => {
-            setProfile(next);
-            saveProfile(next);
+            const normalized = normalizeProfile(next);
+            setProfile(normalized);
+            saveProfile(normalized);
             track("profile_save", {});
             setOpenProfileSettings(false);
           }}
@@ -3240,29 +3285,43 @@ export default function AmpereApp() {
         />
       </Modal>
 
-      <Modal
-        open={openSetup}
-        title={`Set-Up Wizard — Step ${setupStep} of 5`}
-        onClose={() => {
-          setOpenSetup(false);
-          setSetupStep(1);
-          setDraftName(profile.name);
-          setDraftPlatforms(profile.favoritePlatformIds);
-          setDraftLeagues(profile.favoriteLeagues);
-          setDraftTeams(profile.favoriteTeams);
-        }}
-        maxWidth={980}
-      >
-        <div style={{ opacity: 0.8, fontWeight: 900 }}>
-          Setup wizard placeholder (drop in your full Step 1–5 UI here if needed).
-        </div>
+      <Modal open={openSetup} title={`Set-Up Wizard — Step ${setupStep} of 5`} onClose={() => setOpenSetup(false)} maxWidth={980}>
+        <SetupWizardContent
+          isMobile={isMobile}
+          setupStep={setupStep}
+          setSetupStep={setSetupStep}
+          draftName={draftName}
+          setDraftName={setDraftName}
+          draftPlatforms={draftPlatforms}
+          setDraftPlatforms={setDraftPlatforms}
+          draftLeagues={draftLeagues}
+          setDraftLeagues={setDraftLeagues}
+          draftTeams={draftTeams}
+          setDraftTeams={setDraftTeams}
+          wizShownByLeague={wizShownByLeague}
+          setWizShownByLeague={setWizShownByLeague}
+          wizTeamSearch={wizTeamSearch}
+          setWizTeamSearch={setWizTeamSearch}
+          canNext={canNextWizard()}
+          onFinish={finishWizard}
+          onStartOver={() => {
+            clearWizardDraft();
+            setSetupStep(1);
+            setDraftName(profile.name);
+            setDraftPlatforms(profile.favoritePlatformIds);
+            setDraftLeagues(profile.favoriteLeagues);
+            setDraftTeams(profile.favoriteTeams);
+            setWizTeamSearch("");
+            track("wizard_start_over", {});
+          }}
+        />
       </Modal>
     </div>
   );
 }
 
 /* =========================
-   Helper components + helpers
+   Helper components
    ========================= */
 
 function ProfileSettingsContent({
@@ -3524,6 +3583,835 @@ function ArchiveContent() {
   );
 }
 
+function AboutContent() {
+  return (
+    <div style={{ display: "grid", gap: 12 }}>
+      <div style={{ fontWeight: 950, fontSize: 18 }}>Control, Reimagined.</div>
+      <div style={{ opacity: 0.82, fontWeight: 900, lineHeight: 1.5 }}>
+        AMPÈRE is a concept demo for a unified TV experience: browse across services, see what’s live, and launch content fast — from remote, voice, or personalized rails.
+      </div>
+
+      <div style={{ borderRadius: 18, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)", padding: 14, display: "grid", gap: 10 }}>
+        <div style={{ fontWeight: 950 }}>Priority gap analysis</div>
+
+        <div style={{ fontWeight: 950, opacity: 0.92 }}>P0 — Must fix (it’s broken)</div>
+        <ul style={{ margin: 0, paddingLeft: 18, opacity: 0.86, fontWeight: 900, lineHeight: 1.5 }}>
+          <li><b>Asset path resolution:</b> all public asset candidates now go through <code>assetPath()</code> for basePath/assetPrefix-safe deploys.</li>
+          <li><b>Candidate coverage:</b> platform icon resolution now tries common filename variants (+, -plus, _plus, hyphen/underscore, etc.).</li>
+          <li><b>No broken-image flashes:</b> SmartImg preloads candidates and only renders &lt;img&gt; after success.</li>
+          <li><b>Profile dropdown:</b> closes on selection so modals don’t open behind it.</li>
+          <li><b>Setup Wizard:</b> restored full Step 1–5 UI and persistence.</li>
+        </ul>
+
+        <div style={{ fontWeight: 950, opacity: 0.92, marginTop: 6 }}>P1 — Next (feature completeness)</div>
+        <ul style={{ margin: 0, paddingLeft: 18, opacity: 0.86, fontWeight: 900, lineHeight: 1.5 }}>
+          <li><b>Favorites editor:</b> now a functional modal (platforms/leagues/teams).</li>
+          <li><b>Voice/Remote:</b> upgraded from placeholder to interactive demo (still not a real mic/TV integration).</li>
+          <li><b>TV Connect:</b> requires native runtime or local hub for discovery/control (web UI alone can’t do it reliably).</li>
+        </ul>
+      </div>
+
+      <div style={{ opacity: 0.78, fontWeight: 900 }}>
+        Tip: set <code>NEXT_PUBLIC_ASSET_PREFIX</code> to match your deployment prefix if you’re serving under a basePath/assetPrefix.
+      </div>
+    </div>
+  );
+}
+
+function VoiceCenter({ onCommand }: { onCommand: (cmd: string) => void }) {
+  const [cmd, setCmd] = useState("");
+
+  return (
+    <div style={{ display: "grid", gap: 12 }}>
+      <div style={{ opacity: 0.82, fontWeight: 900, lineHeight: 1.5 }}>
+        Demo voice UI: type a command and run it. (Hook up real SpeechRecognition here if you want.)
+      </div>
+
+      <div style={{ display: "grid", gap: 8 }}>
+        <div style={{ fontWeight: 950 }}>Command</div>
+        <input
+          value={cmd}
+          onChange={(e) => setCmd(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") onCommand(cmd);
+          }}
+          placeholder='Try: "search ufc", "go live", "home", "favs"'
+          className="ampere-focus"
+          style={{
+            padding: "12px 14px",
+            borderRadius: 14,
+            border: "1px solid var(--stroke2)",
+            background: "rgba(0,0,0,0.35)",
+            color: "white",
+            outline: "none",
+            fontWeight: 850,
+          }}
+        />
+      </div>
+
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
+        <button
+          type="button"
+          className="ampere-focus"
+          onClick={() => onCommand(cmd)}
+          style={{
+            padding: "12px 14px",
+            borderRadius: 14,
+            border: "1px solid rgba(58,167,255,0.22)",
+            background: "rgba(58,167,255,0.12)",
+            color: "white",
+            fontWeight: 950,
+            cursor: "pointer",
+          }}
+        >
+          Run
+        </button>
+        <button
+          type="button"
+          className="ampere-focus"
+          onClick={() => setCmd("")}
+          style={{
+            padding: "12px 14px",
+            borderRadius: 14,
+            border: "1px solid rgba(255,255,255,0.14)",
+            background: "rgba(255,255,255,0.06)",
+            color: "white",
+            fontWeight: 950,
+            cursor: "pointer",
+          }}
+        >
+          Clear
+        </button>
+      </div>
+
+      <div style={{ opacity: 0.75, fontWeight: 900, fontSize: 13 }}>
+        Quick actions:{" "}
+        {["search nba", "search ufc", "go live", "home", "favs"].map((x) => (
+          <button
+            key={x}
+            type="button"
+            className="ampere-focus"
+            onClick={() => {
+              setCmd(x);
+              onCommand(x);
+            }}
+            style={{
+              marginLeft: 8,
+              padding: "8px 10px",
+              borderRadius: 999,
+              border: "1px solid rgba(255,255,255,0.14)",
+              background: "rgba(0,0,0,0.22)",
+              color: "white",
+              fontWeight: 950,
+              cursor: "pointer",
+            }}
+          >
+            {x}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RemotePad({ onAction }: { onAction: (a: string) => void }) {
+  const Btn = ({ label, big }: { label: string; big?: boolean }) => (
+    <button
+      type="button"
+      className="ampere-focus"
+      onClick={() => onAction(label)}
+      style={{
+        padding: big ? "14px 14px" : "10px 12px",
+        borderRadius: 16,
+        border: "1px solid rgba(255,255,255,0.14)",
+        background: "rgba(255,255,255,0.06)",
+        color: "white",
+        fontWeight: 950,
+        cursor: "pointer",
+      }}
+    >
+      {label}
+    </button>
+  );
+
+  return (
+    <div style={{ display: "grid", gap: 12 }}>
+      <div style={{ opacity: 0.82, fontWeight: 900, lineHeight: 1.5 }}>
+        Demo remote pad. In a real product this would map to CEC/TV OS APIs (or a local hub).
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10, maxWidth: 520 }}>
+        <div />
+        <Btn label="UP" big />
+        <div />
+        <Btn label="LEFT" big />
+        <Btn label="OK" big />
+        <Btn label="RIGHT" big />
+        <div />
+        <Btn label="DOWN" big />
+        <div />
+      </div>
+
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <Btn label="BACK" />
+        <Btn label="HOME" />
+        <Btn label="LIVE" />
+        <Btn label="FAVS" />
+        <Btn label="SEARCH" />
+      </div>
+    </div>
+  );
+}
+
+function FavoritesEditor({
+  isMobile,
+  profile,
+  onSave,
+}: {
+  isMobile: boolean;
+  profile: ProfileState;
+  onSave: (next: ProfileState) => void;
+}) {
+  const [pSearch, setPSearch] = useState("");
+  const [tSearch, setTSearch] = useState("");
+
+  const [favPlatforms, setFavPlatforms] = useState<PlatformId[]>(profile.favoritePlatformIds);
+  const [favLeagues, setFavLeagues] = useState<string[]>(profile.favoriteLeagues);
+  const [favTeams, setFavTeams] = useState<string[]>(profile.favoriteTeams);
+
+  useEffect(() => {
+    setFavPlatforms(profile.favoritePlatformIds);
+    setFavLeagues(profile.favoriteLeagues);
+    setFavTeams(profile.favoriteTeams);
+    setPSearch("");
+    setTSearch("");
+  }, [profile]);
+
+  const leaguesSelectable = LEAGUES.filter((l) => l !== "ALL");
+  const platformsFiltered = useMemo(() => {
+    const q = pSearch.trim().toLowerCase();
+    const base = [...PLATFORMS].slice().sort((a, b) => a.label.localeCompare(b.label));
+    if (!q) return base;
+    return base.filter((p) => p.label.toLowerCase().includes(q) || p.id.toLowerCase().includes(q));
+  }, [pSearch]);
+
+  const teamsBySelectedLeagues = useMemo(() => {
+    const selected = favLeagues.length ? favLeagues : [];
+    const out: { league: string; teams: string[] }[] = [];
+    for (const l of selected) {
+      const canon = canonicalLeagueForTeams(l) ?? l;
+      const all = TEAMS_BY_LEAGUE[canon] ?? [];
+      out.push({ league: canon, teams: all });
+    }
+    return out;
+  }, [favLeagues.join("|")]);
+
+  const filteredTeamSections = useMemo(() => {
+    const q = normalizeKey(tSearch);
+    if (!q) return teamsBySelectedLeagues;
+    return teamsBySelectedLeagues.map((s) => ({
+      league: s.league,
+      teams: s.teams.filter((t) => normalizeKey(t).includes(q)),
+    }));
+  }, [teamsBySelectedLeagues, tSearch]);
+
+  return (
+    <div style={{ display: "grid", gap: 14 }}>
+      <div style={{ opacity: 0.82, fontWeight: 900, lineHeight: 1.5 }}>
+        Edit favorites (stored locally). These affect ranking + filters + notifications.
+      </div>
+
+      <div style={{ display: "grid", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+          <div style={{ fontWeight: 950 }}>Favorite Platforms</div>
+          <input
+            value={pSearch}
+            onChange={(e) => setPSearch(e.target.value)}
+            placeholder="Filter platforms…"
+            className="ampere-focus"
+            style={{
+              padding: "10px 12px",
+              borderRadius: 14,
+              border: "1px solid var(--stroke2)",
+              background: "rgba(0,0,0,0.35)",
+              color: "white",
+              outline: "none",
+              fontWeight: 850,
+              minWidth: 240,
+            }}
+          />
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(4, minmax(0, 1fr))", gap: 10 }}>
+          {platformsFiltered.map((p) => (
+            <PillButton
+              key={`favplat_${p.id}`}
+              label={p.label}
+              iconSources={platformIconCandidates(p.id)}
+              active={favPlatforms.includes(p.id)}
+              onClick={() => setFavPlatforms((prev) => uniq(toggleInArray(prev, p.id) as PlatformId[]))}
+              fullWidth
+              multiline
+            />
+          ))}
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gap: 10 }}>
+        <div style={{ fontWeight: 950 }}>Favorite Leagues</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
+          {leaguesSelectable.map((l) => (
+            <PillButton
+              key={`favleague_${l}`}
+              label={l}
+              active={favLeagues.includes(l)}
+              onClick={() => setFavLeagues((prev) => uniq(toggleInArray(prev, l)))}
+              fullWidth
+            />
+          ))}
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+          <div style={{ fontWeight: 950 }}>Favorite Teams</div>
+          <input
+            value={tSearch}
+            onChange={(e) => setTSearch(e.target.value)}
+            placeholder="Filter teams…"
+            className="ampere-focus"
+            style={{
+              padding: "10px 12px",
+              borderRadius: 14,
+              border: "1px solid var(--stroke2)",
+              background: "rgba(0,0,0,0.35)",
+              color: "white",
+              outline: "none",
+              fontWeight: 850,
+              minWidth: 240,
+            }}
+          />
+        </div>
+
+        {!favLeagues.length ? (
+          <div style={{ opacity: 0.75, fontWeight: 900 }}>Select a league above to pick teams.</div>
+        ) : (
+          <div style={{ display: "grid", gap: 12 }}>
+            {filteredTeamSections.map((sec) => (
+              <div key={`teams_${sec.league}`} style={{ borderRadius: 18, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)", padding: 12, display: "grid", gap: 10 }}>
+                <div style={{ fontWeight: 950, opacity: 0.92 }}>{sec.league}</div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 }}>
+                  {sec.teams.slice(0, 24).map((t) => (
+                    <PillButton
+                      key={`${sec.league}_${t}`}
+                      label={t}
+                      active={favTeams.includes(t)}
+                      onClick={() => setFavTeams((prev) => uniq(toggleInArray(prev, t)))}
+                      fullWidth
+                      multiline
+                    />
+                  ))}
+                </div>
+                {sec.teams.length > 24 ? <div style={{ opacity: 0.72, fontWeight: 900, fontSize: 12 }}>Showing 24 of {sec.teams.length}. Refine with search.</div> : null}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {favTeams.length ? (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+            {favTeams.slice(0, 18).map((t) => (
+              <Chip key={`favteam_chip_${t}`} label={t} onRemove={() => setFavTeams((prev) => prev.filter((x) => x !== t))} />
+            ))}
+            {favTeams.length > 18 ? <div style={{ opacity: 0.75, fontWeight: 900 }}>+{favTeams.length - 18} more</div> : null}
+          </div>
+        ) : (
+          <div style={{ opacity: 0.75, fontWeight: 900 }}>No teams selected (optional).</div>
+        )}
+      </div>
+
+      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
+        <button
+          type="button"
+          className="ampere-focus"
+          onClick={() => {
+            setFavPlatforms([]);
+            setFavLeagues([]);
+            setFavTeams([]);
+            track("favorites_clear", {});
+          }}
+          style={{
+            padding: "12px 14px",
+            borderRadius: 14,
+            border: "1px solid rgba(255,255,255,0.14)",
+            background: "rgba(0,0,0,0.28)",
+            color: "white",
+            fontWeight: 950,
+            cursor: "pointer",
+          }}
+        >
+          Clear
+        </button>
+        <button
+          type="button"
+          className="ampere-focus"
+          onClick={() =>
+            onSave({
+              ...profile,
+              favoritePlatformIds: uniq(favPlatforms),
+              favoriteLeagues: uniq(favLeagues),
+              favoriteTeams: uniq(favTeams),
+            })
+          }
+          style={{
+            padding: "12px 14px",
+            borderRadius: 14,
+            border: "1px solid rgba(58,167,255,0.22)",
+            background: "rgba(58,167,255,0.12)",
+            color: "white",
+            fontWeight: 950,
+            cursor: "pointer",
+          }}
+        >
+          Save Favorites
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SetupWizardContent({
+  isMobile,
+  setupStep,
+  setSetupStep,
+  draftName,
+  setDraftName,
+  draftPlatforms,
+  setDraftPlatforms,
+  draftLeagues,
+  setDraftLeagues,
+  draftTeams,
+  setDraftTeams,
+  wizShownByLeague,
+  setWizShownByLeague,
+  wizTeamSearch,
+  setWizTeamSearch,
+  canNext,
+  onFinish,
+  onStartOver,
+}: {
+  isMobile: boolean;
+  setupStep: 1 | 2 | 3 | 4 | 5;
+  setSetupStep: (s: 1 | 2 | 3 | 4 | 5) => void;
+  draftName: string;
+  setDraftName: (s: string) => void;
+  draftPlatforms: PlatformId[];
+  setDraftPlatforms: (x: PlatformId[]) => void;
+  draftLeagues: string[];
+  setDraftLeagues: (x: string[]) => void;
+  draftTeams: string[];
+  setDraftTeams: (x: string[]) => void;
+  wizShownByLeague: Record<string, number>;
+  setWizShownByLeague: (x: Record<string, number>) => void;
+  wizTeamSearch: string;
+  setWizTeamSearch: (s: string) => void;
+  canNext: boolean;
+  onFinish: () => void;
+  onStartOver: () => void;
+}) {
+  const leaguesSelectable = LEAGUES.filter((l) => l !== "ALL");
+  const sortedPlatforms = useMemo(() => [...PLATFORMS].slice().sort((a, b) => a.label.localeCompare(b.label)), []);
+
+  const stepTitle =
+    setupStep === 1 ? "Your Profile" : setupStep === 2 ? "Pick Platforms" : setupStep === 3 ? "Pick Leagues" : setupStep === 4 ? "Pick Teams" : "Review";
+
+  const goNext = () => {
+    if (!canNext) return;
+    const n = Math.min(5, (setupStep + 1) as any) as any;
+    setSetupStep(n);
+    track("wizard_step_next", { from: setupStep, to: n });
+  };
+
+  const goBack = () => {
+    const n = Math.max(1, (setupStep - 1) as any) as any;
+    setSetupStep(n);
+    track("wizard_step_back", { from: setupStep, to: n });
+  };
+
+  return (
+    <div style={{ display: "grid", gap: 14 }}>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+        <div style={{ display: "grid", gap: 6 }}>
+          <div style={{ fontWeight: 950, fontSize: 18 }}>{stepTitle}</div>
+          <div style={{ opacity: 0.78, fontWeight: 900 }}>Progress: {setupStep}/5 • Autosaved</div>
+        </div>
+
+        <button
+          type="button"
+          className="ampere-focus"
+          onClick={onStartOver}
+          style={{
+            padding: "10px 12px",
+            borderRadius: 14,
+            border: "1px solid rgba(255,255,255,0.14)",
+            background: "rgba(0,0,0,0.22)",
+            color: "white",
+            fontWeight: 950,
+            cursor: "pointer",
+          }}
+        >
+          Start over
+        </button>
+      </div>
+
+      {/* STEP 1 */}
+      {setupStep === 1 ? (
+        <div style={{ display: "grid", gap: 12 }}>
+          <div style={{ opacity: 0.82, fontWeight: 900, lineHeight: 1.5 }}>
+            Let’s personalize AMPÈRE. This controls ranking and defaults in the app.
+          </div>
+
+          <div style={{ display: "grid", gap: 8 }}>
+            <div style={{ fontWeight: 950 }}>Name</div>
+            <input
+              value={draftName}
+              onChange={(e) => setDraftName(e.target.value)}
+              placeholder="Your name"
+              className="ampere-focus"
+              style={{
+                padding: "12px 14px",
+                borderRadius: 14,
+                border: "1px solid var(--stroke2)",
+                background: "rgba(0,0,0,0.35)",
+                color: "white",
+                outline: "none",
+                fontWeight: 900,
+              }}
+            />
+            <div style={{ opacity: 0.74, fontWeight: 900, fontSize: 12 }}>
+              Tip: you can set avatar/header in Profile Settings.
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* STEP 2 */}
+      {setupStep === 2 ? (
+        <div style={{ display: "grid", gap: 12 }}>
+          <div style={{ opacity: 0.82, fontWeight: 900, lineHeight: 1.5 }}>
+            Choose the services you use most. These become your Favorite Platforms.
+          </div>
+
+          {draftPlatforms.length ? (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+              {draftPlatforms.slice(0, 18).map((pid) => (
+                <Chip key={`wiz_plat_${pid}`} label={platformById(pid)?.label ?? pid} onRemove={() => setDraftPlatforms((prev) => prev.filter((x) => x !== pid))} />
+              ))}
+              {draftPlatforms.length > 18 ? <div style={{ opacity: 0.75, fontWeight: 900 }}>+{draftPlatforms.length - 18} more</div> : null}
+            </div>
+          ) : (
+            <div style={{ opacity: 0.75, fontWeight: 900 }}>Pick at least one platform.</div>
+          )}
+
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(4, minmax(0, 1fr))", gap: 10 }}>
+            {sortedPlatforms.map((p) => (
+              <PillButton
+                key={`wiz_plat_${p.id}`}
+                label={p.label}
+                iconSources={platformIconCandidates(p.id)}
+                active={draftPlatforms.includes(p.id)}
+                onClick={() => setDraftPlatforms((prev) => uniq(toggleInArray(prev, p.id) as PlatformId[]))}
+                fullWidth
+                multiline
+              />
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {/* STEP 3 */}
+      {setupStep === 3 ? (
+        <div style={{ display: "grid", gap: 12 }}>
+          <div style={{ opacity: 0.82, fontWeight: 900, lineHeight: 1.5 }}>
+            Pick leagues you care about (optional). This helps personalize “Live” and recommendations.
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
+            {leaguesSelectable.map((l) => (
+              <PillButton
+                key={`wiz_league_${l}`}
+                label={l}
+                active={draftLeagues.includes(l)}
+                onClick={() => setDraftLeagues((prev) => uniq(toggleInArray(prev, l)))}
+                fullWidth
+              />
+            ))}
+          </div>
+
+          {draftLeagues.length ? (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+              {draftLeagues.map((l) => (
+                <Chip key={`wiz_league_chip_${l}`} label={l} onRemove={() => setDraftLeagues((prev) => prev.filter((x) => x !== l))} />
+              ))}
+            </div>
+          ) : (
+            <div style={{ opacity: 0.75, fontWeight: 900 }}>No leagues selected (you can continue).</div>
+          )}
+        </div>
+      ) : null}
+
+      {/* STEP 4 */}
+      {setupStep === 4 ? (
+        <div style={{ display: "grid", gap: 12 }}>
+          <div style={{ opacity: 0.82, fontWeight: 900, lineHeight: 1.5 }}>
+            Pick favorite teams (optional). Tip: use search to narrow.
+          </div>
+
+          <input
+            value={wizTeamSearch}
+            onChange={(e) => setWizTeamSearch(e.target.value)}
+            placeholder="Search teams…"
+            className="ampere-focus"
+            style={{
+              padding: "12px 14px",
+              borderRadius: 14,
+              border: "1px solid var(--stroke2)",
+              background: "rgba(0,0,0,0.35)",
+              color: "white",
+              outline: "none",
+              fontWeight: 850,
+            }}
+          />
+
+          {!draftLeagues.length ? (
+            <div style={{ opacity: 0.75, fontWeight: 900 }}>No leagues selected — teams are optional. Continue to Review.</div>
+          ) : (
+            <div style={{ display: "grid", gap: 12 }}>
+              {draftLeagues.map((l) => {
+                const canon = canonicalLeagueForTeams(l) ?? l;
+                const all = TEAMS_BY_LEAGUE[canon] ?? [];
+                const q = normalizeKey(wizTeamSearch);
+                const filtered = q ? all.filter((t) => normalizeKey(t).includes(q)) : all;
+
+                const shown = wizShownByLeague[canon] ?? (isMobile ? 12 : 20);
+                const slice = filtered.slice(0, shown);
+                const more = shown < filtered.length;
+
+                return (
+                  <div
+                    key={`wiz_team_${canon}`}
+                    style={{
+                      borderRadius: 18,
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      background: "rgba(255,255,255,0.04)",
+                      padding: 12,
+                      display: "grid",
+                      gap: 10,
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+                      <div style={{ fontWeight: 950, opacity: 0.92 }}>{canon}</div>
+                      <div style={{ opacity: 0.75, fontWeight: 900, fontSize: 12 }}>
+                        {draftTeams.length} team(s) selected
+                      </div>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 }}>
+                      {slice.map((t) => (
+                        <PillButton
+                          key={`${canon}_${t}`}
+                          label={t}
+                          active={draftTeams.includes(t)}
+                          onClick={() => setDraftTeams((prev) => uniq(toggleInArray(prev, t)))}
+                          fullWidth
+                          multiline
+                        />
+                      ))}
+                    </div>
+
+                    {more ? (
+                      <button
+                        type="button"
+                        className="ampere-focus"
+                        onClick={() =>
+                          setWizShownByLeague((prev) => ({
+                            ...prev,
+                            [canon]: Math.min(filtered.length, (prev[canon] ?? shown) + (isMobile ? 12 : 20)),
+                          }))
+                        }
+                        style={{
+                          padding: "10px 12px",
+                          borderRadius: 14,
+                          border: "1px solid rgba(58,167,255,0.22)",
+                          background: "rgba(58,167,255,0.10)",
+                          color: "white",
+                          fontWeight: 950,
+                          cursor: "pointer",
+                          width: "fit-content",
+                        }}
+                      >
+                        Load more ({slice.length}/{filtered.length})
+                      </button>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {draftTeams.length ? (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+              {draftTeams.slice(0, 18).map((t) => (
+                <Chip key={`wiz_team_chip_${t}`} label={t} onRemove={() => setDraftTeams((prev) => prev.filter((x) => x !== t))} />
+              ))}
+              {draftTeams.length > 18 ? <div style={{ opacity: 0.75, fontWeight: 900 }}>+{draftTeams.length - 18} more</div> : null}
+            </div>
+          ) : (
+            <div style={{ opacity: 0.75, fontWeight: 900 }}>No teams selected (optional).</div>
+          )}
+        </div>
+      ) : null}
+
+      {/* STEP 5 */}
+      {setupStep === 5 ? (
+        <div style={{ display: "grid", gap: 12 }}>
+          <div style={{ opacity: 0.82, fontWeight: 900, lineHeight: 1.5 }}>
+            Review your selections. Finish to apply them to your profile.
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: 10 }}>
+            <div style={{ borderRadius: 18, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)", padding: 12, display: "grid", gap: 8 }}>
+              <div style={{ fontWeight: 950 }}>Name</div>
+              <div style={{ opacity: 0.9, fontWeight: 900 }}>{draftName.trim() || "—"}</div>
+            </div>
+            <div style={{ borderRadius: 18, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)", padding: 12, display: "grid", gap: 8 }}>
+              <div style={{ fontWeight: 950 }}>Favorites</div>
+              <div style={{ opacity: 0.9, fontWeight: 900 }}>
+                {draftPlatforms.length} platform(s), {draftLeagues.length} league(s), {draftTeams.length} team(s)
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gap: 10 }}>
+            <div style={{ fontWeight: 950 }}>Platforms</div>
+            {draftPlatforms.length ? (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                {draftPlatforms.slice(0, 18).map((pid) => (
+                  <Chip key={`rev_plat_${pid}`} label={platformById(pid)?.label ?? pid} />
+                ))}
+                {draftPlatforms.length > 18 ? <div style={{ opacity: 0.75, fontWeight: 900 }}>+{draftPlatforms.length - 18} more</div> : null}
+              </div>
+            ) : (
+              <div style={{ opacity: 0.75, fontWeight: 900 }}>No platforms selected.</div>
+            )}
+          </div>
+
+          <div style={{ display: "grid", gap: 10 }}>
+            <div style={{ fontWeight: 950 }}>Leagues</div>
+            {draftLeagues.length ? (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                {draftLeagues.map((l) => (
+                  <Chip key={`rev_league_${l}`} label={l} />
+                ))}
+              </div>
+            ) : (
+              <div style={{ opacity: 0.75, fontWeight: 900 }}>No leagues selected (ok).</div>
+            )}
+          </div>
+
+          <div style={{ display: "grid", gap: 10 }}>
+            <div style={{ fontWeight: 950 }}>Teams</div>
+            {draftTeams.length ? (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                {draftTeams.slice(0, 18).map((t) => (
+                  <Chip key={`rev_team_${t}`} label={t} />
+                ))}
+                {draftTeams.length > 18 ? <div style={{ opacity: 0.75, fontWeight: 900 }}>+{draftTeams.length - 18} more</div> : null}
+              </div>
+            ) : (
+              <div style={{ opacity: 0.75, fontWeight: 900 }}>No teams selected (ok).</div>
+            )}
+          </div>
+        </div>
+      ) : null}
+
+      {/* NAV */}
+      <div style={{ display: "flex", gap: 10, justifyContent: "space-between", flexWrap: "wrap", marginTop: 4 }}>
+        <button
+          type="button"
+          className="ampere-focus"
+          onClick={goBack}
+          disabled={setupStep === 1}
+          style={{
+            padding: "12px 14px",
+            borderRadius: 14,
+            border: "1px solid rgba(255,255,255,0.14)",
+            background: setupStep === 1 ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.06)",
+            color: "white",
+            fontWeight: 950,
+            cursor: setupStep === 1 ? "not-allowed" : "pointer",
+            opacity: setupStep === 1 ? 0.55 : 1,
+          }}
+        >
+          Back
+        </button>
+
+        {setupStep < 5 ? (
+          <button
+            type="button"
+            className="ampere-focus"
+            onClick={goNext}
+            disabled={!canNext}
+            style={{
+              padding: "12px 14px",
+              borderRadius: 14,
+              border: "1px solid rgba(58,167,255,0.22)",
+              background: canNext ? "rgba(58,167,255,0.12)" : "rgba(58,167,255,0.06)",
+              color: "white",
+              fontWeight: 950,
+              cursor: canNext ? "pointer" : "not-allowed",
+              opacity: canNext ? 1 : 0.6,
+            }}
+          >
+            Next
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="ampere-focus"
+            onClick={() => {
+              track("wizard_finish_click", {});
+              onFinish();
+            }}
+            style={{
+              padding: "12px 14px",
+              borderRadius: 14,
+              border: "1px solid rgba(58,167,255,0.22)",
+              background: "rgba(58,167,255,0.14)",
+              color: "white",
+              fontWeight: 950,
+              cursor: "pointer",
+            }}
+          >
+            Finish
+          </button>
+        )}
+      </div>
+
+      {setupStep === 1 && !draftName.trim() ? (
+        <div style={{ opacity: 0.7, fontWeight: 900, fontSize: 12 }}>Name is required to continue.</div>
+      ) : null}
+      {setupStep === 2 && draftPlatforms.length === 0 ? (
+        <div style={{ opacity: 0.7, fontWeight: 900, fontSize: 12 }}>Pick at least one platform to continue.</div>
+      ) : null}
+    </div>
+  );
+}
+
+/* =========================
+   Image helper
+   ========================= */
+
 async function fileToResizedDataUrl(file: File, maxDim: number): Promise<string> {
   const dataUrl = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
@@ -3554,4 +4442,3 @@ async function fileToResizedDataUrl(file: File, maxDim: number): Promise<string>
   ctx.drawImage(img, 0, 0, outW, outH);
   return canvas.toDataURL("image/jpeg", 0.9);
 }
-
