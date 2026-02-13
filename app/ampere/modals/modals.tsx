@@ -5,7 +5,7 @@ import type { PlatformId, ProfileState, TVConnectPlanId, TVConnectState, TVBrand
 import { normalizeKey, toggleInArray, uniq } from "../lib/utils";
 import { ALL_PLATFORM_IDS, GENRES, PLATFORMS, TV_BRANDS, TV_CONNECT_PLANS, genreIconCandidates, platformById, platformIconCandidates, tvBrandLogoCandidates } from "../data";
 import { loadAttribution, loadTVConnect, loadViewing, saveAttribution, saveProfile, saveTVConnect, saveViewing } from "../lib/storage";
-import { track } from "../lib/catalog";
+import { track } from "../../../lib/catalog";
 import { Chip, IconMic, PillButton, SmartImg } from "../ui/ui";
 
 /* =========================

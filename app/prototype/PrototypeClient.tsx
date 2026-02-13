@@ -2,7 +2,8 @@
 // @ts-nocheck
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-
+import { PLATFORMS, platformById, platformsForGenre, searchPlatforms } from '../../lib/catalog';
+import { SmartImage, PlatformLogo, GenreImage, UIIcon } from '../../components/SmartImage';
 /* =========================
    Types
    ========================= */
@@ -131,82 +132,8 @@ const GENRES = [
   { key: "Black culture & diaspora" },
 ] as const;
 
-const PLATFORMS: Platform[] = [
-  { id: "netflix", label: "Netflix", kind: "streaming", genres: ["Basic Streaming", "Movie Streaming", "Documentaries"] },
-  { id: "hulu", label: "Hulu", kind: "streaming", genres: ["Basic Streaming", "Movie Streaming"] },
-  { id: "primevideo", label: "Prime Video", kind: "streaming", genres: ["Basic Streaming", "Movie Streaming"] },
-  { id: "disneyplus", label: "Disney+", kind: "streaming", genres: ["Basic Streaming", "Kids"] },
-  { id: "max", label: "Max", kind: "streaming", genres: ["Movie Streaming", "Basic Streaming"] },
-  { id: "peacock", label: "Peacock", kind: "streaming", genres: ["Basic Streaming", "LiveTV"] },
-  { id: "paramountplus", label: "Paramount+", kind: "streaming", genres: ["Basic Streaming", "LiveTV"] },
-  { id: "youtube", label: "YouTube", kind: "streaming", genres: ["Gaming", "Documentaries", "Free Streaming"] },
-  { id: "youtubetv", label: "YouTube TV", kind: "livetv", genres: ["LiveTV", "Premium Sports Streaming"] },
-  { id: "appletv", label: "Apple TV", kind: "streaming", genres: ["Basic Streaming", "Movie Streaming"] },
-
-  { id: "espn", label: "ESPN", kind: "sports", genres: ["Premium Sports Streaming", "LiveTV"] },
-  { id: "espnplus", label: "ESPN+", kind: "sports", genres: ["Premium Sports Streaming"] },
-  { id: "dazn", label: "DAZN", kind: "sports", genres: ["Premium Sports Streaming"] },
-  { id: "nflplus", label: "NFL+", kind: "sports", genres: ["Premium Sports Streaming"] },
-  { id: "nbaleaguepass", label: "NBA League Pass", kind: "sports", genres: ["Premium Sports Streaming"] },
-  { id: "mlbtv", label: "MLB.TV", kind: "sports", genres: ["Premium Sports Streaming"] },
-  { id: "nhl", label: "NHL", kind: "sports", genres: ["Premium Sports Streaming"] },
-  { id: "foxsports1", label: "FOX Sports 1", kind: "sports", genres: ["LiveTV", "Premium Sports Streaming"] },
-
-  { id: "tubi", label: "Tubi", kind: "streaming", genres: ["Free Streaming"] },
-  { id: "twitch", label: "Twitch", kind: "gaming", genres: ["Gaming"] },
-  { id: "sling", label: "Sling", kind: "livetv", genres: ["LiveTV"] },
-  { id: "fubotv", label: "Fubo", kind: "livetv", genres: ["LiveTV", "Premium Sports Streaming"] },
-
-  { id: "pbskids", label: "PBS Kids", kind: "kids", genres: ["Kids"] },
-  { id: "pbspassport", label: "PBS Passport", kind: "streaming", genres: ["Documentaries"] },
-  { id: "noggin", label: "Noggin", kind: "kids", genres: ["Kids"] },
-  { id: "kidoodletv", label: "Kidoodle.TV", kind: "kids", genres: ["Kids"] },
-  { id: "happykids", label: "HappyKids", kind: "kids", genres: ["Kids"] },
-  { id: "sensical", label: "Sensical", kind: "kids", genres: ["Kids"] },
-
-  { id: "heretv", label: "HERE TV", kind: "niche", genres: ["LGBT"] },
-  { id: "outtv", label: "OUTtv", kind: "niche", genres: ["LGBT"] },
-  { id: "dekkoo", label: "Dekkoo", kind: "niche", genres: ["LGBT"] },
-
-  { id: "kick", label: "Kick", kind: "gaming", genres: ["Gaming"] },
-  { id: "xboxcloud", label: "Xbox Cloud", kind: "gaming", genres: ["Gaming"] },
-  { id: "geforcenow", label: "GeForce NOW", kind: "gaming", genres: ["Gaming"] },
-  { id: "playstationplus", label: "PlayStation Plus", kind: "gaming", genres: ["Gaming"] },
-  { id: "steam", label: "Steam", kind: "gaming", genres: ["Gaming"] },
-
-  { id: "mubi", label: "MUBI", kind: "niche", genres: ["Indie and Arthouse Film"] },
-  { id: "criterion", label: "Criterion", kind: "niche", genres: ["Indie and Arthouse Film"] },
-  { id: "crunchyroll", label: "Crunchyroll", kind: "niche", genres: ["Anime / Asian cinema"] },
-  { id: "shudder", label: "Shudder", kind: "niche", genres: ["Horror / Cult"] },
-
-  { id: "hbcugo", label: "HBCUGO", kind: "niche", genres: ["Black culture & diaspora"] },
-  { id: "hbcugosports", label: "HBCUGO Sports", kind: "sports", genres: ["Premium Sports Streaming"] },
-  { id: "blackmedia", label: "Black Media", kind: "niche", genres: ["Black culture & diaspora"] },
-  { id: "blackstarnetwork", label: "Black Star Network", kind: "niche", genres: ["Black culture & diaspora"] },
-  { id: "mansa", label: "MANSA", kind: "niche", genres: ["Black culture & diaspora"] },
-  { id: "allblk", label: "ALLBLK", kind: "niche", genres: ["Black culture & diaspora"] },
-];
-
 const ALL_PLATFORM_IDS = PLATFORMS.map((p) => p.id);
 
-function platformById(id: PlatformId) {
-  return PLATFORMS.find((p) => p.id === id) ?? null;
-}
-
-function platformIdFromLabel(label: string): PlatformId | null {
-  const k = normalizeKey(label);
-  if (!k) return null;
-  const exact = PLATFORMS.find((p) => normalizeKey(p.label) === k);
-  if (exact) return exact.id;
-  const includes = PLATFORMS.find((p) => normalizeKey(p.label).includes(k) || k.includes(normalizeKey(p.label)));
-  return includes?.id ?? null;
-}
-
-function platformsForGenre(genre: GenreKey): PlatformId[] {
-  if (genre === "All") return ["all", ...ALL_PLATFORM_IDS, "livetv"];
-  const ids = PLATFORMS.filter((p) => (p.genres ?? []).includes(genre)).map((p) => p.id);
-  return ["all", ...uniq(ids), "livetv"];
-}
 
 /* =========================
    Asset candidate helpers
@@ -666,7 +593,7 @@ function teamLogoCandidates(league: string, team: string): string[] {
   ];
 }
 
-const LEAGUES = ["ALL", "NFL", "NBA", "MLB", "NHL", "NCAAF", "Soccer", "UFC", "HBCUGOSPORTS", "HBCUGO"] as const;
+const LEAGUES = ["ALL", "NFL", "NBA", "MLB", "NHL", "NCAAF", "Soccer / Football", "UFC", "HBCUGOSPORTS", "HBCUGO"] as const;
 
 const TEAMS_BY_LEAGUE: Record<string, string[]> = {
   NFL: [
@@ -701,7 +628,7 @@ function canonicalLeagueForTeams(league?: string): string | null {
     mlb: "MLB",
     nhl: "NHL",
     ncaaf: "NCAAF",
-    soccer: "Soccer",
+    soccer: "Soccer / Football",
     ufc: "UFC",
     hbcugosports: "HBCUGOSPORTS",
     hbcugo: "HBCUGO",
@@ -1821,7 +1748,7 @@ function buildDemoCatalog(): {
     mk({ title: "NBA: Lakers vs Celtics", subtitle: "Rivalry night", platformId: "youtubetv", league: "NBA", genre: "LiveTV", badge: "LIVE", metaLeft: "NBA", metaRight: "Live", timeRemaining: "2nd • 04:18" }),
     mk({ title: "NHL: Bruins vs Rangers", subtitle: "Original Six vibes", platformId: "nhl", league: "NHL", genre: "Premium Sports Streaming", badge: "LIVE", metaLeft: "NHL", metaRight: "Live", timeRemaining: "3rd • 07:11" }),
     mk({ title: "NCAAF: Georgia vs Alabama", subtitle: "Top matchup", platformId: "fubotv", league: "NCAAF", genre: "LiveTV", badge: "LIVE", metaLeft: "NCAAF", metaRight: "Live", timeRemaining: "Q2 • 05:41" }),
-    mk({ title: "FS1: Soccer Night", subtitle: "Live match window", platformId: "foxsports1", league: "Soccer", genre: "LiveTV", badge: "LIVE", metaLeft: "FS1", metaRight: "Live" }),
+    mk({ title: "FS1: Soccer Night", subtitle: "Live match window", platformId: "foxsports1", league: "Soccer / Football", genre: "LiveTV", badge: "LIVE", metaLeft: "FS1", metaRight: "Live" }),
     mk({ title: "UFC Fight Night", subtitle: "Main card", platformId: "espnplus", league: "UFC", genre: "Premium Sports Streaming", badge: "LIVE", metaLeft: "UFC", metaRight: "Live" }),
   ];
 

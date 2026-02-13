@@ -1,5 +1,5 @@
-import AmpereApp from '../ampere/AmpereApp';
+import PrototypeClient from "./PrototypeClient";
 
 export default function PrototypePage() {
-  return <AmpereApp />;
+  return <PrototypeClient />;
 }
