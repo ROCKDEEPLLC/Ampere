@@ -1,5 +1,5 @@
-import AppShell from "../components/AppShell";
+import PrototypeClient from "./prototype/PrototypeClient";
 
 export default function Page() {
-  return <AppShell initialRoute="home" />;
+  return <PrototypeClient initialRoute="home" />;
 }

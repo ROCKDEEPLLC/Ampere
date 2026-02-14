@@ -1,579 +1,654 @@
 :root {
-  /* Colors */
-  --bg: #0b0f14;
-  --panel: rgba(22, 28, 36, 0.92);
-  --panel-strong: rgba(22, 28, 36, 0.98); /* Increased from 0.96 for dropdown */
-  --panel-border: rgba(255, 255, 255, 0.10);
-  --text: rgba(255, 255, 255, 0.92);
-  --muted: rgba(255, 255, 255, 0.70);
-  --muted2: rgba(255, 255, 255, 0.55);
-  --blue: rgba(59, 130, 246, 0.95);
-  --shadow: 0 18px 70px rgba(0, 0, 0, 0.55);
-  
+ /* Colors */
+ --bg: #0b0f14;
+ --panel: rgba(22, 28, 36, 0.92);
+ --panel-strong: rgba(22, 28, 36, 0.98); /* Increased from 0.96 for dropdown */
+ --panel-border: rgba(255, 255, 255, 0.10);
+ --text: rgba(255, 255, 255, 0.92);
+ --muted: rgba(255, 255, 255, 0.70);
+ --muted2: rgba(255, 255, 255, 0.55);
+ --blue: rgba(59, 130, 246, 0.95);
+ --shadow: 0 18px 70px rgba(0, 0, 0, 0.55);
   /* Border radius */
-  --radius: 22px;
-  --radius2: 16px;
-  
+ --radius: 22px;
+ --radius2: 16px;
   /* Z-index layers - CRITICAL for dropdown fix */
-  --z-base: 1;
-  --z-header: 100;
-  --z-dropdown-backdrop: 900;
-  --z-dropdown: 1000;
-  --z-modal-backdrop: 1900;
-  --z-modal: 2000;
-  --z-toast: 3000;
-  
+ --z-base: 1;
+ --z-header: 100;
+ --z-dropdown-backdrop: 900;
+ --z-dropdown: 1000;
+ --z-modal-backdrop: 1900;
+ --z-modal: 2000;
+ --z-toast: 3000;
   /* Desktop defaults (1025px+) */
-  --pad: 22px;
-  --gap: 18px;
-  --headerH: 88px;
-  --footerH: 92px;
-  --cardW: 290px;
-  --cardH: 180px;
-  --fontSize: 16px;
-  --fontSizeSmall: 14px;
-  --iconSize: 24px;
-  --buttonHeight: 48px;
+ --pad: 22px;
+ --gap: 18px;
+ --headerH: 88px;
+ --footerH: 92px;
+ --cardW: 290px;
+ --cardH: 180px;
+ --fontSize: 16px;
+ --fontSizeSmall: 14px;
+ --iconSize: 24px;
+ --buttonHeight: 48px;
 }
+
 
 /* Mobile (0-640px) */
 @media (max-width: 640px) {
-  :root {
-    --pad: 12px;
-    --gap: 10px;
-    --headerH: 56px;
-    --footerH: 64px;
-    --cardW: 140px;
-    --cardH: 90px;
-    --radius: 16px;
-    --radius2: 12px;
-    --fontSize: 14px;
-    --fontSizeSmall: 12px;
-    --iconSize: 20px;
-    --buttonHeight: 40px;
-  }
+ :root {
+   --pad: 12px;
+   --gap: 10px;
+   --headerH: 56px;
+   --footerH: 64px;
+   --cardW: 140px;
+   --cardH: 90px;
+   --radius: 16px;
+   --radius2: 12px;
+   --fontSize: 14px;
+   --fontSizeSmall: 12px;
+   --iconSize: 20px;
+   --buttonHeight: 40px;
+ }
 }
+
 
 /* Tablet (641px - 1024px) */
 @media (min-width: 641px) and (max-width: 1024px) {
-  :root {
-    --pad: 16px;
-    --gap: 14px;
-    --headerH: 72px;
-    --footerH: 80px;
-    --cardW: 200px;
-    --cardH: 130px;
-    --radius: 18px;
-    --radius2: 14px;
-    --fontSize: 15px;
-    --fontSizeSmall: 13px;
-    --iconSize: 22px;
-    --buttonHeight: 44px;
-  }
+ :root {
+   --pad: 16px;
+   --gap: 14px;
+   --headerH: 72px;
+   --footerH: 80px;
+   --cardW: 200px;
+   --cardH: 130px;
+   --radius: 18px;
+   --radius2: 14px;
+   --fontSize: 15px;
+   --fontSizeSmall: 13px;
+   --iconSize: 22px;
+   --buttonHeight: 44px;
+ }
 }
+
 
 /* ========================================================================
-   BASE STYLES
-   ======================================================================== */
+  BASE STYLES
+  ======================================================================== */
 
-* { 
-  box-sizing: border-box; 
-  margin: 0;
-  padding: 0;
+
+* {
+ box-sizing: border-box;
+ margin: 0;
+ padding: 0;
 }
 
-html, body { 
-  height: 100%; 
-  overflow-x: hidden; /* Prevent horizontal scroll */
+
+html, body {
+ height: 100%;
+ overflow-x: hidden; /* Prevent horizontal scroll */
 }
+
 
 body {
-  margin: 0;
-  background: radial-gradient(1200px 700px at 30% 20%, rgba(70,120,200,0.25), transparent 60%),
-              radial-gradient(900px 600px at 85% 35%, rgba(80,160,220,0.12), transparent 60%),
-              linear-gradient(180deg, #070a0f, var(--bg));
-  color: var(--text);
-  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-  font-size: var(--fontSize);
-  line-height: 1.5;
+ margin: 0;
+ background: radial-gradient(1200px 700px at 30% 20%, rgba(70,120,200,0.25), transparent 60%),
+             radial-gradient(900px 600px at 85% 35%, rgba(80,160,220,0.12), transparent 60%),
+             linear-gradient(180deg, #070a0f, var(--bg));
+ color: var(--text);
+ font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+ font-size: var(--fontSize);
+ line-height: 1.5;
 }
 
-a { 
-  color: inherit; 
-  text-decoration: none; 
+
+a {
+ color: inherit;
+ text-decoration: none;
 }
 
-button, input { 
-  font: inherit; 
-  color: inherit; 
-  border: none;
-  background: none;
+
+button, input {
+ font: inherit;
+ color: inherit;
+ border: none;
+ background: none;
 }
 
-button { 
-  cursor: pointer; 
+
+button {
+ cursor: pointer;
 }
 
-:focus { 
-  outline: none; 
+
+:focus {
+ outline: none;
 }
+
 
 :focus-visible {
-  outline: 2px solid rgba(255,255,255,0.8);
-  outline-offset: 2px;
-  border-radius: 10px;
+ outline: 2px solid rgba(255,255,255,0.8);
+ outline-offset: 2px;
+ border-radius: 10px;
 }
+
 
 /* ========================================================================
-   LAYOUT CONTAINERS
-   ======================================================================== */
+  LAYOUT CONTAINERS
+  ======================================================================== */
+
 
 .container {
-  width: min(1200px, calc(100% - (var(--pad) * 2)));
-  margin: 0 auto;
+ width: min(1200px, calc(100% - (var(--pad) * 2)));
+ margin: 0 auto;
 }
+
 
 /* Mobile: full width with minimal padding */
 @media (max-width: 640px) {
-  .container {
-    width: calc(100% - 24px);
-  }
+ .container {
+   width: calc(100% - 24px);
+ }
 }
 
+
 /* ========================================================================
-   SURFACES & PANELS
-   ======================================================================== */
+  SURFACES & PANELS
+  ======================================================================== */
+
 
 .surface {
-  background: var(--panel);
-  border: 1px solid var(--panel-border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  backdrop-filter: blur(14px);
+ background: var(--panel);
+ border: 1px solid var(--panel-border);
+ border-radius: var(--radius);
+ box-shadow: var(--shadow);
+ backdrop-filter: blur(14px);
 }
+
 
 .surface-strong {
-  background: var(--panel-strong);
-  backdrop-filter: blur(20px);
+ background: var(--panel-strong);
+ backdrop-filter: blur(20px);
 }
+
 
 /* ========================================================================
-   BUTTONS & INTERACTIVE ELEMENTS
-   ======================================================================== */
+  BUTTONS & INTERACTIVE ELEMENTS
+  ======================================================================== */
+
 
 .pill {
-  border-radius: 999px;
-  border: 1px solid var(--panel-border);
-  background: rgba(255,255,255,0.06);
-  padding: 10px 14px;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  transition: background 0.2s ease;
+ border-radius: 999px;
+ border: 1px solid var(--panel-border);
+ background: rgba(255,255,255,0.06);
+ padding: 10px 14px;
+ display: inline-flex;
+ align-items: center;
+ gap: 10px;
+ transition: background 0.2s ease;
 }
 
-.pill:hover { 
-  background: rgba(255,255,255,0.10); 
+
+.pill:hover {
+ background: rgba(255,255,255,0.10);
 }
+
 
 .pill:active {
-  background: rgba(255,255,255,0.15);
+ background: rgba(255,255,255,0.15);
 }
+
 
 .iconBtn {
-  border-radius: 999px;
-  border: 1px solid var(--panel-border);
-  background: rgba(255,255,255,0.06);
-  width: var(--buttonHeight);
-  height: var(--buttonHeight);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.2s ease;
-  position: relative;
+ border-radius: 999px;
+ border: 1px solid var(--panel-border);
+ background: rgba(255,255,255,0.06);
+ width: var(--buttonHeight);
+ height: var(--buttonHeight);
+ display: inline-flex;
+ align-items: center;
+ justify-content: center;
+ transition: background 0.2s ease;
+ position: relative;
 }
 
-.iconBtn:hover { 
-  background: rgba(255,255,255,0.10); 
+
+.iconBtn:hover {
+ background: rgba(255,255,255,0.10);
 }
+
 
 .iconBtn:active {
-  background: rgba(255,255,255,0.15);
+ background: rgba(255,255,255,0.15);
 }
+
 
 /* FIX: Remove circle from settings button (Request #16) */
 .iconBtn::before {
-  content: none; /* Removes any pseudo-element circles */
+ content: none; /* Removes any pseudo-element circles */
 }
+
 
 .iconBtn > svg,
 .iconBtn > img {
-  width: var(--iconSize);
-  height: var(--iconSize);
+ width: var(--iconSize);
+ height: var(--iconSize);
 }
 
+
 /* ========================================================================
-   DROPDOWN SYSTEM - CRITICAL FIXES
-   ======================================================================== */
+  DROPDOWN SYSTEM - CRITICAL FIXES
+  ======================================================================== */
+
 
 /* Dropdown backdrop - prevents click-through and adds blur (P0 fix) */
 .dropdown-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(8px);
-  z-index: var(--z-dropdown-backdrop);
-  animation: fadeIn 0.2s ease;
+ position: fixed;
+ top: 0;
+ left: 0;
+ right: 0;
+ bottom: 0;
+ background: rgba(0, 0, 0, 0.5);
+ backdrop-filter: blur(8px);
+ z-index: var(--z-dropdown-backdrop);
+ animation: fadeIn 0.2s ease;
 }
+
 
 /* Dropdown container */
 .dropdown {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  min-width: 280px;
-  max-width: 90vw;
-  background: var(--panel-strong); /* Increased opacity (P0 fix) */
-  border: 1px solid var(--panel-border);
-  border-radius: var(--radius2);
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(24px); /* Enhanced blur (P0 fix) */
-  z-index: var(--z-dropdown); /* Proper stacking (Request #4) */
-  padding: 12px;
-  animation: slideDown 0.2s ease;
+ position: absolute;
+ top: calc(100% + 8px);
+ right: 0;
+ min-width: 280px;
+ max-width: 90vw;
+ background: var(--panel-strong); /* Increased opacity (P0 fix) */
+ border: 1px solid var(--panel-border);
+ border-radius: var(--radius2);
+ box-shadow: 0 24px 80px rgba(0, 0, 0, 0.7);
+ backdrop-filter: blur(24px); /* Enhanced blur (P0 fix) */
+ z-index: var(--z-dropdown); /* Proper stacking (Request #4) */
+ padding: 12px;
+ animation: slideDown 0.2s ease;
 }
+
 
 /* FIX: Dropdown on mobile - full width, bottom anchored */
 @media (max-width: 640px) {
-  .dropdown {
-    position: fixed;
-    top: auto;
-    bottom: calc(var(--footerH) + 12px);
-    left: 12px;
-    right: 12px;
-    min-width: unset;
-    max-width: unset;
-  }
+ .dropdown {
+   position: fixed;
+   top: auto;
+   bottom: calc(var(--footerH) + 12px);
+   left: 12px;
+   right: 12px;
+   min-width: unset;
+   max-width: unset;
+ }
 }
+
 
 /* Dropdown item */
 .dropdown-item {
-  padding: 12px 14px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  cursor: pointer;
-  transition: background 0.15s ease;
-  font-size: var(--fontSize);
+ padding: 12px 14px;
+ border-radius: 10px;
+ display: flex;
+ align-items: center;
+ gap: 12px;
+ cursor: pointer;
+ transition: background 0.15s ease;
+ font-size: var(--fontSize);
 }
+
 
 .dropdown-item:hover {
-  background: rgba(255, 255, 255, 0.08);
+ background: rgba(255, 255, 255, 0.08);
 }
+
 
 .dropdown-item:active {
-  background: rgba(255, 255, 255, 0.12);
+ background: rgba(255, 255, 255, 0.12);
 }
 
+
 .dropdown-divider {
-  height: 1px;
-  background: rgba(255,255,255,0.08);
-  margin: 8px 0;
+ height: 1px;
+ background: rgba(255,255,255,0.08);
+ margin: 8px 0;
 }
+
 
 /* Dropdown animations */
 @keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+ from {
+   opacity: 0;
+   transform: translateY(-10px);
+ }
+ to {
+   opacity: 1;
+   transform: translateY(0);
+ }
 }
+
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+ from { opacity: 0; }
+ to { opacity: 1; }
 }
 
+
 /* ========================================================================
-   MODAL SYSTEM
-   ======================================================================== */
+  MODAL SYSTEM
+  ======================================================================== */
+
 
 /* Modal backdrop */
 .modal-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(12px);
-  z-index: var(--z-modal-backdrop);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--pad);
-  animation: fadeIn 0.3s ease;
+ position: fixed;
+ top: 0;
+ left: 0;
+ right: 0;
+ bottom: 0;
+ background: rgba(0, 0, 0, 0.7);
+ backdrop-filter: blur(12px);
+ z-index: var(--z-modal-backdrop);
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ padding: var(--pad);
+ animation: fadeIn 0.3s ease;
 }
+
 
 /* Modal container */
 .modal {
-  background: var(--panel-strong);
-  border: 1px solid var(--panel-border);
-  border-radius: var(--radius);
-  box-shadow: 0 32px 100px rgba(0, 0, 0, 0.8);
-  max-width: 600px;
-  width: 100%;
-  max-height: 90vh;
-  overflow-y: auto;
-  z-index: var(--z-modal);
-  animation: modalSlideIn 0.3s ease;
+ background: var(--panel-strong);
+ border: 1px solid var(--panel-border);
+ border-radius: var(--radius);
+ box-shadow: 0 32px 100px rgba(0, 0, 0, 0.8);
+ max-width: 600px;
+ width: 100%;
+ max-height: 90vh;
+ overflow-y: auto;
+ z-index: var(--z-modal);
+ animation: modalSlideIn 0.3s ease;
 }
 
+
 @keyframes modalSlideIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95) translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
+ from {
+   opacity: 0;
+   transform: scale(0.95) translateY(20px);
+ }
+ to {
+   opacity: 1;
+   transform: scale(1) translateY(0);
+ }
 }
+
 
 /* Mobile modal adjustments */
 @media (max-width: 640px) {
-  .modal {
-    max-width: calc(100% - 24px);
-    max-height: 85vh;
-    border-radius: var(--radius2);
-  }
+ .modal {
+   max-width: calc(100% - 24px);
+   max-height: 85vh;
+   border-radius: var(--radius2);
+ }
 }
+
 
 /* ========================================================================
-   TYPOGRAPHY
-   ======================================================================== */
+  TYPOGRAPHY
+  ======================================================================== */
 
-.h1 { 
-  font-size: clamp(20px, 5vw, 30px); 
-  font-weight: 800; 
-  letter-spacing: 0.2px;
-  margin-bottom: 0.5em;
+
+.h1 {
+ font-size: clamp(20px, 5vw, 30px);
+ font-weight: 800;
+ letter-spacing: 0.2px;
+ margin-bottom: 0.5em;
 }
 
-.h2 { 
-  font-size: clamp(18px, 4vw, 22px); 
-  font-weight: 800;
-  margin-bottom: 0.5em;
+
+.h2 {
+ font-size: clamp(18px, 4vw, 22px);
+ font-weight: 800;
+ margin-bottom: 0.5em;
 }
+
 
 .h3 {
-  font-size: clamp(16px, 3.5vw, 18px);
-  font-weight: 700;
-  margin-bottom: 0.5em;
+ font-size: clamp(16px, 3.5vw, 18px);
+ font-weight: 700;
+ margin-bottom: 0.5em;
 }
 
-.sub { 
-  color: var(--muted); 
-  font-size: var(--fontSizeSmall); 
-  line-height: 1.35; 
+
+.sub {
+ color: var(--muted);
+ font-size: var(--fontSizeSmall);
+ line-height: 1.35;
 }
 
-.muted { 
-  color: var(--muted2); 
+
+.muted {
+ color: var(--muted2);
 }
+
 
 /* Mobile typography adjustments */
 @media (max-width: 640px) {
-  .h1 { font-size: 20px; }
-  .h2 { font-size: 18px; }
-  .h3 { font-size: 16px; }
+ .h1 { font-size: 20px; }
+ .h2 { font-size: 18px; }
+ .h3 { font-size: 16px; }
 }
 
+
 /* ========================================================================
-   GRID SYSTEMS
-   ======================================================================== */
+  GRID SYSTEMS
+  ======================================================================== */
+
 
 .grid2 {
-  display: grid;
-  gap: var(--gap);
-  grid-template-columns: 1fr;
+ display: grid;
+ gap: var(--gap);
+ grid-template-columns: 1fr;
 }
 
+
 @media (min-width: 641px) {
-  .grid2 {
-    grid-template-columns: repeat(2, 1fr);
-  }
+ .grid2 {
+   grid-template-columns: repeat(2, 1fr);
+ }
 }
+
 
 .grid3 {
-  display: grid;
-  gap: var(--gap);
-  grid-template-columns: 1fr;
+ display: grid;
+ gap: var(--gap);
+ grid-template-columns: 1fr;
 }
+
 
 @media (min-width: 641px) {
-  .grid3 {
-    grid-template-columns: repeat(2, 1fr);
-  }
+ .grid3 {
+   grid-template-columns: repeat(2, 1fr);
+ }
 }
+
 
 @media (min-width: 1025px) {
-  .grid3 {
-    grid-template-columns: repeat(3, 1fr);
-  }
+ .grid3 {
+   grid-template-columns: repeat(3, 1fr);
+ }
 }
+
 
 .grid4 {
-  display: grid;
-  gap: var(--gap);
-  grid-template-columns: repeat(auto-fill, minmax(var(--cardW), 1fr));
+ display: grid;
+ gap: var(--gap);
+ grid-template-columns: repeat(auto-fill, minmax(var(--cardW), 1fr));
 }
 
+
 /* ========================================================================
-   HORIZONTAL SCROLLING (for card rails)
-   ======================================================================== */
+  HORIZONTAL SCROLLING (for card rails)
+  ======================================================================== */
+
 
 .rail {
-  display: flex;
-  gap: var(--gap);
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-  padding-bottom: 12px; /* Space for scrollbar */
+ display: flex;
+ gap: var(--gap);
+ overflow-x: auto;
+ scroll-snap-type: x mandatory;
+ -webkit-overflow-scrolling: touch;
+ padding-bottom: 12px; /* Space for scrollbar */
 }
+
 
 .rail::-webkit-scrollbar {
-  height: 6px;
+ height: 6px;
 }
+
 
 .rail::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 3px;
+ background: rgba(255, 255, 255, 0.05);
+ border-radius: 3px;
 }
+
 
 .rail::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 3px;
+ background: rgba(255, 255, 255, 0.2);
+ border-radius: 3px;
 }
+
 
 .rail::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+ background: rgba(255, 255, 255, 0.3);
 }
+
 
 .rail > * {
-  flex-shrink: 0;
-  scroll-snap-align: start;
+ flex-shrink: 0;
+ scroll-snap-align: start;
 }
+
 
 /* ========================================================================
-   CARDS
-   ======================================================================== */
+  CARDS
+  ======================================================================== */
+
 
 .card {
-  width: var(--cardW);
-  height: var(--cardH);
-  border-radius: var(--radius2);
-  overflow: hidden;
-  position: relative;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+ width: var(--cardW);
+ height: var(--cardH);
+ border-radius: var(--radius2);
+ overflow: hidden;
+ position: relative;
+ background: rgba(255, 255, 255, 0.03);
+ border: 1px solid rgba(255, 255, 255, 0.08);
+ transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
+
 .card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+ transform: translateY(-4px);
+ box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
 }
+
 
 /* Mobile card adjustments */
 @media (max-width: 640px) {
-  .card {
-    width: var(--cardW);
-    height: var(--cardH);
-  }
+ .card {
+   width: var(--cardW);
+   height: var(--cardH);
+ }
 }
+
 
 /* ========================================================================
-   UTILITIES
-   ======================================================================== */
+  UTILITIES
+  ======================================================================== */
+
 
 .hr {
-  height: 1px;
-  background: rgba(255,255,255,0.08);
-  margin: 12px 0;
+ height: 1px;
+ background: rgba(255,255,255,0.08);
+ margin: 12px 0;
 }
+
 
 .flex-center {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+ display: flex;
+ align-items: center;
+ justify-content: center;
 }
 
+
 .flex-between {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+ display: flex;
+ align-items: center;
+ justify-content: space-between;
 }
+
 
 .gap-sm { gap: 8px; }
 .gap-md { gap: var(--gap); }
 .gap-lg { gap: calc(var(--gap) * 1.5); }
 
+
 .mt-sm { margin-top: 8px; }
 .mt-md { margin-top: 16px; }
 .mt-lg { margin-top: 24px; }
+
 
 .mb-sm { margin-bottom: 8px; }
 .mb-md { margin-bottom: 16px; }
 .mb-lg { margin-bottom: 24px; }
 
+
 /* ========================================================================
-   TOUCH TARGET IMPROVEMENTS (Mobile)
-   ======================================================================== */
+  TOUCH TARGET IMPROVEMENTS (Mobile)
+  ======================================================================== */
+
 
 @media (max-width: 640px) {
-  /* Ensure all interactive elements meet 44x44 minimum */
-  button,
-  a,
-  .pill,
-  .iconBtn,
-  .dropdown-item {
-    min-height: 44px;
-    min-width: 44px;
-  }
+ /* Ensure all interactive elements meet 44x44 minimum */
+ button,
+ a,
+ .pill,
+ .iconBtn,
+ .dropdown-item {
+   min-height: 44px;
+   min-width: 44px;
+ }
 }
 
+
 /* ========================================================================
-   ACCESSIBILITY
-   ======================================================================== */
+  ACCESSIBILITY
+  ======================================================================== */
+
 
 /* Reduced motion for users who prefer it */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
+ *,
+ *::before,
+ *::after {
+   animation-duration: 0.01ms !important;
+   animation-iteration-count: 1 !important;
+   transition-duration: 0.01ms !important;
+ }
 }
+
 
 /* High contrast mode support */
 @media (prefers-contrast: high) {
-  :root {
-    --panel-border: rgba(255, 255, 255, 0.3);
-  }
-  
+ :root {
+   --panel-border: rgba(255, 255, 255, 0.3);
+ }
   .dropdown,
-  .modal {
-    border-width: 2px;
-  }
+ .modal {
+   border-width: 2px;
+ }
 }
+

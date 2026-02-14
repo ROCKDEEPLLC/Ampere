@@ -2,8 +2,9 @@
 // @ts-nocheck
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { PLATFORMS, platformById, platformsForGenre, searchPlatforms } from '../../lib/catalog';
-import { SmartImage, PlatformLogo, GenreImage, UIIcon } from '../../components/SmartImage';
+
+import { AboutSection } from '../../components/AboutSection';
+import { brandLogoCandidates, headerIconCandidates, footerIconCandidates } from '../../lib/assetPath';
 /* =========================
    Types
    ========================= */
@@ -132,8 +133,82 @@ const GENRES = [
   { key: "Black culture & diaspora" },
 ] as const;
 
+const PLATFORMS: Platform[] = [
+  { id: "netflix", label: "Netflix", kind: "streaming", genres: ["Basic Streaming", "Movie Streaming", "Documentaries"] },
+  { id: "hulu", label: "Hulu", kind: "streaming", genres: ["Basic Streaming", "Movie Streaming"] },
+  { id: "primevideo", label: "Prime Video", kind: "streaming", genres: ["Basic Streaming", "Movie Streaming"] },
+  { id: "disneyplus", label: "Disney+", kind: "streaming", genres: ["Basic Streaming", "Kids"] },
+  { id: "max", label: "Max", kind: "streaming", genres: ["Movie Streaming", "Basic Streaming"] },
+  { id: "peacock", label: "Peacock", kind: "streaming", genres: ["Basic Streaming", "LiveTV"] },
+  { id: "paramountplus", label: "Paramount+", kind: "streaming", genres: ["Basic Streaming", "LiveTV"] },
+  { id: "youtube", label: "YouTube", kind: "streaming", genres: ["Gaming", "Documentaries", "Free Streaming"] },
+  { id: "youtubetv", label: "YouTube TV", kind: "livetv", genres: ["LiveTV", "Premium Sports Streaming"] },
+  { id: "appletv", label: "Apple TV", kind: "streaming", genres: ["Basic Streaming", "Movie Streaming"] },
+
+  { id: "espn", label: "ESPN", kind: "sports", genres: ["Premium Sports Streaming", "LiveTV"] },
+  { id: "espnplus", label: "ESPN+", kind: "sports", genres: ["Premium Sports Streaming"] },
+  { id: "dazn", label: "DAZN", kind: "sports", genres: ["Premium Sports Streaming"] },
+  { id: "nflplus", label: "NFL+", kind: "sports", genres: ["Premium Sports Streaming"] },
+  { id: "nbaleaguepass", label: "NBA League Pass", kind: "sports", genres: ["Premium Sports Streaming"] },
+  { id: "mlbtv", label: "MLB.TV", kind: "sports", genres: ["Premium Sports Streaming"] },
+  { id: "nhl", label: "NHL", kind: "sports", genres: ["Premium Sports Streaming"] },
+  { id: "foxsports1", label: "FOX Sports 1", kind: "sports", genres: ["LiveTV", "Premium Sports Streaming"] },
+
+  { id: "tubi", label: "Tubi", kind: "streaming", genres: ["Free Streaming"] },
+  { id: "twitch", label: "Twitch", kind: "gaming", genres: ["Gaming"] },
+  { id: "sling", label: "Sling", kind: "livetv", genres: ["LiveTV"] },
+  { id: "fubotv", label: "Fubo", kind: "livetv", genres: ["LiveTV", "Premium Sports Streaming"] },
+
+  { id: "pbskids", label: "PBS Kids", kind: "kids", genres: ["Kids"] },
+  { id: "pbspassport", label: "PBS Passport", kind: "streaming", genres: ["Documentaries"] },
+  { id: "noggin", label: "Noggin", kind: "kids", genres: ["Kids"] },
+  { id: "kidoodletv", label: "Kidoodle.TV", kind: "kids", genres: ["Kids"] },
+  { id: "happykids", label: "HappyKids", kind: "kids", genres: ["Kids"] },
+  { id: "sensical", label: "Sensical", kind: "kids", genres: ["Kids"] },
+
+  { id: "heretv", label: "HERE TV", kind: "niche", genres: ["LGBT"] },
+  { id: "outtv", label: "OUTtv", kind: "niche", genres: ["LGBT"] },
+  { id: "dekkoo", label: "Dekkoo", kind: "niche", genres: ["LGBT"] },
+
+  { id: "kick", label: "Kick", kind: "gaming", genres: ["Gaming"] },
+  { id: "xboxcloud", label: "Xbox Cloud", kind: "gaming", genres: ["Gaming"] },
+  { id: "geforcenow", label: "GeForce NOW", kind: "gaming", genres: ["Gaming"] },
+  { id: "playstationplus", label: "PlayStation Plus", kind: "gaming", genres: ["Gaming"] },
+  { id: "steam", label: "Steam", kind: "gaming", genres: ["Gaming"] },
+
+  { id: "mubi", label: "MUBI", kind: "niche", genres: ["Indie and Arthouse Film"] },
+  { id: "criterion", label: "Criterion", kind: "niche", genres: ["Indie and Arthouse Film"] },
+  { id: "crunchyroll", label: "Crunchyroll", kind: "niche", genres: ["Anime / Asian cinema"] },
+  { id: "shudder", label: "Shudder", kind: "niche", genres: ["Horror / Cult"] },
+
+  { id: "hbcugo", label: "HBCUGO", kind: "niche", genres: ["Black culture & diaspora"] },
+  { id: "hbcugosports", label: "HBCUGO Sports", kind: "sports", genres: ["Premium Sports Streaming"] },
+  { id: "blackmedia", label: "Black Media", kind: "niche", genres: ["Black culture & diaspora"] },
+  { id: "blackstarnetwork", label: "Black Star Network", kind: "niche", genres: ["Black culture & diaspora"] },
+  { id: "mansa", label: "MANSA", kind: "niche", genres: ["Black culture & diaspora"] },
+  { id: "allblk", label: "ALLBLK", kind: "niche", genres: ["Black culture & diaspora"] },
+];
+
 const ALL_PLATFORM_IDS = PLATFORMS.map((p) => p.id);
 
+function platformById(id: PlatformId) {
+  return PLATFORMS.find((p) => p.id === id) ?? null;
+}
+
+function platformIdFromLabel(label: string): PlatformId | null {
+  const k = normalizeKey(label);
+  if (!k) return null;
+  const exact = PLATFORMS.find((p) => normalizeKey(p.label) === k);
+  if (exact) return exact.id;
+  const includes = PLATFORMS.find((p) => normalizeKey(p.label).includes(k) || k.includes(normalizeKey(p.label)));
+  return includes?.id ?? null;
+}
+
+function platformsForGenre(genre: GenreKey): PlatformId[] {
+  if (genre === "All") return ["all", ...ALL_PLATFORM_IDS, "livetv"];
+  const ids = PLATFORMS.filter((p) => (p.genres ?? []).includes(genre)).map((p) => p.id);
+  return ["all", ...uniq(ids), "livetv"];
+}
 
 /* =========================
    Asset candidate helpers
@@ -205,29 +280,29 @@ function leagueLogoCandidates(league?: string) {
   ];
 }
 
-const BROWSE_ICON_CANDIDATES: Partial<Record<GenreKey, string[]>> = {
+const Genre_ICON_CANDIDATES: Partial<Record<GenreKey, string[]>> = {
   All: brandMarkCandidates(),
-  "Basic Streaming": [assetPath("/assets/browse/basicstreaming/icon.png"), assetPath("/assets/browse/basicstreaming/icon.svg")],
-  "Movie Streaming": [assetPath("/assets/browse/moviestreaming/icon.png"), assetPath("/assets/browse/moviestreaming/icon.svg")],
-  Documentaries: [assetPath("/assets/browse/documentaries/icon.png"), assetPath("/assets/browse/documentaries/icon.svg")],
-  "Anime / Asian cinema": [assetPath("/assets/browse/animeasiancinema/icon.png"), assetPath("/assets/browse/animeasiancinema/icon.svg")],
-  Kids: [assetPath("/assets/browse/kids/icon.png"), assetPath("/assets/browse/kids/icon.svg")],
-  LiveTV: [assetPath("/assets/browse/livetv/icon.png"), assetPath("/assets/browse/livetv/icon.svg")],
+  "Basic Streaming": [assetPath("/assets/Genre/basicstreaming/icon.png"), assetPath("/assets/Genre/basicstreaming/icon.svg")],
+  "Movie Streaming": [assetPath("/assets/Genre/moviestreaming/icon.png"), assetPath("/assets/Genre/moviestreaming/icon.svg")],
+  Documentaries: [assetPath("/assets/Genre/documentaries/icon.png"), assetPath("/assets/Genre/documentaries/icon.svg")],
+  "Anime / Asian cinema": [assetPath("/assets/Genre/animeasiancinema/icon.png"), assetPath("/assets/Genre/animeasiancinema/icon.svg")],
+  Kids: [assetPath("/assets/Genre/kids/icon.png"), assetPath("/assets/Genre/kids/icon.svg")],
+  LiveTV: [assetPath("/assets/Genre/livetv/icon.png"), assetPath("/assets/Genre/livetv/icon.svg")],
   "Premium Sports Streaming": [
-    assetPath("/assets/browse/premiumsportsstreaming/icon.png"),
-    assetPath("/assets/browse/premiumsportsstreaming/icon.svg"),
+    assetPath("/assets/Genre/premiumsportsstreaming/icon.png"),
+    assetPath("/assets/Genre/premiumsportsstreaming/icon.svg"),
   ],
-  Gaming: [assetPath("/assets/browse/gaming/icon.png"), assetPath("/assets/browse/gaming/icon.svg")],
-  "Free Streaming": [assetPath("/assets/browse/freestreaming/icon.png"), assetPath("/assets/browse/freestreaming/icon.svg")],
+  Gaming: [assetPath("/assets/Genre/gaming/icon.png"), assetPath("/assets/Genre/gaming/icon.svg")],
+  "Free Streaming": [assetPath("/assets/Genre/freestreaming/icon.png"), assetPath("/assets/Genre/freestreaming/icon.svg")],
   "Indie and Arthouse Film": [
-    assetPath("/assets/browse/indieandarthousefilm/icon.png"),
-    assetPath("/assets/browse/indieandarthousefilm/icon.svg"),
+    assetPath("/assets/Genre/indieandarthousefilm/icon.png"),
+    assetPath("/assets/Genre/indieandarthousefilm/icon.svg"),
   ],
-  "Horror / Cult": [assetPath("/assets/browse/horrorcult/icon.png"), assetPath("/assets/browse/horrorcult/icon.svg")],
-  LGBT: [assetPath("/assets/browse/lgbt/icon.png"), assetPath("/assets/browse/lgbt/icon.svg")],
+  "Horror / Cult": [assetPath("/assets/Genre/horrorcult/icon.png"), assetPath("/assets/Genre/horrorcult/icon.svg")],
+  LGBT: [assetPath("/assets/Genre/lgbt/icon.png"), assetPath("/assets/Genre/lgbt/icon.svg")],
   "Black culture & diaspora": [
-    assetPath("/assets/browse/blackcultureanddiaspora/icon.png"),
-    assetPath("/assets/browse/blackcultureanddiaspora/icon.svg"),
+    assetPath("/assets/Genre/blackcultureanddiaspora/icon.png"),
+    assetPath("/assets/Genre/blackcultureanddiaspora/icon.svg"),
   ],
 };
 
@@ -493,7 +568,7 @@ type ProviderLink = {
 
 const PROVIDER_LINKS: Partial<Record<PlatformId, ProviderLink>> = {
   netflix: {
-    openBase: "https://www.netflix.com/browse",
+    openBase: "https://www.netflix.com/Genre",
     subscribe: "https://www.netflix.com/signup",
     search: (q) => `https://www.netflix.com/search?q=${encodeURIComponent(q)}`,
   },
@@ -593,7 +668,7 @@ function teamLogoCandidates(league: string, team: string): string[] {
   ];
 }
 
-const LEAGUES = ["ALL", "NFL", "NBA", "MLB", "NHL", "NCAAF", "Soccer / Football", "UFC", "HBCUGOSPORTS", "HBCUGO"] as const;
+const LEAGUES = ["ALL", "NFL", "NBA", "MLB", "NHL", "NCAAF", "Soccer", "UFC", "HBCUGOSPORTS", "HBCUGO"] as const;
 
 const TEAMS_BY_LEAGUE: Record<string, string[]> = {
   NFL: [
@@ -628,7 +703,7 @@ function canonicalLeagueForTeams(league?: string): string | null {
     mlb: "MLB",
     nhl: "NHL",
     ncaaf: "NCAAF",
-    soccer: "Soccer / Football",
+    soccer: "Soccer",
     ufc: "UFC",
     hbcugosports: "HBCUGOSPORTS",
     hbcugo: "HBCUGO",
@@ -1748,7 +1823,7 @@ function buildDemoCatalog(): {
     mk({ title: "NBA: Lakers vs Celtics", subtitle: "Rivalry night", platformId: "youtubetv", league: "NBA", genre: "LiveTV", badge: "LIVE", metaLeft: "NBA", metaRight: "Live", timeRemaining: "2nd • 04:18" }),
     mk({ title: "NHL: Bruins vs Rangers", subtitle: "Original Six vibes", platformId: "nhl", league: "NHL", genre: "Premium Sports Streaming", badge: "LIVE", metaLeft: "NHL", metaRight: "Live", timeRemaining: "3rd • 07:11" }),
     mk({ title: "NCAAF: Georgia vs Alabama", subtitle: "Top matchup", platformId: "fubotv", league: "NCAAF", genre: "LiveTV", badge: "LIVE", metaLeft: "NCAAF", metaRight: "Live", timeRemaining: "Q2 • 05:41" }),
-    mk({ title: "FS1: Soccer Night", subtitle: "Live match window", platformId: "foxsports1", league: "Soccer / Football", genre: "LiveTV", badge: "LIVE", metaLeft: "FS1", metaRight: "Live" }),
+    mk({ title: "FS1: Soccer Night", subtitle: "Live match window", platformId: "foxsports1", league: "Soccer", genre: "LiveTV", badge: "LIVE", metaLeft: "FS1", metaRight: "Live" }),
     mk({ title: "UFC Fight Night", subtitle: "Main card", platformId: "espnplus", league: "UFC", genre: "Premium Sports Streaming", badge: "LIVE", metaLeft: "UFC", metaRight: "Live" }),
   ];
 
@@ -1786,6 +1861,7 @@ export default function AmpereApp() {
   const { isMobile, density } = useViewport();
 
   const [activeTab, setActiveTab] = useState<TabKey>("home");
+  const [showAbout, setShowAbout] = useState(false);
   const [activeGenre, setActiveGenre] = useState<GenreKey>("All");
   const [activePlatform, setActivePlatform] = useState<PlatformId>("all");
   const [activeLeague, setActiveLeague] = useState<string>("ALL");
@@ -1793,7 +1869,7 @@ export default function AmpereApp() {
   const [profile, setProfile] = useState<ProfileState>(() => loadProfile());
 
   const [openCard, setOpenCard] = useState<Card | null>(null);
-  const [openSeeAll, setOpenSeeAll] = useState<null | "browse" | "platforms" | "for-you" | "live-now" | "continue" | "trending" | "black-media">(null);
+  const [openSeeAll, setOpenSeeAll] = useState<null | "Genre" | "platforms" | "for-you" | "live-now" | "continue" | "trending" | "black-media">(null);
 
   const [openVoice, setOpenVoice] = useState(false);
   const [openRemote, setOpenRemote] = useState(false);
@@ -1816,7 +1892,7 @@ export default function AmpereApp() {
   const [wizShownByLeague, setWizShownByLeague] = useState<Record<string, number>>({});
   const [wizTeamSearch, setWizTeamSearch] = useState("");
 
-  const [browseShown, setBrowseShown] = useState<number>(isMobile ? 6 : 10);
+  const [GenreShown, setGenreShown] = useState<number>(isMobile ? 6 : 10);
   const [platformsShown, setPlatformsShown] = useState<number>(isMobile ? 8 : 12);
 
   const [searchInput, setSearchInput] = useState("");
@@ -1844,7 +1920,7 @@ export default function AmpereApp() {
   }, [profile, openSetup]);
 
   useEffect(() => {
-    setBrowseShown(isMobile ? 6 : 10);
+    setGenreShown(isMobile ? 6 : 10);
     setPlatformsShown(isMobile ? 8 : 12);
   }, [isMobile]);
 
@@ -1948,7 +2024,7 @@ export default function AmpereApp() {
 
   const seeAllItems = useMemo(() => {
     if (!openSeeAll) return [];
-    if (openSeeAll === "browse") return [];
+    if (openSeeAll === "Genre") return [];
     if (openSeeAll === "platforms") return [];
     if (openSeeAll === "for-you") return activeTab === "favs" ? forYouFavs : forYou;
     if (openSeeAll === "live-now") return activeTab === "favs" ? liveFavs : liveNow;
@@ -2046,12 +2122,12 @@ export default function AmpereApp() {
   };
 
   const selectedChips: { label: string; onRemove: () => void }[] = [];
-  if (activeGenre !== "All") selectedChips.push({ label: `Browse: ${activeGenre}`, onRemove: () => setActiveGenre("All") });
+  if (activeGenre !== "All") selectedChips.push({ label: `Genre: ${activeGenre}`, onRemove: () => setActiveGenre("All") });
   if (activePlatform !== "all")
     selectedChips.push({ label: `Platform: ${platformById(activePlatform)?.label ?? activePlatform}`, onRemove: () => setActivePlatform("all") });
   if (activeTab === "live" && activeLeague !== "ALL") selectedChips.push({ label: `League: ${activeLeague}`, onRemove: () => setActiveLeague("ALL") });
 
-  const isRailSeeAll = !!openSeeAll && openSeeAll !== "browse" && openSeeAll !== "platforms";
+  const isRailSeeAll = !!openSeeAll && openSeeAll !== "Genre" && openSeeAll !== "platforms";
 
   useEffect(() => {
     if (powerState !== "booting") return;
@@ -2348,7 +2424,15 @@ export default function AmpereApp() {
               <MenuItem title="Profile Settings" subtitle="Name, avatar, header image" onClick={() => setOpenProfileSettings(true)} right="›" />
               <MenuItem title="Archive" subtitle="History + attribution log" onClick={() => setOpenArchive(true)} right="›" />
               <MenuItem title="Set-Up Wizard" subtitle="Resume onboarding" onClick={() => setOpenSetup(true)} right="›" />
-              <MenuItem title="About AMPÈRE" subtitle="Gap analysis + roadmap" onClick={() => setOpenAbout(true)} right="›" />
+              <MenuItem
+                title="About AMPÈRE"
+                subtitle="App info & backstory"
+                onClick={() => {
+                  setShowSettings(false);
+                  setShowAbout(true);
+                }}
+                right="M"
+              />
             </Dropdown>
           </div>
         </div>
@@ -2408,16 +2492,16 @@ export default function AmpereApp() {
             </div>
           ) : (
             <div style={{ opacity: 0.75, fontWeight: 900 }}>
-              No active filters. <span style={{ opacity: 0.85 }}>Use Browse + Platforms (and League on Live) to narrow.</span>
+              No active filters. <span style={{ opacity: 0.85 }}>Use Genre + Platforms (and League on Live) to narrow.</span>
             </div>
           )}
 
-          <FilterAccordion title="Browse" isMobile={isMobile} defaultOpen={!isMobile} right={<span>{activeGenre === "All" ? "Any" : activeGenre}</span>}>
-            <Section title="" rightText="See all" onRightClick={() => setOpenSeeAll("browse")}>
+          <FilterAccordion title="Genre" isMobile={isMobile} defaultOpen={!isMobile} right={<span>{activeGenre === "All" ? "Any" : activeGenre}</span>}>
+            <Section title="" rightText="See all" onRightClick={() => setOpenSeeAll("Genre")}>
               {(() => {
                 const allGenres = GENRES.map((g) => g.key);
                 const total = allGenres.length;
-                const shown = clamp(browseShown, 1, total);
+                const shown = clamp(GenreShown, 1, total);
                 const slice = allGenres.slice(0, shown);
                 const more = shown < total;
 
@@ -2427,7 +2511,7 @@ export default function AmpereApp() {
                       <PillButton
                         key={k}
                         label={k}
-                        iconSources={BROWSE_ICON_CANDIDATES[k] ?? []}
+                        iconSources={Genre_ICON_CANDIDATES[k] ?? []}
                         active={activeGenre === k}
                         onClick={() => setActiveGenre(k)}
                         fullWidth
@@ -2438,9 +2522,9 @@ export default function AmpereApp() {
                         label={`Load More (${slice.length}/${total})`}
                         iconNode={<IconPlus />}
                         subtle
-                        onClick={() => setBrowseShown((n) => Math.min(total, n + (isMobile ? 6 : 10)))}
+                        onClick={() => setGenreShown((n) => Math.min(total, n + (isMobile ? 6 : 10)))}
                         fullWidth
-                        ariaLabel="Load more browse categories"
+                        ariaLabel="Load more Genre categories"
                       />
                     ) : null}
                   </div>
@@ -2738,8 +2822,8 @@ export default function AmpereApp() {
         <PagedCardGrid cards={seeAllItems} cardMinW={density.cardMinW} heroH={Math.max(100, density.heroH + 12)} onOpen={openCardAndLog} />
       </Modal>
 
-      {/* Browse modal */}
-      <Modal open={openSeeAll === "browse"} title="See All — Browse" onClose={() => setOpenSeeAll(null)} maxWidth={920}>
+      {/* Genre modal */}
+      <Modal open={openSeeAll === "Genre"} title="See All — Genre" onClose={() => setOpenSeeAll(null)} maxWidth={920}>
         <div style={{ display: "grid", gap: 12 }}>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ fontWeight: 950, opacity: 0.92 }}>
@@ -2771,7 +2855,7 @@ export default function AmpereApp() {
               <PillButton
                 key={g.key}
                 label={g.key}
-                iconSources={BROWSE_ICON_CANDIDATES[g.key] ?? []}
+                iconSources={Genre_ICON_CANDIDATES[g.key] ?? []}
                 active={activeGenre === g.key}
                 onClick={() => {
                   setActiveGenre(g.key);
@@ -3242,6 +3326,11 @@ export default function AmpereApp() {
             track("wizard_start_over", {});
           }}
         />
+
+        {/* About Modal */}
+        {showAbout && (
+          <AboutSection onClose={() => setShowAbout(false)} />
+        )}
       </Modal>
     </div>
   );
@@ -3515,7 +3604,7 @@ function AboutContent() {
     <div style={{ display: "grid", gap: 12 }}>
       <div style={{ fontWeight: 950, fontSize: 18 }}>Control, Reimagined.</div>
       <div style={{ opacity: 0.82, fontWeight: 900, lineHeight: 1.5 }}>
-        AMPÈRE is a concept demo for a unified TV experience: browse across services, see what’s live, and launch content fast — from remote, voice, or personalized rails.
+        AMPÈRE is a concept demo for a unified TV experience: Genre across services, see what’s live, and launch content fast — from remote, voice, or personalized rails.
       </div>
 
       <div style={{ borderRadius: 18, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)", padding: 14, display: "grid", gap: 10 }}>
