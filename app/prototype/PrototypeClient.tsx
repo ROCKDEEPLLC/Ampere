@@ -1,24 +1,43 @@
 "use client";
-// @ts-nocheck
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 
-import { AboutSection } from '../../components/AboutSection';
-import { brandLogoCandidates, headerIconCandidates, footerIconCandidates } from '../../lib/assetPath';
+import { AboutSection } from "../../components/AboutSection";
+import {
+  brandWideCandidates as _brandWide,
+  brandMarkCandidates as _brandMark,
+  platformIconCandidates as _platIcon,
+  genreImageCandidates,
+  leagueLogoCandidates as _leagueIcon,
+  teamLogoCandidates as _teamIcon,
+  headerIconCandidates as _headerIcon,
+  footerIconCandidates as _footerIcon,
+  voiceIconCandidates,
+  settingsIconCandidates,
+  assetPath,
+} from "../../lib/assetPath";
+import {
+  GENRES as CATALOG_GENRES,
+  PLATFORMS as CATALOG_PLATFORMS,
+  ALL_PLATFORM_IDS as CATALOG_ALL_IDS,
+  LEAGUES as CATALOG_LEAGUES,
+  TEAMS_BY_LEAGUE as CATALOG_TEAMS,
+  platformById as catalogPlatformById,
+  platformIdFromLabel as catalogPlatformIdFromLabel,
+  platformsForGenre as catalogPlatformsForGenre,
+  providerUrlOpen,
+  providerUrlSubscribe,
+  redactUrl,
+  normalizeKey as catalogNormalizeKey,
+  canonicalLeagueForTeams,
+} from "../../lib/catalog";
+import type { PlatformId, GenreKey, Platform } from "../../lib/catalog";
+import { parseCommand } from "../../lib/intent";
 /* =========================
    Types
    ========================= */
 
 type TabKey = "home" | "live" | "favs" | "search";
-type GenreKey = (typeof GENRES)[number]["key"];
-type PlatformId = string;
-
-type Platform = {
-  id: PlatformId;
-  label: string;
-  genres?: GenreKey[];
-  kind?: "streaming" | "sports" | "kids" | "livetv" | "gaming" | "niche";
-};
 
 type Card = {
   id: string;
@@ -105,206 +124,53 @@ function toggleInArray<T>(arr: T[], item: T) {
   return has ? arr.filter((x) => x !== item) : [...arr, item];
 }
 
-/** basePath / assetPrefix-safe paths */
-function assetPath(p: string) {
-  const prefix = (process.env.NEXT_PUBLIC_ASSET_PREFIX ?? "").replace(/\/$/, "");
-  if (!prefix) return p;
-  return `${prefix}${p.startsWith("/") ? p : `/${p}`}`;
-}
-
 /* =========================
-   Platforms + Genres
+   Use catalog imports
    ========================= */
 
-const GENRES = [
-  { key: "All" },
-  { key: "Basic Streaming" },
-  { key: "Movie Streaming" },
-  { key: "Documentaries" },
-  { key: "Anime / Asian cinema" },
-  { key: "Kids" },
-  { key: "LiveTV" },
-  { key: "Premium Sports Streaming" },
-  { key: "Gaming" },
-  { key: "Free Streaming" },
-  { key: "Indie and Arthouse Film" },
-  { key: "Horror / Cult" },
-  { key: "LGBT" },
-  { key: "Black culture & diaspora" },
-] as const;
-
-const PLATFORMS: Platform[] = [
-  { id: "netflix", label: "Netflix", kind: "streaming", genres: ["Basic Streaming", "Movie Streaming", "Documentaries"] },
-  { id: "hulu", label: "Hulu", kind: "streaming", genres: ["Basic Streaming", "Movie Streaming"] },
-  { id: "primevideo", label: "Prime Video", kind: "streaming", genres: ["Basic Streaming", "Movie Streaming"] },
-  { id: "disneyplus", label: "Disney+", kind: "streaming", genres: ["Basic Streaming", "Kids"] },
-  { id: "max", label: "Max", kind: "streaming", genres: ["Movie Streaming", "Basic Streaming"] },
-  { id: "peacock", label: "Peacock", kind: "streaming", genres: ["Basic Streaming", "LiveTV"] },
-  { id: "paramountplus", label: "Paramount+", kind: "streaming", genres: ["Basic Streaming", "LiveTV"] },
-  { id: "youtube", label: "YouTube", kind: "streaming", genres: ["Gaming", "Documentaries", "Free Streaming"] },
-  { id: "youtubetv", label: "YouTube TV", kind: "livetv", genres: ["LiveTV", "Premium Sports Streaming"] },
-  { id: "appletv", label: "Apple TV", kind: "streaming", genres: ["Basic Streaming", "Movie Streaming"] },
-
-  { id: "espn", label: "ESPN", kind: "sports", genres: ["Premium Sports Streaming", "LiveTV"] },
-  { id: "espnplus", label: "ESPN+", kind: "sports", genres: ["Premium Sports Streaming"] },
-  { id: "dazn", label: "DAZN", kind: "sports", genres: ["Premium Sports Streaming"] },
-  { id: "nflplus", label: "NFL+", kind: "sports", genres: ["Premium Sports Streaming"] },
-  { id: "nbaleaguepass", label: "NBA League Pass", kind: "sports", genres: ["Premium Sports Streaming"] },
-  { id: "mlbtv", label: "MLB.TV", kind: "sports", genres: ["Premium Sports Streaming"] },
-  { id: "nhl", label: "NHL", kind: "sports", genres: ["Premium Sports Streaming"] },
-  { id: "foxsports1", label: "FOX Sports 1", kind: "sports", genres: ["LiveTV", "Premium Sports Streaming"] },
-
-  { id: "tubi", label: "Tubi", kind: "streaming", genres: ["Free Streaming"] },
-  { id: "twitch", label: "Twitch", kind: "gaming", genres: ["Gaming"] },
-  { id: "sling", label: "Sling", kind: "livetv", genres: ["LiveTV"] },
-  { id: "fubotv", label: "Fubo", kind: "livetv", genres: ["LiveTV", "Premium Sports Streaming"] },
-
-  { id: "pbskids", label: "PBS Kids", kind: "kids", genres: ["Kids"] },
-  { id: "pbspassport", label: "PBS Passport", kind: "streaming", genres: ["Documentaries"] },
-  { id: "noggin", label: "Noggin", kind: "kids", genres: ["Kids"] },
-  { id: "kidoodletv", label: "Kidoodle.TV", kind: "kids", genres: ["Kids"] },
-  { id: "happykids", label: "HappyKids", kind: "kids", genres: ["Kids"] },
-  { id: "sensical", label: "Sensical", kind: "kids", genres: ["Kids"] },
-
-  { id: "heretv", label: "HERE TV", kind: "niche", genres: ["LGBT"] },
-  { id: "outtv", label: "OUTtv", kind: "niche", genres: ["LGBT"] },
-  { id: "dekkoo", label: "Dekkoo", kind: "niche", genres: ["LGBT"] },
-
-  { id: "kick", label: "Kick", kind: "gaming", genres: ["Gaming"] },
-  { id: "xboxcloud", label: "Xbox Cloud", kind: "gaming", genres: ["Gaming"] },
-  { id: "geforcenow", label: "GeForce NOW", kind: "gaming", genres: ["Gaming"] },
-  { id: "playstationplus", label: "PlayStation Plus", kind: "gaming", genres: ["Gaming"] },
-  { id: "steam", label: "Steam", kind: "gaming", genres: ["Gaming"] },
-
-  { id: "mubi", label: "MUBI", kind: "niche", genres: ["Indie and Arthouse Film"] },
-  { id: "criterion", label: "Criterion", kind: "niche", genres: ["Indie and Arthouse Film"] },
-  { id: "crunchyroll", label: "Crunchyroll", kind: "niche", genres: ["Anime / Asian cinema"] },
-  { id: "shudder", label: "Shudder", kind: "niche", genres: ["Horror / Cult"] },
-
-  { id: "hbcugo", label: "HBCUGO", kind: "niche", genres: ["Black culture & diaspora"] },
-  { id: "hbcugosports", label: "HBCUGO Sports", kind: "sports", genres: ["Premium Sports Streaming"] },
-  { id: "blackmedia", label: "Black Media", kind: "niche", genres: ["Black culture & diaspora"] },
-  { id: "blackstarnetwork", label: "Black Star Network", kind: "niche", genres: ["Black culture & diaspora"] },
-  { id: "mansa", label: "MANSA", kind: "niche", genres: ["Black culture & diaspora"] },
-  { id: "allblk", label: "ALLBLK", kind: "niche", genres: ["Black culture & diaspora"] },
-];
-
-const ALL_PLATFORM_IDS = PLATFORMS.map((p) => p.id);
+const GENRES = CATALOG_GENRES;
+const PLATFORMS = CATALOG_PLATFORMS;
+const ALL_PLATFORM_IDS = CATALOG_ALL_IDS;
+const LEAGUES = CATALOG_LEAGUES;
+const TEAMS_BY_LEAGUE = CATALOG_TEAMS;
 
 function platformById(id: PlatformId) {
-  return PLATFORMS.find((p) => p.id === id) ?? null;
+  return catalogPlatformById(id) ?? null;
 }
 
 function platformIdFromLabel(label: string): PlatformId | null {
-  const k = normalizeKey(label);
-  if (!k) return null;
-  const exact = PLATFORMS.find((p) => normalizeKey(p.label) === k);
-  if (exact) return exact.id;
-  const includes = PLATFORMS.find((p) => normalizeKey(p.label).includes(k) || k.includes(normalizeKey(p.label)));
-  return includes?.id ?? null;
+  return catalogPlatformIdFromLabel(label);
 }
 
-function platformsForGenre(genre: GenreKey): PlatformId[] {
+function platformsForGenre(genre: GenreKey | "All"): PlatformId[] {
   if (genre === "All") return ["all", ...ALL_PLATFORM_IDS, "livetv"];
-  const ids = PLATFORMS.filter((p) => (p.genres ?? []).includes(genre)).map((p) => p.id);
+  const ids = catalogPlatformsForGenre(genre as GenreKey);
   return ["all", ...uniq(ids), "livetv"];
 }
 
 /* =========================
-   Asset candidate helpers
+   Asset candidate helpers (use lib/assetPath)
    ========================= */
 
 function brandWideCandidates() {
-  return [
-    assetPath("/brand/ampere-wide.svg"),
-    assetPath("/brand/ampere-wide.png"),
-    assetPath("/assets/brand/ampere-wide.svg"),
-    assetPath("/assets/brand/ampere-wide.png"),
-    // common alternates
-    assetPath("/brand/ampere-wordmark.svg"),
-    assetPath("/brand/ampere-long.svg"),
-  ];
+  return _brandWide();
 }
 
 function brandMarkCandidates() {
-  return [
-    assetPath("/brand/ampere-mark.svg"),
-    assetPath("/brand/ampere-mark.png"),
-    assetPath("/assets/brand/ampere-mark.svg"),
-    assetPath("/assets/brand/ampere-mark.png"),
-    // common alternates
-    assetPath("/brand/ampere-icon.svg"),
-    assetPath("/brand/ampere-short.svg"),
-  ];
+  return _brandMark();
 }
 
-/** expanded, real-world filename patterns */
 function platformIconCandidates(pid: PlatformId) {
-  const raw = String(pid ?? "");
-  const base = normalizeKey(raw); // espnplus, youtubetv, disneyplus
-
-  const variants = uniq(
-    [
-      base,
-      raw.toLowerCase(),
-      raw.toLowerCase().replace(/\s+/g, ""),
-      raw.toLowerCase().replace(/\s+/g, "-"),
-      raw.toLowerCase().replace(/\s+/g, "_"),
-      base.endsWith("plus") ? `${base.slice(0, -4)}+` : null, // espn+
-      base.endsWith("plus") ? `${base.slice(0, -4)}-plus` : null,
-      base.endsWith("plus") ? `${base.slice(0, -4)}_plus` : null,
-      raw.toLowerCase().replace(/\+/g, "plus"),
-    ].filter(Boolean) as string[]
-  );
-
-  const roots = ["/logos/services", "/assets/services", "/assets/platforms", "/logos/platforms"];
-
-  const out: string[] = [];
-  for (const r of roots) {
-    for (const v of variants) {
-      out.push(assetPath(`${r}/${v}.png`));
-      out.push(assetPath(`${r}/${v}.svg`));
-    }
-  }
-  return out;
+  return _platIcon(pid);
 }
 
 function leagueLogoCandidates(league?: string) {
-  const k = normalizeKey(league ?? "");
-  if (!k) return [];
-  return [
-    assetPath(`/logos/leagues/${k}.png`),
-    assetPath(`/logos/leagues/${k}.svg`),
-    assetPath(`/assets/leagues/${k}.png`),
-    assetPath(`/assets/leagues/${k}.svg`),
-  ];
+  return _leagueIcon(league);
 }
 
-const Genre_ICON_CANDIDATES: Partial<Record<GenreKey, string[]>> = {
-  All: brandMarkCandidates(),
-  "Basic Streaming": [assetPath("/assets/Genre/basicstreaming/icon.png"), assetPath("/assets/Genre/basicstreaming/icon.svg")],
-  "Movie Streaming": [assetPath("/assets/Genre/moviestreaming/icon.png"), assetPath("/assets/Genre/moviestreaming/icon.svg")],
-  Documentaries: [assetPath("/assets/Genre/documentaries/icon.png"), assetPath("/assets/Genre/documentaries/icon.svg")],
-  "Anime / Asian cinema": [assetPath("/assets/Genre/animeasiancinema/icon.png"), assetPath("/assets/Genre/animeasiancinema/icon.svg")],
-  Kids: [assetPath("/assets/Genre/kids/icon.png"), assetPath("/assets/Genre/kids/icon.svg")],
-  LiveTV: [assetPath("/assets/Genre/livetv/icon.png"), assetPath("/assets/Genre/livetv/icon.svg")],
-  "Premium Sports Streaming": [
-    assetPath("/assets/Genre/premiumsportsstreaming/icon.png"),
-    assetPath("/assets/Genre/premiumsportsstreaming/icon.svg"),
-  ],
-  Gaming: [assetPath("/assets/Genre/gaming/icon.png"), assetPath("/assets/Genre/gaming/icon.svg")],
-  "Free Streaming": [assetPath("/assets/Genre/freestreaming/icon.png"), assetPath("/assets/Genre/freestreaming/icon.svg")],
-  "Indie and Arthouse Film": [
-    assetPath("/assets/Genre/indieandarthousefilm/icon.png"),
-    assetPath("/assets/Genre/indieandarthousefilm/icon.svg"),
-  ],
-  "Horror / Cult": [assetPath("/assets/Genre/horrorcult/icon.png"), assetPath("/assets/Genre/horrorcult/icon.svg")],
-  LGBT: [assetPath("/assets/Genre/lgbt/icon.png"), assetPath("/assets/Genre/lgbt/icon.svg")],
-  "Black culture & diaspora": [
-    assetPath("/assets/Genre/blackcultureanddiaspora/icon.png"),
-    assetPath("/assets/Genre/blackcultureanddiaspora/icon.svg"),
-  ],
-};
+const Genre_ICON_CANDIDATES: Partial<Record<string, string[]>> = Object.fromEntries(
+  GENRES.map((g) => [g.key, genreImageCandidates(g.key)])
+);
 
 /* =========================
    SmartImg (never shows broken-image)
@@ -556,103 +422,7 @@ function clearWizardDraft() {
   } catch {}
 }
 
-/* =========================
-   Provider links
-   ========================= */
-
-type ProviderLink = {
-  openBase: string;
-  subscribe?: string;
-  search?: (q: string) => string;
-};
-
-const PROVIDER_LINKS: Partial<Record<PlatformId, ProviderLink>> = {
-  netflix: {
-    openBase: "https://www.netflix.com/Genre",
-    subscribe: "https://www.netflix.com/signup",
-    search: (q) => `https://www.netflix.com/search?q=${encodeURIComponent(q)}`,
-  },
-  hulu: { openBase: "https://www.hulu.com/hub/home", subscribe: "https://www.hulu.com/welcome", search: (q) => `https://www.hulu.com/search?q=${encodeURIComponent(q)}` },
-  primevideo: { openBase: "https://www.primevideo.com", subscribe: "https://www.primevideo.com", search: (q) => `https://www.primevideo.com/search/ref=atv_nb_sug?phrase=${encodeURIComponent(q)}` },
-  disneyplus: { openBase: "https://www.disneyplus.com/home", subscribe: "https://www.disneyplus.com", search: (q) => `https://www.disneyplus.com/search/${encodeURIComponent(q)}` },
-  max: { openBase: "https://play.max.com", subscribe: "https://www.max.com" },
-  peacock: { openBase: "https://www.peacocktv.com/watch/home", subscribe: "https://www.peacocktv.com/plans/all-monthly", search: (q) => `https://www.peacocktv.com/search?q=${encodeURIComponent(q)}` },
-  paramountplus: { openBase: "https://www.paramountplus.com", subscribe: "https://www.paramountplus.com/account/signup/", search: (q) => `https://www.paramountplus.com/search/${encodeURIComponent(q)}` },
-  youtube: { openBase: "https://www.youtube.com", subscribe: "https://www.youtube.com/premium", search: (q) => `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}` },
-  youtubetv: { openBase: "https://tv.youtube.com", subscribe: "https://tv.youtube.com/welcome/" },
-  appletv: { openBase: "https://tv.apple.com", subscribe: "https://tv.apple.com", search: (q) => `https://tv.apple.com/search?term=${encodeURIComponent(q)}` },
-
-  espn: { openBase: "https://www.espn.com/watch/", subscribe: "https://plus.espn.com", search: (q) => `https://www.espn.com/search/results?q=${encodeURIComponent(q)}` },
-  espnplus: { openBase: "https://plus.espn.com", subscribe: "https://plus.espn.com" },
-  dazn: { openBase: "https://www.dazn.com", subscribe: "https://www.dazn.com" },
-  nflplus: { openBase: "https://www.nfl.com/plus", subscribe: "https://www.nfl.com/plus" },
-  nbaleaguepass: { openBase: "https://www.nba.com/watch/league-pass", subscribe: "https://www.nba.com/watch/league-pass" },
-  mlbtv: { openBase: "https://www.mlb.com/live-stream-games/subscribe", subscribe: "https://www.mlb.com/live-stream-games/subscribe" },
-  nhl: { openBase: "https://www.nhl.com", subscribe: "https://www.nhl.com/subscribe" },
-  foxsports1: { openBase: "https://www.foxsports.com/live/fs1", subscribe: "https://www.foxsports.com/live/fs1" },
-
-  tubi: { openBase: "https://tubitv.com", subscribe: "https://tubitv.com" },
-  twitch: { openBase: "https://www.twitch.tv", search: (q) => `https://www.twitch.tv/search?term=${encodeURIComponent(q)}` },
-  sling: { openBase: "https://www.sling.com", subscribe: "https://www.sling.com" },
-  fubotv: { openBase: "https://www.fubo.tv/welcome", subscribe: "https://www.fubo.tv/welcome" },
-
-  heretv: { openBase: "https://www.heretv.com", subscribe: "https://www.heretv.com" },
-  outtv: { openBase: "https://outtvgo.com", subscribe: "https://outtvgo.com" },
-  dekkoo: { openBase: "https://www.dekkoo.com", subscribe: "https://www.dekkoo.com" },
-
-  kick: { openBase: "https://kick.com", subscribe: "https://kick.com" },
-  xboxcloud: { openBase: "https://www.xbox.com/play", subscribe: "https://www.xbox.com/play" },
-  geforcenow: { openBase: "https://www.nvidia.com/en-us/geforce-now/", subscribe: "https://www.nvidia.com/en-us/geforce-now/" },
-  playstationplus: { openBase: "https://www.playstation.com/ps-plus/", subscribe: "https://www.playstation.com/ps-plus/" },
-  steam: { openBase: "https://store.steampowered.com", subscribe: "https://store.steampowered.com" },
-
-  pbskids: { openBase: "https://pbskids.org" },
-  pbspassport: { openBase: "https://www.pbs.org/passport/" },
-  noggin: { openBase: "https://www.nick.com/apps/noggin", subscribe: "https://www.nick.com/apps/noggin" },
-  kidoodletv: { openBase: "https://www.kidoodle.tv" },
-  happykids: { openBase: "https://happykids.tv" },
-  sensical: { openBase: "https://sensical.tv" },
-
-  hbcugo: { openBase: "https://hbcugo.tv", subscribe: "https://hbcugo.tv" },
-  hbcugosports: { openBase: "https://hbcugo.tv/Sports", subscribe: "https://hbcugo.tv/Sports" },
-
-  crunchyroll: { openBase: "https://www.crunchyroll.com", subscribe: "https://www.crunchyroll.com" },
-  mubi: { openBase: "https://mubi.com", subscribe: "https://mubi.com" },
-  criterion: { openBase: "https://www.criterionchannel.com", subscribe: "https://www.criterionchannel.com" },
-  shudder: { openBase: "https://www.shudder.com", subscribe: "https://www.shudder.com" },
-
-  blackmedia: { openBase: "https://www.google.com/search?q=black+media+streaming" },
-  blackstarnetwork: { openBase: "https://www.theblackstarnetwork.com", subscribe: "https://www.theblackstarnetwork.com" },
-  mansa: { openBase: "https://www.mansastreaming.com", subscribe: "https://www.mansastreaming.com" },
-  allblk: { openBase: "https://allblk.tv", subscribe: "https://allblk.tv" },
-};
-
-function providerUrlOpen(pid: PlatformId | null, title: string) {
-  const link = pid ? PROVIDER_LINKS[pid] : undefined;
-  if (link?.search) return link.search(title);
-  if (link?.openBase) return link.openBase;
-  return "https://www.google.com/search?q=" + encodeURIComponent(`${pid ?? "streaming"} ${title}`);
-}
-
-function providerUrlSubscribe(pid: PlatformId | null) {
-  const link = pid ? PROVIDER_LINKS[pid] : undefined;
-  if (link?.subscribe) return link.subscribe;
-  if (link?.openBase) return link.openBase;
-  return "https://www.google.com/search?q=" + encodeURIComponent(`${pid ?? "streaming"} subscribe`);
-}
-
-function redactUrl(u: string) {
-  try {
-    const x = new URL(u);
-    return `${x.origin}${x.pathname}${x.search ? "?…" : ""}`;
-  } catch {
-    return u ? "url" : "";
-  }
-}
-
-/* =========================
-   Teams
-   ========================= */
+/* Provider URLs + teams now imported from catalog.ts */
 
 function teamLogoCandidates(league: string, team: string): string[] {
   const l = normalizeKey(league);
@@ -660,55 +430,9 @@ function teamLogoCandidates(league: string, team: string): string[] {
   return [
     assetPath(`/assets/teams/${l}/${t}.png`),
     assetPath(`/assets/teams/${l}/${t}.svg`),
-    assetPath(`/assets/teams/${l}/${t}/logo.png`),
-    assetPath(`/assets/teams/${l}/${t}/logo.svg`),
+    assetPath(`/assets/leagues/teams/${league}/${team}.png`),
     assetPath(`/logos/teams/${l}/${t}.png`),
-    assetPath(`/logos/teams/${l}/${t}.svg`),
-    assetPath(`/logos/teams/${l}/${t}/logo.png`),
   ];
-}
-
-const LEAGUES = ["ALL", "NFL", "NBA", "MLB", "NHL", "NCAAF", "Soccer", "UFC", "HBCUGOSPORTS", "HBCUGO"] as const;
-
-const TEAMS_BY_LEAGUE: Record<string, string[]> = {
-  NFL: [
-    "Arizona Cardinals","Atlanta Falcons","Baltimore Ravens","Buffalo Bills","Carolina Panthers","Chicago Bears","Cincinnati Bengals","Cleveland Browns","Dallas Cowboys","Denver Broncos","Detroit Lions","Green Bay Packers","Houston Texans","Indianapolis Colts","Jacksonville Jaguars","Kansas City Chiefs","Las Vegas Raiders","Los Angeles Chargers","Los Angeles Rams","Miami Dolphins","Minnesota Vikings","New England Patriots","New Orleans Saints","New York Giants","New York Jets","Philadelphia Eagles","Pittsburgh Steelers","San Francisco 49ers","Seattle Seahawks","Tampa Bay Buccaneers","Tennessee Titans","Washington Commanders",
-  ],
-  NBA: [
-    "Atlanta Hawks","Boston Celtics","Brooklyn Nets","Charlotte Hornets","Chicago Bulls","Cleveland Cavaliers","Dallas Mavericks","Denver Nuggets","Detroit Pistons","Golden State Warriors","Houston Rockets","Indiana Pacers","LA Clippers","Los Angeles Lakers","Memphis Grizzlies","Miami Heat","Milwaukee Bucks","Minnesota Timberwolves","New Orleans Pelicans","New York Knicks","Oklahoma City Thunder","Orlando Magic","Philadelphia 76ers","Phoenix Suns","Portland Trail Blazers","Sacramento Kings","San Antonio Spurs","Toronto Raptors","Utah Jazz","Washington Wizards",
-  ],
-  MLB: [
-    "Arizona Diamondbacks","Atlanta Braves","Baltimore Orioles","Boston Red Sox","Chicago Cubs","Chicago White Sox","Cincinnati Reds","Cleveland Guardians","Colorado Rockies","Detroit Tigers","Houston Astros","Indianapolis Colts","Kansas City Royals","Los Angeles Angels","Los Angeles Dodgers","Miami Marlins","Milwaukee Brewers","Minnesota Twins","New York Mets","New York Yankees","Oakland Athletics","Philadelphia Phillies","Pittsburgh Pirates","San Diego Padres","San Francisco Giants","Seattle Mariners","St. Louis Cardinals","Tampa Bay Rays","Texas Rangers","Toronto Blue Jays","Washington Nationals",
-  ],
-  NHL: [
-    "Anaheim Ducks","Arizona Coyotes","Boston Bruins","Buffalo Sabres","Calgary Flames","Carolina Hurricanes","Chicago Blackhawks","Colorado Avalanche","Columbus Blue Jackets","Dallas Stars","Detroit Red Wings","Edmonton Oilers","Florida Panthers","Los Angeles Kings","Minnesota Wild","Montreal Canadiens","Nashville Predators","New Jersey Devils","New York Islanders","New York Rangers","Ottawa Senators","Philadelphia Flyers","Pittsburgh Penguins","San Jose Sharks","Seattle Kraken","St. Louis Blues","Tampa Bay Lightning","Toronto Maple Leafs","Vancouver Canucks","Vegas Golden Knights","Washington Capitals","Winnipeg Jets",
-  ],
-  NCAAF: [
-    "Alabama Crimson Tide","Arizona Wildcats","Arizona State Sun Devils","Arkansas Razorbacks","Auburn Tigers","Baylor Bears","Boise State Broncos","Boston College Eagles","BYU Cougars","California Golden Bears","Clemson Tigers","Colorado Buffaloes","Duke Blue Devils","Florida Gators","Florida State Seminoles","Georgia Bulldogs","Georgia Tech Yellow Jackets","Illinois Fighting Illini","Indiana Hoosiers","Iowa Hawkeyes","Iowa State Cyclones","Kansas Jayhawks","Kansas State Wildcats","Kentucky Wildcats","LSU Tigers","Louisville Cardinals","Maryland Terrapins","Miami Hurricanes","Michigan Wolverines","Michigan State Spartans","Minnesota Golden Gophers","Mississippi State Bulldogs","Missouri Tigers","Nebraska Cornhuskers","North Carolina Tar Heels","NC State Wolfpack","Notre Dame Fighting Illini","Ohio State Buckeyes","Oklahoma Sooners","Oklahoma State Cowboys","Ole Miss Rebels","Oregon Ducks","Oregon State Beavers","Penn State Nittany Lions","Pittsburgh Panthers","Purdue Boilermakers","Rutgers Scarlet Knights","South Carolina Gamecocks","Stanford Cardinal","Syracuse Orange","TCU Horned Frogs","Tennessee Volunteers","Texas Longhorns","Texas A&M Aggies","Texas Tech Red Raiders","UCLA Bruins","USC Trojans","Utah Utes","Vanderbilt Commodores","Virginia Cavaliers","Virginia Tech Hokies","Wake Forest Demon Deacons","Washington Huskies","West Virginia Mountaineers","Wisconsin Badgers",
-  ],
-  Soccer: [
-    "Inter Miami CF","LA Galaxy","New York City FC","Seattle Sounders","Atlanta United","Arsenal","Chelsea","Liverpool","Manchester City","Manchester United","Tottenham Hotspur","Barcelona","Real Madrid","Bayern Munich","PSG","Juventus","Inter Milan","AC Milan",
-  ],
-  UFC: ["UFC Fight Night", "UFC Main Card", "UFC PPV Main Event"],
-  HBCUGOSPORTS: ["HBCU Showcase", "HBCU Game of the Week", "Classic Rivalry"],
-  HBCUGO: ["Campus Stories", "HBCU Spotlight", "Student Athletes"],
-};
-
-function canonicalLeagueForTeams(league?: string): string | null {
-  const k = normalizeKey(league ?? "");
-  if (!k) return null;
-  const map: Record<string, string> = {
-    nfl: "NFL",
-    nba: "NBA",
-    mlb: "MLB",
-    nhl: "NHL",
-    ncaaf: "NCAAF",
-    soccer: "Soccer",
-    ufc: "UFC",
-    hbcugosports: "HBCUGOSPORTS",
-    hbcugo: "HBCUGO",
-  };
-  return map[k] ?? null;
 }
 
 function findTeamByFragment(leagueCanon: string, frag: string): string | null {
@@ -777,6 +501,14 @@ button, a, input { -webkit-tap-highlight-color: transparent; }
 }
 @media (prefers-reduced-motion: reduce) {
   * { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
+}
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.08); opacity: 0.85; }
+}
+@keyframes bootProgress {
+  0% { width: 0%; }
+  100% { width: 100%; }
 }
 `;
 
@@ -892,13 +624,17 @@ function useViewport() {
   }, []);
 
   const isMobile = w < 860;
+  const isSmallMobile = w < 480;
 
   const density = useMemo(() => {
+    if (isSmallMobile) {
+      return { pad: 8, gap: 10, h1: 20, h2: 16, small: 11, cardMinW: 160, heroH: 100 };
+    }
     if (isMobile) {
-      return { pad: 12, gap: 14, h1: 24, h2: 18, small: 12, cardMinW: 220, heroH: 120 };
+      return { pad: 12, gap: 14, h1: 24, h2: 18, small: 12, cardMinW: 200, heroH: 120 };
     }
     return { pad: 16, gap: 18, h1: 30, h2: 20, small: 13, cardMinW: 260, heroH: 140 };
-  }, [isMobile]);
+  }, [isMobile, isSmallMobile]);
 
   return { isMobile, density };
 }
@@ -1441,7 +1177,7 @@ function CardThumb({
     ? [...platformIconCandidates(card.platformId), ...brandWideCandidates()]
     : [...brandWideCandidates(), ...brandMarkCandidates()];
 
-  const leagueCanon = canonicalLeagueForTeams(card.league);
+  const leagueCanon = card.league ? canonicalLeagueForTeams(card.league) : null;
   const matchup = parseMatchupFromTitle(card.title);
   const t1 = leagueCanon && matchup.a ? findTeamByFragment(leagueCanon, matchup.a) : null;
   const t2 = leagueCanon && matchup.b ? findTeamByFragment(leagueCanon, matchup.b) : null;
@@ -1803,8 +1539,8 @@ function buildDemoCatalog(): {
 } {
   const mk = (p: Partial<Card> & { title: string }): Card => ({
     id: `c_${Math.random().toString(16).slice(2)}_${normalizeKey(p.title)}`,
-    title: p.title,
     ...p,
+    title: p.title,
   });
 
   const forYou: Card[] = [
@@ -1880,6 +1616,7 @@ export default function AmpereApp() {
   const [openAbout, setOpenAbout] = useState(false);
   const [openProfileSettings, setOpenProfileSettings] = useState(false);
   const [openArchive, setOpenArchive] = useState(false);
+  const [openAppStore, setOpenAppStore] = useState(false);
 
   const [powerState, setPowerState] = useState<"off" | "booting" | "on">("off");
 
@@ -2098,7 +1835,8 @@ export default function AmpereApp() {
     openSetup ||
     openAbout ||
     openProfileSettings ||
-    openArchive;
+    openArchive ||
+    openAppStore;
 
   const onBack = () => {
     if (openCard) return setOpenCard(null);
@@ -2112,6 +1850,7 @@ export default function AmpereApp() {
     if (openAbout) return setOpenAbout(false);
     if (openProfileSettings) return setOpenProfileSettings(false);
     if (openArchive) return setOpenArchive(false);
+    if (openAppStore) return setOpenAppStore(false);
   };
 
   const resetFilters = () => {
@@ -2152,6 +1891,7 @@ export default function AmpereApp() {
     setOpenAbout(false);
     setOpenProfileSettings(false);
     setOpenArchive(false);
+    setOpenAppStore(false);
     setPowerState("off");
   };
 
@@ -2250,7 +1990,19 @@ export default function AmpereApp() {
               </>
             ) : (
               <>
-                <div style={{ fontWeight: 950, fontSize: 16, opacity: 0.92 }}>Powering on…</div>
+                {/* Boot video */}
+                <div style={{ borderRadius: 18, overflow: "hidden", background: "black", maxHeight: 200 }}>
+                  <video
+                    autoPlay
+                    muted
+                    playsInline
+                    style={{ width: "100%", maxHeight: 200, objectFit: "contain" }}
+                    onEnded={() => setPowerState("on")}
+                  >
+                    <source src={assetPath("/assets/boot/power-on.mp4")} type="video/mp4" />
+                  </video>
+                </div>
+                <div style={{ fontWeight: 950, fontSize: 16, opacity: 0.92 }}>Powering on...</div>
                 <div
                   style={{
                     height: 10,
@@ -2267,10 +2019,11 @@ export default function AmpereApp() {
                       borderRadius: 999,
                       background: "rgba(58,167,255,0.55)",
                       boxShadow: "0 0 0 1px rgba(58,167,255,0.12) inset",
+                      animation: "bootProgress 2s ease-in-out forwards",
                     }}
                   />
                 </div>
-                <div style={{ opacity: 0.72, fontWeight: 900, fontSize: 13 }}>Loading your rails, favorites, and connected platforms…</div>
+                <div style={{ opacity: 0.72, fontWeight: 900, fontSize: 13 }}>Loading your rails, favorites, and connected platforms...</div>
               </>
             )}
           </div>
@@ -2328,6 +2081,8 @@ export default function AmpereApp() {
           background: headerBg,
           borderBottom: "1px solid var(--stroke)",
           paddingTop: "max(env(safe-area-inset-top), 10px)",
+          position: "relative",
+          zIndex: 50,
         }}
       >
         <div
@@ -2405,13 +2160,38 @@ export default function AmpereApp() {
             <PillButton label="Voice" iconNode={<IconMic />} onClick={() => setOpenVoice(true)} ariaLabel="Voice" />
             <PillButton label="Remote" iconNode={<IconRemote />} onClick={() => setOpenRemote(true)} ariaLabel="Remote" />
 
-            <Dropdown label="Settings" iconLeft={<IconGear />}>
+            <Dropdown label="Settings" iconLeft={<SmartImg sources={settingsIconCandidates()} size={18} rounded={0} border={false} fit="contain" fallbackText="⚙" />}>
               <MenuItem title="Favorites" subtitle="Edit platforms / leagues / teams" onClick={() => setOpenFavorites(true)} right="›" />
               <MenuItem title="Notifications" subtitle="Alerts when favorite teams play" onClick={() => setOpenNotifications(true)} right="›" />
-              <MenuItem title="Connect Platforms" subtitle="Open / Subscribe → return (demo)" onClick={() => setOpenConnect(true)} right="›" />
+              <MenuItem title="Connect Platforms" subtitle="Open / Subscribe to streaming services" onClick={() => setOpenConnect(true)} right="›" />
+              <MenuItem title="Archive" subtitle="History + attribution log" onClick={() => setOpenArchive(true)} right="›" />
+              <MenuItem title="App Store" subtitle="Browse additional apps" onClick={() => setOpenAppStore(true)} right="›" />
               <MenuItem title="Change Header Image" subtitle="Upload a header background" onClick={() => headerInputRef.current?.click()} right="⬆" />
-              <MenuItem title="Power Off" subtitle="Return to standby screen" onClick={powerOff} right="⏻" />
             </Dropdown>
+
+            {/* Power Off direct button */}
+            <button
+              type="button"
+              className="ampere-focus"
+              onClick={powerOff}
+              aria-label="Power Off"
+              title="Power Off"
+              style={{
+                padding: "10px 12px",
+                borderRadius: 999,
+                border: "1px solid rgba(255,72,72,0.22)",
+                background: "rgba(255,72,72,0.08)",
+                color: "#ff8888",
+                fontWeight: 950,
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                fontSize: 13,
+              }}
+            >
+              {"\u23FB"}
+            </button>
 
             <Dropdown
               label="Profile"
@@ -2422,16 +2202,14 @@ export default function AmpereApp() {
               }
             >
               <MenuItem title="Profile Settings" subtitle="Name, avatar, header image" onClick={() => setOpenProfileSettings(true)} right="›" />
-              <MenuItem title="Archive" subtitle="History + attribution log" onClick={() => setOpenArchive(true)} right="›" />
               <MenuItem title="Set-Up Wizard" subtitle="Resume onboarding" onClick={() => setOpenSetup(true)} right="›" />
               <MenuItem
-                title="About AMPÈRE"
-                subtitle="App info & backstory"
+                title="About AMPERE"
+                subtitle="App info, history, and architecture"
                 onClick={() => {
-                  setShowSettings(false);
-                  setShowAbout(true);
+                  setOpenAbout(true);
                 }}
-                right="M"
+                right="i"
               />
             </Dropdown>
           </div>
@@ -2448,7 +2226,8 @@ export default function AmpereApp() {
           gap: density.gap,
         }}
       >
-        {/* FILTERS */}
+        {/* FILTERS (hidden on Favs tab) */}
+        {activeTab !== "favs" ? (
         <div
           style={{
             borderRadius: "var(--r-xl)",
@@ -2592,6 +2371,7 @@ export default function AmpereApp() {
             </FilterAccordion>
           ) : null}
         </div>
+        ) : null}
 
         {/* PAGE HEADER + SEARCH BAR */}
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
@@ -2720,23 +2500,6 @@ export default function AmpereApp() {
 
         {activeTab === "favs" ? (
           <div style={{ display: "grid", gap: density.gap }}>
-            <Section title="Favorite Platforms">
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 }}>
-                {profile.favoritePlatformIds.map((pid) => (
-                  <PillButton
-                    key={pid}
-                    label={platformById(pid)?.label ?? pid}
-                    iconSources={platformIconCandidates(pid)}
-                    active={activePlatform === pid}
-                    onClick={() => setActivePlatform(pid)}
-                    fullWidth
-                    multiline
-                  />
-                ))}
-                {!profile.favoritePlatformIds.length ? <div style={{ opacity: 0.75, fontWeight: 950 }}>No favorites yet.</div> : null}
-              </div>
-            </Section>
-
             <Section title="For You" rightText="See all" onRightClick={() => setOpenSeeAll("for-you")}>
               <CardGrid cards={forYouFavs.slice(0, 10)} cardMinW={density.cardMinW} heroH={density.heroH} onOpen={openCardAndLog} skeleton={loading} />
             </Section>
@@ -2780,6 +2543,8 @@ export default function AmpereApp() {
           background: "rgba(0,0,0,0.60)",
           backdropFilter: "blur(10px)",
           paddingBottom: "max(env(safe-area-inset-bottom), 10px)",
+          position: "relative",
+          zIndex: 10,
         }}
       >
         <div
@@ -2793,10 +2558,10 @@ export default function AmpereApp() {
             gap: 10,
           }}
         >
-          <PillButton label="HOME" iconNode={<IconHome />} active={activeTab === "home"} onClick={() => setActiveTab("home")} fullWidth ariaLabel="Home tab" />
-          <PillButton label="LIVE" iconNode={<IconLive />} active={activeTab === "live"} onClick={() => setActiveTab("live")} fullWidth ariaLabel="Live tab" />
-          <PillButton label="FAVS" iconNode={<IconHeart />} active={activeTab === "favs"} onClick={() => setActiveTab("favs")} fullWidth ariaLabel="Favs tab" />
-          <PillButton label="SEARCH" iconNode={<IconSearch />} active={activeTab === "search"} onClick={() => setActiveTab("search")} fullWidth ariaLabel="Search tab" />
+          <PillButton label="HOME" iconNode={<SmartImg sources={_footerIcon("home")} size={20} rounded={0} border={false} fit="contain" fallbackText="" />} active={activeTab === "home"} onClick={() => setActiveTab("home")} fullWidth ariaLabel="Home tab" />
+          <PillButton label="LIVE" iconNode={<SmartImg sources={_footerIcon("livetv")} size={20} rounded={0} border={false} fit="contain" fallbackText="" />} active={activeTab === "live"} onClick={() => setActiveTab("live")} fullWidth ariaLabel="Live tab" />
+          <PillButton label="FAVS" iconNode={<SmartImg sources={_footerIcon("favs")} size={20} rounded={0} border={false} fit="contain" fallbackText="" />} active={activeTab === "favs"} onClick={() => setActiveTab("favs")} fullWidth ariaLabel="Favs tab" />
+          <PillButton label="SEARCH" iconNode={<SmartImg sources={_footerIcon("search")} size={20} rounded={0} border={false} fit="contain" fallbackText="" />} active={activeTab === "search"} onClick={() => setActiveTab("search")} fullWidth ariaLabel="Search tab" />
         </div>
       </footer>
 
@@ -3102,19 +2867,36 @@ export default function AmpereApp() {
         <VoiceCenter
           onCommand={(cmd) => {
             track("voice_command", { cmd });
-            const c = cmd.trim().toLowerCase();
-            if (c.includes("search")) {
-              setActiveTab("search");
-              const q = cmd.replace(/search/i, "").trim();
-              setSearchInput(q);
-              setSearchQuery(q);
-            } else if (c.includes("live")) {
-              setActiveTab("live");
-            } else if (c.includes("home")) {
-              setActiveTab("home");
-            } else if (c.includes("favs") || c.includes("favorites")) {
-              setActiveTab("favs");
+            const parsed = parseCommand(cmd);
+            switch (parsed.kind) {
+              case "route":
+                if (parsed.route === "home") setActiveTab("home");
+                else if (parsed.route === "live") setActiveTab("live");
+                else if (parsed.route === "favs") setActiveTab("favs");
+                else if (parsed.route === "search") setActiveTab("search");
+                else if (parsed.route === "genre") setOpenSeeAll("Genre");
+                break;
+              case "search":
+                setActiveTab("search");
+                setSearchInput(parsed.query);
+                setSearchQuery(parsed.query);
+                break;
+              case "openModal":
+                if (parsed.modal === "connectPlatforms") setOpenConnect(true);
+                else if (parsed.modal === "profileSettings") setOpenProfileSettings(true);
+                else if (parsed.modal === "about") setOpenAbout(true);
+                else if (parsed.modal === "archive") setOpenArchive(true);
+                else if (parsed.modal === "setupWizard") setOpenSetup(true);
+                else if (parsed.modal === "appStore") setOpenAppStore(true);
+                break;
+              case "power":
+                if (parsed.value === "off") powerOff();
+                else setPowerState("booting");
+                break;
+              default:
+                break;
             }
+            setOpenVoice(false);
           }}
         />
       </Modal>
@@ -3124,10 +2906,12 @@ export default function AmpereApp() {
           onAction={(a) => {
             track("remote_action", { a });
             if (a === "HOME") setActiveTab("home");
-            if (a === "LIVE") setActiveTab("live");
-            if (a === "FAVS") setActiveTab("favs");
-            if (a === "SEARCH") setActiveTab("search");
-            if (a === "BACK") onBack();
+            else if (a === "LIVE") setActiveTab("live");
+            else if (a === "FAVS") setActiveTab("favs");
+            else if (a === "SEARCH") setActiveTab("search");
+            else if (a === "BACK") onBack();
+            else if (a === "POWER") powerOff();
+            else if (a === "OK") { /* confirm / select current item */ }
           }}
         />
       </Modal>
@@ -3183,14 +2967,73 @@ export default function AmpereApp() {
       </Modal>
 
       <Modal open={openConnect} title="Connect Platforms" onClose={() => setOpenConnect(false)} maxWidth={980}>
-        <div style={{ display: "grid", gap: 12 }}>
+        <div style={{ display: "grid", gap: 14 }}>
           <div style={{ opacity: 0.82, fontWeight: 900, lineHeight: 1.5 }}>
             Click <b>Open</b> or <b>Subscribe</b> to hand off to the provider. When you return, we mark the platform connected (demo).
-            <div style={{ marginTop: 10, opacity: 0.85 }}>
-              <b>TV Connect plan (real architecture):</b> Web UI alone can’t reliably discover/control TVs. Real solutions use a native companion app or device runtime (mDNS/SSDP discovery, CEC/eARC control, vendor APIs, or a local hub).
+          </div>
+
+          {/* TV Connect Plan Options */}
+          <div style={{ borderRadius: 18, border: "1px solid rgba(58,167,255,0.20)", background: "rgba(58,167,255,0.06)", padding: 14, display: "grid", gap: 12 }}>
+            <div style={{ fontWeight: 950, fontSize: 16, display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ fontSize: 20 }}>📡</span> TV Connect Plans
+            </div>
+            <div style={{ opacity: 0.85, fontWeight: 900, lineHeight: 1.5, fontSize: 13 }}>
+              Connect your smart TV for real-time control. Choose the plan that fits your setup.
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 10 }}>
+              {[
+                { name: "Basic", price: "Free", features: ["Web remote control", "Manual platform switching", "Viewing history", "Up to 3 platforms"], color: "rgba(255,255,255,0.08)" },
+                { name: "Pro", price: "$4.99/mo", features: ["InstantSwitch (< 300ms)", "Voice & gesture control", "Unlimited platforms", "Sports Hub + Game Day Mode", "Multi-profile support"], color: "rgba(58,167,255,0.10)" },
+                { name: "Family", price: "$7.99/mo", features: ["Everything in Pro", "Up to 6 profiles", "Parental controls + Kid Mode", "Offline cached schedules", "Priority support"], color: "rgba(138,43,226,0.10)" },
+              ].map((plan) => (
+                <div
+                  key={plan.name}
+                  style={{
+                    borderRadius: 18,
+                    border: plan.name === "Pro" ? "2px solid rgba(58,167,255,0.35)" : "1px solid rgba(255,255,255,0.12)",
+                    background: plan.color,
+                    padding: 14,
+                    display: "grid",
+                    gap: 8,
+                    position: "relative",
+                  }}
+                >
+                  {plan.name === "Pro" ? (
+                    <div style={{ position: "absolute", top: -10, right: 14, padding: "4px 10px", borderRadius: 999, background: "rgba(58,167,255,0.25)", border: "1px solid rgba(58,167,255,0.40)", fontWeight: 950, fontSize: 10, letterSpacing: 1 }}>POPULAR</div>
+                  ) : null}
+                  <div style={{ fontWeight: 950, fontSize: 18 }}>{plan.name}</div>
+                  <div style={{ fontWeight: 950, fontSize: 22, color: "rgba(58,167,255,0.95)" }}>{plan.price}</div>
+                  <ul style={{ margin: 0, paddingLeft: 16, fontWeight: 900, opacity: 0.85, fontSize: 12, lineHeight: 1.7 }}>
+                    {plan.features.map((f) => <li key={f}>{f}</li>)}
+                  </ul>
+                  <button
+                    type="button"
+                    className="ampere-focus"
+                    onClick={() => track("tv_connect_plan_select", { plan: plan.name })}
+                    style={{
+                      marginTop: 6,
+                      padding: "10px 12px",
+                      borderRadius: 14,
+                      border: plan.name === "Pro" ? "1px solid rgba(58,167,255,0.30)" : "1px solid rgba(255,255,255,0.14)",
+                      background: plan.name === "Pro" ? "rgba(58,167,255,0.15)" : "rgba(255,255,255,0.06)",
+                      color: "white",
+                      fontWeight: 950,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {plan.price === "Free" ? "Current Plan" : "Select Plan"}
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ opacity: 0.70, fontWeight: 900, fontSize: 11, lineHeight: 1.5 }}>
+              <b>Architecture:</b> Native companion app uses mDNS/SSDP for TV discovery, CEC/eARC for control, vendor APIs (WebOS, Tizen, Android TV, tvOS), or a local hub device. OAuth 2.0 + secure credential vault for platform auth.
             </div>
           </div>
 
+          {/* Platform Grid */}
+          <div style={{ fontWeight: 950, fontSize: 16 }}>All Platforms ({ALL_PLATFORM_IDS.length})</div>
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(3, 1fr)", gap: 10 }}>
             {ALL_PLATFORM_IDS.map((pid) => {
               const p = platformById(pid);
@@ -3200,8 +3043,8 @@ export default function AmpereApp() {
                   key={`conn_${pid}`}
                   style={{
                     borderRadius: 18,
-                    border: "1px solid rgba(255,255,255,0.12)",
-                    background: "rgba(255,255,255,0.04)",
+                    border: on ? "1px solid rgba(58,167,255,0.22)" : "1px solid rgba(255,255,255,0.12)",
+                    background: on ? "rgba(58,167,255,0.04)" : "rgba(255,255,255,0.04)",
                     padding: 12,
                     display: "grid",
                     gap: 10,
@@ -3279,6 +3122,14 @@ export default function AmpereApp() {
 
       <Modal open={openArchive} title="Archive" onClose={() => setOpenArchive(false)} maxWidth={980}>
         <ArchiveContent />
+      </Modal>
+
+      {/* App Store Modal */}
+      <Modal open={openAppStore} title="App Store" onClose={() => setOpenAppStore(false)} maxWidth={980}>
+        <AppStoreContent isMobile={isMobile} onInstall={(pid: string) => {
+          toggleConnected(pid, true);
+          track("appstore_install", { platformId: pid });
+        }} />
       </Modal>
 
       <Modal open={openProfileSettings} title="Profile Settings" onClose={() => setOpenProfileSettings(false)} maxWidth={820}>
@@ -3599,36 +3450,190 @@ function ArchiveContent() {
   );
 }
 
+function AppStoreContent({ isMobile, onInstall }: { isMobile: boolean; onInstall: (pid: string) => void }) {
+  const [search, setSearch] = useState("");
+  const [installedIds, setInstalledIds] = useState<Set<string>>(new Set());
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const sorted = [...PLATFORMS].sort((a, b) => a.label.localeCompare(b.label));
+    if (!q) return sorted;
+    return sorted.filter(
+      (p) => p.label.toLowerCase().includes(q) || (p.kind ?? "").includes(q) || (p.genres ?? []).some((g) => g.toLowerCase().includes(q))
+    );
+  }, [search]);
+
+  const categories = useMemo(() => {
+    const cats: Record<string, Platform[]> = {};
+    for (const p of filtered) {
+      const cat = p.kind === "sports" ? "Sports" : p.kind === "kids" ? "Kids & Family" : p.kind === "gaming" ? "Gaming" : p.kind === "livetv" ? "Live TV" : p.kind === "niche" ? "Specialty" : "Streaming";
+      if (!cats[cat]) cats[cat] = [];
+      cats[cat].push(p);
+    }
+    return cats;
+  }, [filtered]);
+
+  return (
+    <div style={{ display: "grid", gap: 14 }}>
+      <div style={{ opacity: 0.82, fontWeight: 900, lineHeight: 1.5 }}>
+        Browse and install additional streaming apps. Installed apps appear in your platform list and Connect Platforms.
+      </div>
+
+      <input
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search apps by name, category, or genre..."
+        className="ampere-focus"
+        style={{
+          padding: "12px 14px",
+          borderRadius: 14,
+          border: "1px solid var(--stroke2)",
+          background: "rgba(0,0,0,0.35)",
+          color: "white",
+          outline: "none",
+          fontWeight: 850,
+        }}
+      />
+
+      {Object.entries(categories).map(([cat, platforms]) => (
+        <div key={cat} style={{ display: "grid", gap: 10 }}>
+          <div style={{ fontWeight: 950, fontSize: 16 }}>{cat} ({platforms.length})</div>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(3, 1fr)", gap: 10 }}>
+            {platforms.map((p) => {
+              const justInstalled = installedIds.has(p.id);
+              return (
+                <div
+                  key={`appstore_${p.id}`}
+                  style={{
+                    borderRadius: 18,
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    background: "rgba(255,255,255,0.04)",
+                    padding: 12,
+                    display: "grid",
+                    gap: 8,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <SmartImg sources={platformIconCandidates(p.id)} size={36} rounded={12} fit="contain" fallbackText={p.label[0]} />
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 950, opacity: 0.94, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.label}</div>
+                      <div style={{ fontWeight: 900, opacity: 0.6, fontSize: 11 }}>{p.kind ?? "streaming"} {p.genres?.length ? `• ${p.genres[0]}` : ""}</div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="ampere-focus"
+                    onClick={() => {
+                      onInstall(p.id);
+                      setInstalledIds((prev) => new Set([...prev, p.id]));
+                    }}
+                    style={{
+                      padding: "10px 12px",
+                      borderRadius: 14,
+                      border: justInstalled ? "1px solid rgba(58,167,255,0.30)" : "1px solid rgba(255,255,255,0.14)",
+                      background: justInstalled ? "rgba(58,167,255,0.12)" : "rgba(255,255,255,0.06)",
+                      color: "white",
+                      fontWeight: 950,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {justInstalled ? "Installed" : "Install"}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+
+      {!filtered.length ? (
+        <div style={{ opacity: 0.75, fontWeight: 900, padding: 20, textAlign: "center" }}>No apps match your search.</div>
+      ) : null}
+    </div>
+  );
+}
+
 function AboutContent() {
   return (
-    <div style={{ display: "grid", gap: 12 }}>
-      <div style={{ fontWeight: 950, fontSize: 18 }}>Control, Reimagined.</div>
-      <div style={{ opacity: 0.82, fontWeight: 900, lineHeight: 1.5 }}>
-        AMPÈRE is a concept demo for a unified TV experience: Genre across services, see what’s live, and launch content fast — from remote, voice, or personalized rails.
+    <div style={{ display: "grid", gap: 16 }}>
+      {/* Hero banner with logo */}
+      <div style={{ display: "grid", placeItems: "center", padding: "12px 0" }}>
+        <div style={{ width: "min(400px, 90%)", height: 50 }}>
+          <SmartImg sources={brandWideCandidates()} size={900} rounded={0} border={false} fit="contain" fill fallbackText="AMPERE" />
+        </div>
+      </div>
+
+      <div style={{ fontWeight: 950, fontSize: 22, textAlign: "center" }}>Control, Reimagined.</div>
+
+      {/* Image placeholder slots */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div style={{ borderRadius: 18, border: "1px solid var(--stroke)", background: "rgba(255,255,255,0.04)", height: 120, display: "grid", placeItems: "center" }}>
+          <SmartImg sources={brandMarkCandidates()} size={80} rounded={18} border={false} fit="contain" fallbackText="A" />
+        </div>
+        <div style={{ borderRadius: 18, border: "1px solid var(--stroke)", background: "rgba(255,255,255,0.04)", height: 120, display: "grid", placeItems: "center" }}>
+          <div style={{ opacity: 0.5, fontWeight: 950, fontSize: 11, textAlign: "center" }}>Drop promo image here<br />(Phase 2)</div>
+        </div>
+      </div>
+
+      <div style={{ opacity: 0.88, fontWeight: 900, lineHeight: 1.65 }}>
+        <b>AMPERE</b> is named after <b>Andre-Marie Ampere</b>, who discovered the laws of electromagnetism. The app is a revolutionary unified remote control that brings all major streaming platforms into a single, seamless interface.
       </div>
 
       <div style={{ borderRadius: 18, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)", padding: 14, display: "grid", gap: 10 }}>
-        <div style={{ fontWeight: 950 }}>Priority gap analysis</div>
+        <div style={{ fontWeight: 950, fontSize: 16 }}>Core Problem Statement</div>
+        <div style={{ opacity: 0.86, fontWeight: 900, lineHeight: 1.55 }}>
+          Modern streaming services lack the simple channel-flipping functionality of traditional cable TV. When viewers want to watch multiple live events simultaneously (like two sports games on different platforms), they face a cumbersome process of exiting one app, opening another, navigating to content, and waiting for loading.
+        </div>
+      </div>
 
-        <div style={{ fontWeight: 950, opacity: 0.92 }}>P0 — Must fix (it’s broken)</div>
-        <ul style={{ margin: 0, paddingLeft: 18, opacity: 0.86, fontWeight: 900, lineHeight: 1.5 }}>
-          <li><b>Asset path resolution:</b> all public asset candidates now go through <code>assetPath()</code> for basePath/assetPrefix-safe deploys.</li>
-          <li><b>Candidate coverage:</b> platform icon resolution now tries common filename variants (+, -plus, _plus, hyphen/underscore, etc.).</li>
-          <li><b>No broken-image flashes:</b> SmartImg preloads candidates and only renders &lt;img&gt; after success.</li>
-          <li><b>Profile dropdown:</b> closes on selection so modals don’t open behind it.</li>
-          <li><b>Setup Wizard:</b> restored full Step 1–5 UI and persistence.</li>
-        </ul>
+      <div style={{ borderRadius: 18, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)", padding: 14, display: "grid", gap: 10 }}>
+        <div style={{ fontWeight: 950, fontSize: 16 }}>Solution</div>
+        <div style={{ opacity: 0.86, fontWeight: 900, lineHeight: 1.55 }}>
+          AMPERE creates a unified interface that maintains active connections to multiple streaming services simultaneously, allowing for instantaneous switching between content with minimal latency -- replicating and enhancing the traditional channel-surfing experience for the streaming era.
+        </div>
+      </div>
 
-        <div style={{ fontWeight: 950, opacity: 0.92, marginTop: 6 }}>P1 — Next (feature completeness)</div>
-        <ul style={{ margin: 0, paddingLeft: 18, opacity: 0.86, fontWeight: 900, lineHeight: 1.5 }}>
-          <li><b>Favorites editor:</b> now a functional modal (platforms/leagues/teams).</li>
-          <li><b>Voice/Remote:</b> upgraded from placeholder to interactive demo (still not a real mic/TV integration).</li>
-          <li><b>TV Connect:</b> requires native runtime or local hub for discovery/control (web UI alone can’t do it reliably).</li>
+      <div style={{ borderRadius: 18, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)", padding: 14, display: "grid", gap: 10 }}>
+        <div style={{ fontWeight: 950, fontSize: 16 }}>Key Features</div>
+        <ul style={{ margin: 0, paddingLeft: 18, opacity: 0.86, fontWeight: 900, lineHeight: 1.65 }}>
+          <li><b>InstantSwitch Technology:</b> Maintains multiple active streams in a suspended state for near-instantaneous switching (under 300ms).</li>
+          <li><b>Multi-Profile Management:</b> Separate watchlists, favorites, personalized recommendations, custom UI themes.</li>
+          <li><b>Sports-Centric Features:</b> Live Sports Hub, Game Day Mode, real-time scores, PiP for monitoring multiple games.</li>
+          <li><b>Voice and Gesture Control:</b> "Switch to ESPN", "Show NBA scores", "Flip to last game", swipe controls.</li>
+          <li><b>Offline Mode:</b> Cached schedules, recently toggled content, offline alerts.</li>
+          <li><b>Parental Controls:</b> PIN-protected profiles, content filters, time limits, Kid Mode UI.</li>
         </ul>
       </div>
 
-      <div style={{ opacity: 0.78, fontWeight: 900 }}>
-        Tip: set <code>NEXT_PUBLIC_ASSET_PREFIX</code> to match your deployment prefix if you’re serving under a basePath/assetPrefix.
+      <div style={{ borderRadius: 18, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)", padding: 14, display: "grid", gap: 10 }}>
+        <div style={{ fontWeight: 950, fontSize: 16 }}>Technical Architecture</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div>
+            <div style={{ fontWeight: 950, fontSize: 13, opacity: 0.92 }}>Frontend</div>
+            <ul style={{ margin: 0, paddingLeft: 16, opacity: 0.82, fontWeight: 900, fontSize: 13, lineHeight: 1.5 }}>
+              <li>React Native (iOS/Android)</li>
+              <li>WebOS, tvOS, Android TV</li>
+              <li>Redux state management</li>
+              <li>React Navigation</li>
+            </ul>
+          </div>
+          <div>
+            <div style={{ fontWeight: 950, fontSize: 13, opacity: 0.92 }}>Backend</div>
+            <ul style={{ margin: 0, paddingLeft: 16, opacity: 0.82, fontWeight: 900, fontSize: 13, lineHeight: 1.5 }}>
+              <li>Node.js + Express</li>
+              <li>GraphQL API</li>
+              <li>MongoDB + Redis</li>
+              <li>AWS Lambda serverless</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ borderRadius: 18, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)", padding: 14, display: "grid", gap: 10 }}>
+        <div style={{ fontWeight: 950 }}>Build: 2026.02.13</div>
+        <div style={{ opacity: 0.72, fontWeight: 900, fontSize: 12 }}>
+          AMPERE Demo v0.1.0. All platform connections are simulated for demo purposes.
+        </div>
       </div>
     </div>
   );
@@ -3636,22 +3641,121 @@ function AboutContent() {
 
 function VoiceCenter({ onCommand }: { onCommand: (cmd: string) => void }) {
   const [cmd, setCmd] = useState("");
+  const [isListening, setIsListening] = useState(false);
+  const [transcript, setTranscript] = useState("");
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  useEffect(() => {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SR) {
+      setSpeechSupported(true);
+      const recognition = new SR();
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.lang = "en-US";
+
+      recognition.onresult = (event: any) => {
+        let interim = "";
+        let final = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const t = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            final += t;
+          } else {
+            interim += t;
+          }
+        }
+        if (final) {
+          setCmd(final.trim());
+          setTranscript(final.trim());
+          onCommand(final.trim());
+          setIsListening(false);
+        } else {
+          setTranscript(interim);
+        }
+      };
+      recognition.onerror = () => setIsListening(false);
+      recognition.onend = () => setIsListening(false);
+      recognitionRef.current = recognition;
+    }
+    return () => {
+      try { recognitionRef.current?.stop(); } catch {}
+    };
+  }, []);
+
+  const toggleListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    } else {
+      setTranscript("");
+      recognitionRef.current?.start();
+      setIsListening(true);
+    }
+  };
 
   return (
-    <div style={{ display: "grid", gap: 12 }}>
+    <div style={{ display: "grid", gap: 14 }}>
       <div style={{ opacity: 0.82, fontWeight: 900, lineHeight: 1.5 }}>
-        Demo voice UI: type a command and run it. (Hook up real SpeechRecognition here if you want.)
+        {speechSupported
+          ? "Tap the microphone to speak a command, or type below."
+          : "Speech recognition is not supported in this browser. Type a command below."}
       </div>
 
+      {speechSupported ? (
+        <div style={{ display: "grid", placeItems: "center", gap: 10 }}>
+          <button
+            type="button"
+            onClick={toggleListening}
+            className="ampere-focus"
+            aria-label={isListening ? "Stop listening" : "Start listening"}
+            style={{
+              width: 80,
+              height: 80,
+              borderRadius: "50%",
+              border: isListening ? "3px solid rgba(255,72,72,0.60)" : "3px solid rgba(58,167,255,0.40)",
+              background: isListening
+                ? "radial-gradient(circle, rgba(255,72,72,0.25), rgba(255,72,72,0.08))"
+                : "radial-gradient(circle, rgba(58,167,255,0.20), rgba(58,167,255,0.06))",
+              color: "white",
+              fontWeight: 950,
+              fontSize: 28,
+              cursor: "pointer",
+              display: "grid",
+              placeItems: "center",
+              animation: isListening ? "pulse 1.2s ease-in-out infinite" : "none",
+            }}
+          >
+            <SmartImg
+              sources={voiceIconCandidates()}
+              size={36}
+              rounded={0}
+              border={false}
+              fit="contain"
+              fallbackText={isListening ? "..." : "MIC"}
+            />
+          </button>
+          <div style={{ fontWeight: 950, fontSize: 14, opacity: 0.85 }}>
+            {isListening ? "Listening..." : "Tap to speak"}
+          </div>
+          {transcript ? (
+            <div style={{ padding: "10px 14px", borderRadius: 14, border: "1px solid var(--stroke)", background: "rgba(0,0,0,0.30)", fontWeight: 900, opacity: 0.9 }}>
+              {transcript}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       <div style={{ display: "grid", gap: 8 }}>
-        <div style={{ fontWeight: 950 }}>Command</div>
+        <div style={{ fontWeight: 950, fontSize: 13 }}>Or type a command:</div>
         <input
           value={cmd}
           onChange={(e) => setCmd(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter") onCommand(cmd);
+            if (e.key === "Enter" && cmd.trim()) onCommand(cmd.trim());
           }}
-          placeholder='Try: "search ufc", "go live", "home", "favs"'
+          placeholder='"Switch to ESPN", "Search UFC", "Go live", "Home", "Favs"'
           className="ampere-focus"
           style={{
             padding: "12px 14px",
@@ -3669,7 +3773,7 @@ function VoiceCenter({ onCommand }: { onCommand: (cmd: string) => void }) {
         <button
           type="button"
           className="ampere-focus"
-          onClick={() => onCommand(cmd)}
+          onClick={() => { if (cmd.trim()) onCommand(cmd.trim()); }}
           style={{
             padding: "12px 14px",
             borderRadius: 14,
@@ -3685,7 +3789,7 @@ function VoiceCenter({ onCommand }: { onCommand: (cmd: string) => void }) {
         <button
           type="button"
           className="ampere-focus"
-          onClick={() => setCmd("")}
+          onClick={() => { setCmd(""); setTranscript(""); }}
           style={{
             padding: "12px 14px",
             borderRadius: 14,
@@ -3702,7 +3806,7 @@ function VoiceCenter({ onCommand }: { onCommand: (cmd: string) => void }) {
 
       <div style={{ opacity: 0.75, fontWeight: 900, fontSize: 13 }}>
         Quick actions:{" "}
-        {["search nba", "search ufc", "go live", "home", "favs"].map((x) => (
+        {["search nba", "switch to espn", "show nba scores", "go live", "home", "favs", "power off"].map((x) => (
           <button
             key={x}
             type="button"
@@ -3713,6 +3817,7 @@ function VoiceCenter({ onCommand }: { onCommand: (cmd: string) => void }) {
             }}
             style={{
               marginLeft: 8,
+              marginTop: 6,
               padding: "8px 10px",
               borderRadius: 999,
               border: "1px solid rgba(255,255,255,0.14)",
@@ -3731,49 +3836,151 @@ function VoiceCenter({ onCommand }: { onCommand: (cmd: string) => void }) {
 }
 
 function RemotePad({ onAction }: { onAction: (a: string) => void }) {
-  const Btn = ({ label, big }: { label: string; big?: boolean }) => (
+  const DPadBtn = ({ label, icon, big }: { label: string; icon?: string; big?: boolean }) => (
     <button
       type="button"
       className="ampere-focus"
       onClick={() => onAction(label)}
+      aria-label={label}
       style={{
-        padding: big ? "14px 14px" : "10px 12px",
-        borderRadius: 16,
-        border: "1px solid rgba(255,255,255,0.14)",
-        background: "rgba(255,255,255,0.06)",
+        padding: big ? "16px" : "12px",
+        borderRadius: big ? 22 : 14,
+        border: label === "OK" ? "2px solid rgba(58,167,255,0.40)" : "1px solid rgba(255,255,255,0.16)",
+        background: label === "OK"
+          ? "radial-gradient(circle, rgba(58,167,255,0.22), rgba(58,167,255,0.08))"
+          : "rgba(255,255,255,0.06)",
         color: "white",
         fontWeight: 950,
         cursor: "pointer",
+        fontSize: big ? 16 : 13,
+        display: "grid",
+        placeItems: "center",
+        minHeight: big ? 56 : 44,
       }}
     >
+      {icon ?? label}
+    </button>
+  );
+
+  const NavBtn = ({ label, icon, active }: { label: string; icon?: string; active?: boolean }) => (
+    <button
+      type="button"
+      className="ampere-focus"
+      onClick={() => onAction(label)}
+      aria-label={label}
+      style={{
+        padding: "10px 14px",
+        borderRadius: 999,
+        border: active ? "1px solid rgba(58,167,255,0.30)" : "1px solid rgba(255,255,255,0.14)",
+        background: active ? "rgba(58,167,255,0.12)" : "rgba(255,255,255,0.06)",
+        color: "white",
+        fontWeight: 950,
+        cursor: "pointer",
+        fontSize: 12,
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+      }}
+    >
+      {icon ? <span>{icon}</span> : null}
       {label}
     </button>
   );
 
   return (
-    <div style={{ display: "grid", gap: 12 }}>
-      <div style={{ opacity: 0.82, fontWeight: 900, lineHeight: 1.5 }}>
-        Demo remote pad. In a real product this would map to CEC/TV OS APIs (or a local hub).
+    <div style={{ display: "grid", gap: 16, maxWidth: 380, margin: "0 auto" }}>
+      {/* Remote body */}
+      <div
+        style={{
+          borderRadius: 32,
+          border: "2px solid rgba(255,255,255,0.12)",
+          background: "linear-gradient(180deg, rgba(30,30,40,0.95), rgba(15,15,20,0.98))",
+          boxShadow: "0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)",
+          padding: "24px 20px",
+          display: "grid",
+          gap: 18,
+        }}
+      >
+        {/* Brand */}
+        <div style={{ display: "grid", placeItems: "center", padding: "4px 0" }}>
+          <SmartImg sources={brandWideCandidates()} size={900} rounded={0} border={false} fit="contain" fill fallbackText="AMPERE" />
+          <div style={{ height: 20 }} />
+          <div style={{ opacity: 0.5, fontWeight: 900, fontSize: 10, letterSpacing: 2, textTransform: "uppercase" }}>Remote Control</div>
+        </div>
+
+        {/* Power button */}
+        <div style={{ display: "grid", placeItems: "center" }}>
+          <button
+            type="button"
+            className="ampere-focus"
+            onClick={() => onAction("POWER")}
+            aria-label="Power"
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: "50%",
+              border: "2px solid rgba(255,72,72,0.35)",
+              background: "rgba(255,72,72,0.12)",
+              color: "#ff6666",
+              fontWeight: 950,
+              fontSize: 18,
+              cursor: "pointer",
+              display: "grid",
+              placeItems: "center",
+            }}
+          >
+            {"\u23FB"}
+          </button>
+        </div>
+
+        {/* D-pad */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6, maxWidth: 220, margin: "0 auto" }}>
+          <div />
+          <DPadBtn label="UP" icon={"\u25B2"} big />
+          <div />
+          <DPadBtn label="LEFT" icon={"\u25C4"} big />
+          <DPadBtn label="OK" big />
+          <DPadBtn label="RIGHT" icon={"\u25BA"} big />
+          <div />
+          <DPadBtn label="DOWN" icon={"\u25BC"} big />
+          <div />
+        </div>
+
+        {/* Volume + Channel */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div style={{ display: "grid", gap: 6 }}>
+            <div style={{ fontWeight: 950, fontSize: 10, opacity: 0.5, textAlign: "center", letterSpacing: 1 }}>VOL</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+              <DPadBtn label="VOL-" icon="-" />
+              <DPadBtn label="VOL+" icon="+" />
+            </div>
+          </div>
+          <div style={{ display: "grid", gap: 6 }}>
+            <div style={{ fontWeight: 950, fontSize: 10, opacity: 0.5, textAlign: "center", letterSpacing: 1 }}>CH</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+              <DPadBtn label="CH-" icon="-" />
+              <DPadBtn label="CH+" icon="+" />
+            </div>
+          </div>
+        </div>
+
+        {/* Back + Mute */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <DPadBtn label="BACK" icon={"\u2190 Back"} />
+          <DPadBtn label="MUTE" icon={"\uD83D\uDD07 Mute"} />
+        </div>
+
+        {/* Navigation bar */}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+          <NavBtn label="HOME" icon={"\u2302"} />
+          <NavBtn label="LIVE" icon={"\u25CF"} />
+          <NavBtn label="FAVS" icon={"\u2665"} />
+          <NavBtn label="SEARCH" icon={"\uD83D\uDD0D"} />
+        </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10, maxWidth: 520 }}>
-        <div />
-        <Btn label="UP" big />
-        <div />
-        <Btn label="LEFT" big />
-        <Btn label="OK" big />
-        <Btn label="RIGHT" big />
-        <div />
-        <Btn label="DOWN" big />
-        <div />
-      </div>
-
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-        <Btn label="BACK" />
-        <Btn label="HOME" />
-        <Btn label="LIVE" />
-        <Btn label="FAVS" />
-        <Btn label="SEARCH" />
+      <div style={{ opacity: 0.60, fontWeight: 900, fontSize: 12, textAlign: "center", lineHeight: 1.5 }}>
+        Demo remote control. In production, this maps to CEC/eARC, TV OS APIs, or a local companion hub for real TV control.
       </div>
     </div>
   );
@@ -3880,6 +4087,7 @@ function FavoritesEditor({
             <PillButton
               key={`favleague_${l}`}
               label={l}
+              iconSources={leagueLogoCandidates(l)}
               active={favLeagues.includes(l)}
               onClick={() => setFavLeagues((prev) => uniq(toggleInArray(prev, l)))}
               fullWidth
@@ -4022,13 +4230,13 @@ function SetupWizardContent({
   draftName: string;
   setDraftName: (s: string) => void;
   draftPlatforms: PlatformId[];
-  setDraftPlatforms: (x: PlatformId[]) => void;
+  setDraftPlatforms: (x: PlatformId[] | ((prev: PlatformId[]) => PlatformId[])) => void;
   draftLeagues: string[];
-  setDraftLeagues: (x: string[]) => void;
+  setDraftLeagues: (x: string[] | ((prev: string[]) => string[])) => void;
   draftTeams: string[];
-  setDraftTeams: (x: string[]) => void;
+  setDraftTeams: (x: string[] | ((prev: string[]) => string[])) => void;
   wizShownByLeague: Record<string, number>;
-  setWizShownByLeague: (x: Record<string, number>) => void;
+  setWizShownByLeague: (x: Record<string, number> | ((prev: Record<string, number>) => Record<string, number>)) => void;
   wizTeamSearch: string;
   setWizTeamSearch: (s: string) => void;
   canNext: boolean;
@@ -4157,6 +4365,7 @@ function SetupWizardContent({
               <PillButton
                 key={`wiz_league_${l}`}
                 label={l}
+                iconSources={leagueLogoCandidates(l)}
                 active={draftLeagues.includes(l)}
                 onClick={() => setDraftLeagues((prev) => uniq(toggleInArray(prev, l)))}
                 fullWidth
@@ -4237,6 +4446,7 @@ function SetupWizardContent({
                         <PillButton
                           key={`${canon}_${t}`}
                           label={t}
+                          iconSources={_teamIcon(canon, t)}
                           active={draftTeams.includes(t)}
                           onClick={() => setDraftTeams((prev) => uniq(toggleInArray(prev, t)))}
                           fullWidth
