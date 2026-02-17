@@ -181,10 +181,11 @@ button {
  border-radius: 999px;
  border: 1px solid var(--panel-border);
  background: rgba(255,255,255,0.06);
- padding: 10px 14px;
+ padding: 6px 10px;
  display: inline-flex;
  align-items: center;
- gap: 10px;
+ gap: 6px;
+ font-size: 13px;
  transition: background 0.2s ease;
 }
 
@@ -612,14 +613,14 @@ button {
 
 
 @media (max-width: 640px) {
- /* Ensure all interactive elements meet 44x44 minimum */
+ /* Ensure all interactive elements meet 34x34 minimum */
  button,
  a,
  .pill,
  .iconBtn,
  .dropdown-item {
-   min-height: 44px;
-   min-width: 44px;
+   min-height: 34px;
+   min-width: 34px;
  }
 }
 

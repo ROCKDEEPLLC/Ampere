@@ -848,8 +848,8 @@ function PillButton({
         width: fullWidth ? "100%" : undefined,
         display: "flex",
         alignItems: "center",
-        gap: 10,
-        padding: "12px 14px",
+        gap: 6,
+        padding: "6px 10px",
         borderRadius: 999,
         border: active ? "1px solid rgba(58,167,255,0.38)" : "1px solid var(--stroke)",
         background: active
@@ -859,6 +859,7 @@ function PillButton({
           : "rgba(255,255,255,0.05)",
         color: "white",
         cursor: "pointer",
+        fontSize: 13,
         fontWeight: 950,
         userSelect: "none",
         minWidth: 0,
@@ -867,25 +868,25 @@ function PillButton({
       }}
     >
       {iconNode ? (
-        <span style={{ width: 24, height: 24, display: "inline-flex", alignItems: "center", justifyContent: "center", flex: "0 0 auto" }}>
+        <span style={{ width: 18, height: 18, display: "inline-flex", alignItems: "center", justifyContent: "center", flex: "0 0 auto" }}>
           {iconNode}
         </span>
       ) : iconSources && iconSources.length ? (
         <span style={{ flex: "0 0 auto" }}>
-          <SmartImg sources={iconSources} size={24} rounded={9} fit="contain" fallbackText={label.slice(0, 1).toUpperCase()} />
+          <SmartImg sources={iconSources} size={18} rounded={6} fit="contain" fallbackText={label.slice(0, 1).toUpperCase()} />
         </span>
       ) : (
         <span
           aria-hidden="true"
           style={{
-            width: 24,
-            height: 24,
-            borderRadius: 9,
+            width: 18,
+            height: 18,
+            borderRadius: 6,
             background: "rgba(255,255,255,0.10)",
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: 12,
+            fontSize: 10,
             flex: "0 0 auto",
           }}
         >
@@ -902,7 +903,7 @@ function PillButton({
           textOverflow: "ellipsis",
           lineHeight: multiline ? 1.15 : 1,
           textAlign: "center",
-          paddingRight: active ? 16 : 0,
+          paddingRight: active ? 12 : 0,
         }}
       >
         {label}
@@ -913,14 +914,14 @@ function PillButton({
           aria-hidden="true"
           style={{
             position: "absolute",
-            right: 14,
+            right: 10,
             top: "50%",
             transform: "translateY(-50%)",
-            width: 10,
-            height: 10,
+            width: 7,
+            height: 7,
             borderRadius: 999,
             background: "rgba(58,167,255,0.95)",
-            boxShadow: "0 0 0 4px rgba(58,167,255,0.14)",
+            boxShadow: "0 0 0 3px rgba(58,167,255,0.14)",
           }}
         />
       ) : null}
@@ -2285,7 +2286,7 @@ export default function AmpereApp() {
                 const more = shown < total;
 
                 return (
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 10 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 6 }}>
                     {slice.map((k) => (
                       <PillButton
                         key={k}
@@ -2329,8 +2330,8 @@ export default function AmpereApp() {
                   <div
                     style={{
                       display: "grid",
-                      gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(4, minmax(0, 1fr))",
-                      gap: 10,
+                      gridTemplateColumns: isMobile ? "repeat(3, minmax(0, 1fr))" : "repeat(5, minmax(0, 1fr))",
+                      gap: 6,
                     }}
                   >
                     {slice.map((p) => (
@@ -2363,7 +2364,7 @@ export default function AmpereApp() {
 
           {activeTab === "live" ? (
             <FilterAccordion title="League" isMobile={isMobile} defaultOpen={!isMobile} right={<span>{activeLeague === "ALL" ? "Any" : activeLeague}</span>}>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))", gap: 6 }}>
                 {LEAGUES.map((l) => (
                   <PillButton key={l} label={l} active={normalizeKey(activeLeague) === normalizeKey(l)} onClick={() => setActiveLeague(l)} fullWidth />
                 ))}
