@@ -288,6 +288,12 @@ button {
 }
 
 
+/* Electric blue hover glow for menu items and interactive elements */
+.menu-item-glow:hover {
+ box-shadow: 0 0 12px rgba(58, 167, 255, 0.35), 0 0 4px rgba(58, 167, 255, 0.20) inset;
+ border-color: rgba(58, 167, 255, 0.40) !important;
+}
+
 /* Dropdown item */
 .dropdown-item {
  padding: 12px 14px;

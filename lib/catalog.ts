@@ -23,21 +23,20 @@ export type Platform = {
 
 export const GENRES = [
   { key: "All" },
-  { key: "Basic Streaming" },
-  { key: "Premium Channels" },
-  { key: "Premium Streaming" },
-  { key: "Movie Streaming" },
+  { key: "Anime & AsianTV" },
+  { key: "Arthouse" },
+  { key: "Basic" },
+  { key: "Black Media" },
   { key: "Documentaries" },
-  { key: "Anime / Asian cinema" },
-  { key: "Kids" },
-  { key: "LiveTV" },
-  { key: "Premium Sports Streaming" },
+  { key: "Free" },
   { key: "Gaming" },
-  { key: "Free Streaming" },
-  { key: "Indie and Arthouse Film" },
   { key: "Horror / Cult" },
+  { key: "Kids" },
   { key: "LGBT" },
-  { key: "Black culture & diaspora" },
+  { key: "LiveTV" },
+  { key: "Movies" },
+  { key: "Premium" },
+  { key: "Sports" },
 ] as const;
 
 // ============================================================================
@@ -46,28 +45,28 @@ export const GENRES = [
 
 export const PLATFORMS: Platform[] = [
   // ---- BASIC STREAMING ----
-  { id: "netflix", label: "Netflix", kind: "streaming", genres: ["Basic Streaming", "Movie Streaming", "Documentaries"] },
-  { id: "hulu", label: "Hulu", kind: "streaming", genres: ["Basic Streaming", "Movie Streaming"] },
-  { id: "primevideo", label: "Prime Video", kind: "streaming", genres: ["Basic Streaming", "Movie Streaming"] },
-  { id: "disneyplus", label: "Disney+", kind: "streaming", genres: ["Basic Streaming", "Kids"] },
-  { id: "max", label: "Max", kind: "streaming", genres: ["Movie Streaming", "Basic Streaming"] },
-  { id: "peacock", label: "Peacock", kind: "streaming", genres: ["Basic Streaming", "LiveTV"] },
-  { id: "paramountplus", label: "Paramount+", kind: "streaming", genres: ["Basic Streaming", "Movie Streaming"] },
-  { id: "appletv", label: "Apple TV+", kind: "streaming", genres: ["Basic Streaming", "Movie Streaming"] },
-  { id: "youtube", label: "YouTube", kind: "streaming", genres: ["Free Streaming"] },
+  { id: "netflix", label: "Netflix", kind: "streaming", genres: ["Basic", "Movies", "Documentaries"] },
+  { id: "hulu", label: "Hulu", kind: "streaming", genres: ["Basic", "Movies"] },
+  { id: "primevideo", label: "Prime Video", kind: "streaming", genres: ["Basic", "Movies"] },
+  { id: "disneyplus", label: "Disney+", kind: "streaming", genres: ["Basic", "Kids"] },
+  { id: "max", label: "Max", kind: "streaming", genres: ["Movies", "Basic"] },
+  { id: "peacock", label: "Peacock", kind: "streaming", genres: ["Basic", "LiveTV"] },
+  { id: "paramountplus", label: "Paramount+", kind: "streaming", genres: ["Basic", "Movies"] },
+  { id: "appletv", label: "Apple TV+", kind: "streaming", genres: ["Basic", "Movies"] },
+  { id: "youtube", label: "YouTube", kind: "streaming", genres: ["Free"] },
 
   // ---- PREMIUM CHANNELS (add-on brands) ----
-  { id: "betplus", label: "BET+", kind: "streaming", genres: ["Premium Channels", "Premium Streaming", "Black culture & diaspora"] },
-  { id: "amcplus", label: "AMC+", kind: "streaming", genres: ["Premium Channels", "Premium Streaming"] },
-  { id: "starz", label: "Starz", kind: "streaming", genres: ["Premium Channels", "Premium Streaming", "Movie Streaming"] },
-  { id: "mgmplus", label: "MGM+", kind: "streaming", genres: ["Premium Channels", "Premium Streaming", "Movie Streaming"] },
+  { id: "betplus", label: "BET+", kind: "streaming", genres: ["Premium", "Premium", "Black Media"] },
+  { id: "amcplus", label: "AMC+", kind: "streaming", genres: ["Premium", "Premium"] },
+  { id: "starz", label: "Starz", kind: "streaming", genres: ["Premium", "Premium", "Movies"] },
+  { id: "mgmplus", label: "MGM+", kind: "streaming", genres: ["Premium", "Premium", "Movies"] },
 
   // ---- MOVIE STREAMING ----
-  { id: "criterion", label: "The Criterion Channel", kind: "streaming", genres: ["Movie Streaming", "Indie and Arthouse Film"] },
-  { id: "mubi", label: "MUBI", kind: "streaming", genres: ["Movie Streaming", "Indie and Arthouse Film"] },
-  { id: "fandango", label: "Fandango at Home", kind: "streaming", genres: ["Movie Streaming"], note: "Formerly Vudu" },
-  { id: "youtubemovies", label: "YouTube Movies / Google TV", kind: "streaming", genres: ["Movie Streaming"] },
-  { id: "moviesanywhere", label: "Movies Anywhere", kind: "streaming", genres: ["Movie Streaming"] },
+  { id: "criterion", label: "The Criterion Channel", kind: "streaming", genres: ["Movies", "Arthouse"] },
+  { id: "mubi", label: "MUBI", kind: "streaming", genres: ["Movies", "Arthouse"] },
+  { id: "fandango", label: "Fandango at Home", kind: "streaming", genres: ["Movies"], note: "Formerly Vudu" },
+  { id: "youtubemovies", label: "YouTube Movies / Google TV", kind: "streaming", genres: ["Movies"] },
+  { id: "moviesanywhere", label: "Movies Anywhere", kind: "streaming", genres: ["Movies"] },
 
   // ---- DOCUMENTARIES ----
   { id: "pbspassport", label: "PBS Passport", kind: "streaming", genres: ["Documentaries"] },
@@ -75,11 +74,11 @@ export const PLATFORMS: Platform[] = [
   { id: "magellantv", label: "MagellanTV", kind: "streaming", genres: ["Documentaries"] },
 
   // ---- ANIME / ASIAN CINEMA ----
-  { id: "crunchyroll", label: "Crunchyroll", kind: "streaming", genres: ["Anime / Asian cinema"] },
-  { id: "hidive", label: "HIDIVE", kind: "streaming", genres: ["Anime / Asian cinema"] },
-  { id: "viki", label: "Viki", kind: "streaming", genres: ["Anime / Asian cinema"] },
-  { id: "iqiyi", label: "iQIYI", kind: "streaming", genres: ["Anime / Asian cinema"] },
-  { id: "asiancrush", label: "AsianCrush", kind: "streaming", genres: ["Anime / Asian cinema"] },
+  { id: "crunchyroll", label: "Crunchyroll", kind: "streaming", genres: ["Anime & AsianTV"] },
+  { id: "hidive", label: "HIDIVE", kind: "streaming", genres: ["Anime & AsianTV"] },
+  { id: "viki", label: "Viki", kind: "streaming", genres: ["Anime & AsianTV"] },
+  { id: "iqiyi", label: "iQIYI", kind: "streaming", genres: ["Anime & AsianTV"] },
+  { id: "asiancrush", label: "AsianCrush", kind: "streaming", genres: ["Anime & AsianTV"] },
 
   // ---- KIDS ----
   { id: "disneyplus-kids", label: "Disney+ / DisneyNOW / Disney Jr.", kind: "kids", genres: ["Kids"], note: "Disney, Pixar, Marvel content + live TV" },
@@ -89,12 +88,12 @@ export const PLATFORMS: Platform[] = [
   { id: "cartoonnetwork", label: "Cartoon Network", kind: "kids", genres: ["Kids"] },
   { id: "nickelodeon", label: "Nickelodeon / Nick Jr.", kind: "kids", genres: ["Kids"] },
   { id: "kidoodletv", label: "Kidoodle.TV", kind: "kids", genres: ["Kids"], note: "Safe, curated" },
-  { id: "happykids", label: "HappyKids", kind: "kids", genres: ["Kids", "Free Streaming"], note: "Free, wide-ranging" },
+  { id: "happykids", label: "HappyKids", kind: "kids", genres: ["Kids", "Free"], note: "Free, wide-ranging" },
   { id: "boomerang", label: "Boomerang", kind: "kids", genres: ["Kids"], note: "Classic cartoons" },
   { id: "babytv", label: "BabyTV / BabyFirst TV", kind: "kids", genres: ["Kids"], note: "Toddlers & babies" },
-  { id: "sensical", label: "Sensical", kind: "kids", genres: ["Kids", "Free Streaming"], note: "Expert-vetted, free" },
-  { id: "gonoodle", label: "GoNoodle", kind: "kids", genres: ["Kids", "Free Streaming"], note: "Active, educational" },
-  { id: "supersimple", label: "Super Simple", kind: "kids", genres: ["Kids", "Free Streaming"], note: "Songs & learning" },
+  { id: "sensical", label: "Sensical", kind: "kids", genres: ["Kids", "Free"], note: "Expert-vetted, free" },
+  { id: "gonoodle", label: "GoNoodle", kind: "kids", genres: ["Kids", "Free"], note: "Active, educational" },
+  { id: "supersimple", label: "Super Simple", kind: "kids", genres: ["Kids", "Free"], note: "Songs & learning" },
   { id: "ryanfriends", label: "Ryan and Friends", kind: "kids", genres: ["Kids"], note: "Kid influencer content" },
   { id: "bbc-cbeebies", label: "BBC iPlayer (CBeebies/CBBC)", kind: "kids", genres: ["Kids"], note: "UK children's programming" },
   { id: "numberblocks", label: "Numberblocks / Alphablocks", kind: "kids", genres: ["Kids"], note: "Math & phonics" },
@@ -105,18 +104,18 @@ export const PLATFORMS: Platform[] = [
   { id: "youtubetv", label: "YouTube TV", kind: "livetv", genres: ["LiveTV"] },
   { id: "hulu-livetv", label: "Hulu + Live TV", kind: "livetv", genres: ["LiveTV"] },
   { id: "sling", label: "Sling TV", kind: "livetv", genres: ["LiveTV"] },
-  { id: "fubotv", label: "Fubo", kind: "livetv", genres: ["LiveTV", "Premium Sports Streaming"] },
+  { id: "fubotv", label: "Fubo", kind: "livetv", genres: ["LiveTV", "Sports"] },
 
   // ---- PREMIUM SPORTS STREAMING ----
-  { id: "espn", label: "ESPN", kind: "sports", genres: ["Premium Sports Streaming"] },
-  { id: "espnplus", label: "ESPN+", kind: "sports", genres: ["Premium Sports Streaming"] },
-  { id: "foxsports1", label: "FOX Sports", kind: "sports", genres: ["Premium Sports Streaming"] },
-  { id: "dazn", label: "DAZN", kind: "sports", genres: ["Premium Sports Streaming"] },
-  { id: "nflplus", label: "NFL+", kind: "sports", genres: ["Premium Sports Streaming"] },
-  { id: "nbaleaguepass", label: "NBA League Pass", kind: "sports", genres: ["Premium Sports Streaming"] },
-  { id: "mlbtv", label: "MLB.TV", kind: "sports", genres: ["Premium Sports Streaming"] },
-  { id: "nhl", label: "NHL+", kind: "sports", genres: ["Premium Sports Streaming"] },
-  { id: "hbcugosports", label: "HBCUGO Sports", kind: "sports", genres: ["Premium Sports Streaming", "Black culture & diaspora"] },
+  { id: "espn", label: "ESPN", kind: "sports", genres: ["Sports"] },
+  { id: "espnplus", label: "ESPN+", kind: "sports", genres: ["Sports"] },
+  { id: "foxsports1", label: "FOX Sports", kind: "sports", genres: ["Sports"] },
+  { id: "dazn", label: "DAZN", kind: "sports", genres: ["Sports"] },
+  { id: "nflplus", label: "NFL+", kind: "sports", genres: ["Sports"] },
+  { id: "nbaleaguepass", label: "NBA League Pass", kind: "sports", genres: ["Sports"] },
+  { id: "mlbtv", label: "MLB.TV", kind: "sports", genres: ["Sports"] },
+  { id: "nhl", label: "NHL+", kind: "sports", genres: ["Sports"] },
+  { id: "hbcugosports", label: "HBCUGO Sports", kind: "sports", genres: ["Sports", "Black Media"] },
 
   // ---- GAMING ----
   { id: "twitch", label: "Twitch", kind: "gaming", genres: ["Gaming"] },
@@ -127,20 +126,20 @@ export const PLATFORMS: Platform[] = [
   { id: "steam", label: "Steam", kind: "gaming", genres: ["Gaming"] },
 
   // ---- FREE STREAMING ----
-  { id: "tubi", label: "Tubi", kind: "streaming", genres: ["Free Streaming"] },
-  { id: "plutotv", label: "Pluto TV", kind: "streaming", genres: ["Free Streaming"] },
-  { id: "rokuchannel", label: "The Roku Channel", kind: "streaming", genres: ["Free Streaming"] },
-  { id: "freevee", label: "Amazon Freevee", kind: "streaming", genres: ["Free Streaming"] },
-  { id: "xumo", label: "Xumo Play", kind: "streaming", genres: ["Free Streaming"] },
-  { id: "plex", label: "Plex", kind: "streaming", genres: ["Free Streaming"] },
-  { id: "crackle", label: "Crackle", kind: "streaming", genres: ["Free Streaming"] },
-  { id: "revry", label: "Revry", kind: "streaming", genres: ["Free Streaming", "LGBT"] },
+  { id: "tubi", label: "Tubi", kind: "streaming", genres: ["Free"] },
+  { id: "plutotv", label: "Pluto TV", kind: "streaming", genres: ["Free"] },
+  { id: "rokuchannel", label: "The Roku Channel", kind: "streaming", genres: ["Free"] },
+  { id: "freevee", label: "Amazon Freevee", kind: "streaming", genres: ["Free"] },
+  { id: "xumo", label: "Xumo Play", kind: "streaming", genres: ["Free"] },
+  { id: "plex", label: "Plex", kind: "streaming", genres: ["Free"] },
+  { id: "crackle", label: "Crackle", kind: "streaming", genres: ["Free"] },
+  { id: "revry", label: "Revry", kind: "streaming", genres: ["Free", "LGBT"] },
 
   // ---- INDIE AND ARTHOUSE FILM ----
-  { id: "ovid", label: "OVID.tv", kind: "niche", genres: ["Indie and Arthouse Film"] },
-  { id: "fandor", label: "Fandor", kind: "niche", genres: ["Indie and Arthouse Film"] },
-  { id: "kinocult", label: "Kino Cult", kind: "niche", genres: ["Indie and Arthouse Film"] },
-  { id: "kanopy", label: "Kanopy", kind: "niche", genres: ["Indie and Arthouse Film", "Documentaries"] },
+  { id: "ovid", label: "OVID.tv", kind: "niche", genres: ["Arthouse"] },
+  { id: "fandor", label: "Fandor", kind: "niche", genres: ["Arthouse"] },
+  { id: "kinocult", label: "Kino Cult", kind: "niche", genres: ["Arthouse"] },
+  { id: "kanopy", label: "Kanopy", kind: "niche", genres: ["Arthouse", "Documentaries"] },
 
   // ---- HORROR / CULT ----
   { id: "shudder", label: "Shudder", kind: "niche", genres: ["Horror / Cult"] },
@@ -153,17 +152,16 @@ export const PLATFORMS: Platform[] = [
   { id: "dekkoo", label: "Dekkoo", kind: "niche", genres: ["LGBT"] },
 
   // ---- BLACK CULTURE & DIASPORA ----
-  { id: "kwelitv", label: "KweliTV", kind: "niche", genres: ["Black culture & diaspora"] },
-  { id: "hbcugo", label: "HBCUGO", kind: "niche", genres: ["Black culture & diaspora"] },
-  { id: "brownsugar", label: "Brown Sugar", kind: "niche", genres: ["Black culture & diaspora"] },
-  { id: "americanu", label: "America Nu", kind: "niche", genres: ["Black culture & diaspora"] },
-  { id: "afrolandtv", label: "AfroLandTV", kind: "niche", genres: ["Black culture & diaspora"] },
-  { id: "urbanflixtv", label: "UrbanFlixTV", kind: "niche", genres: ["Black culture & diaspora"] },
-  { id: "blackstarnetwork", label: "Black Star Network", kind: "niche", genres: ["Black culture & diaspora"], connectUrl: "https://app.blackstarnetwork.com/" },
-  { id: "umc", label: "UMC (Urban Movie Channel)", kind: "niche", genres: ["Black culture & diaspora"] },
-  { id: "allblk", label: "ALLBLK", kind: "niche", genres: ["Black culture & diaspora"] },
-  { id: "mansa", label: "MANSA", kind: "niche", genres: ["Black culture & diaspora"] },
-  { id: "blackmedia", label: "Black Media", kind: "niche", genres: ["Black culture & diaspora"] },
+  { id: "kwelitv", label: "KweliTV", kind: "niche", genres: ["Black Media"] },
+  { id: "hbcugo", label: "HBCUGO", kind: "niche", genres: ["Black Media"] },
+  { id: "brownsugar", label: "Brown Sugar", kind: "niche", genres: ["Black Media"] },
+  { id: "americanu", label: "America Nu", kind: "niche", genres: ["Black Media"] },
+  { id: "afrolandtv", label: "AfroLandTV", kind: "niche", genres: ["Black Media"] },
+  { id: "urbanflixtv", label: "UrbanFlixTV", kind: "niche", genres: ["Black Media"] },
+  { id: "blackstarnetwork", label: "Black Star Network", kind: "niche", genres: ["Black Media"], connectUrl: "https://app.blackstarnetwork.com/" },
+  { id: "umc", label: "UMC (Urban Movie Channel)", kind: "niche", genres: ["Black Media"] },
+  { id: "allblk", label: "ALLBLK", kind: "niche", genres: ["Black Media"] },
+  { id: "mansa", label: "MANSA", kind: "niche", genres: ["Black Media"] },
 ];
 
 // ============================================================================
@@ -176,9 +174,14 @@ export const ALL_PLATFORM_IDS: PlatformId[] = PLATFORMS.map((p) => p.id);
 // LEAGUES
 // ============================================================================
 
-export const LEAGUES = ["ALL", "NFL", "NBA", "MLB", "NHL", "MLS", "NCAA", "UFC", "Premier League", "UEFA Champions League"] as const;
+export const LEAGUES = ["ALL", "KFL", "MLB", "MLS", "NBA", "NCAA", "NFL", "NHL", "Premier League", "UCI", "UEFA Champions League", "UFC"] as const;
 
 export const TEAMS_BY_LEAGUE: Record<string, string[]> = {
+  KFL: [
+    "Arkansas Twisters", "Duke City Gladiators", "Frisco Fighters", "Iowa Barnstormers",
+    "Jacksonville Sharks", "Massachusetts Pirates", "NAZ Wranglers", "Northern Arizona Wranglers",
+    "Sioux Falls Storm", "Southwest Kansas Storm", "Tucson Sugar Skulls", "Vegas Knight Hawks",
+  ],
   NFL: [
     "Arizona Cardinals", "Atlanta Falcons", "Baltimore Ravens", "Buffalo Bills",
     "Carolina Panthers", "Chicago Bears", "Cincinnati Bengals", "Cleveland Browns",
@@ -230,12 +233,36 @@ export const TEAMS_BY_LEAGUE: Record<string, string[]> = {
     "Vancouver Whitecaps FC",
   ],
   NCAA: [
-    "Alabama Crimson Tide", "Clemson Tigers", "Georgia Bulldogs", "Michigan Wolverines",
-    "Ohio State Buckeyes", "Oklahoma Sooners", "Oregon Ducks", "Penn State Nittany Lions",
-    "Texas Longhorns", "USC Trojans", "Florida Gators", "LSU Tigers",
-    "Notre Dame Fighting Irish", "Tennessee Volunteers", "Wisconsin Badgers", "Auburn Tigers",
-    "Florida State Seminoles", "Miami Hurricanes", "Michigan State Spartans", "Iowa Hawkeyes",
-    "Texas A&M Aggies", "Virginia Tech Hokies", "Washington Huskies", "Colorado Buffaloes",
+    // Power 5 / Power 4 Conference Teams (Division 1 FBS)
+    "Alabama Crimson Tide", "Arizona State Sun Devils", "Arizona Wildcats", "Arkansas Razorbacks",
+    "Auburn Tigers", "Baylor Bears", "BYU Cougars", "Cal Golden Bears",
+    "Clemson Tigers", "Colorado Buffaloes", "Duke Blue Devils", "Florida Gators",
+    "Florida State Seminoles", "Georgia Bulldogs", "Georgia Tech Yellow Jackets", "Illinois Fighting Illini",
+    "Indiana Hoosiers", "Iowa Hawkeyes", "Iowa State Cyclones", "Kansas Jayhawks",
+    "Kansas State Wildcats", "Kentucky Wildcats", "Louisville Cardinals", "LSU Tigers",
+    "Maryland Terrapins", "Miami Hurricanes", "Michigan State Spartans", "Michigan Wolverines",
+    "Minnesota Golden Gophers", "Mississippi State Bulldogs", "Missouri Tigers", "Nebraska Cornhuskers",
+    "North Carolina Tar Heels", "Northwestern Wildcats", "Notre Dame Fighting Irish", "Ohio State Buckeyes",
+    "Oklahoma Sooners", "Oklahoma State Cowboys", "Ole Miss Rebels", "Oregon Ducks",
+    "Oregon State Beavers", "Penn State Nittany Lions", "Pitt Panthers", "Purdue Boilermakers",
+    "Rutgers Scarlet Knights", "SMU Mustangs", "South Carolina Gamecocks", "Stanford Cardinal",
+    "Syracuse Orange", "TCU Horned Frogs", "Tennessee Volunteers", "Texas A&M Aggies",
+    "Texas Longhorns", "Texas Tech Red Raiders", "UCLA Bruins", "USC Trojans",
+    "Utah Utes", "Vanderbilt Commodores", "Virginia Cavaliers", "Virginia Tech Hokies",
+    "Wake Forest Demon Deacons", "Washington Huskies", "Washington State Cougars", "West Virginia Mountaineers",
+    "Wisconsin Badgers",
+    // HBCU Schools
+    "Alabama A&M Bulldogs", "Alabama State Hornets", "Alcorn State Braves", "Albany State Golden Rams",
+    "Bethune-Cookman Wildcats", "Bowie State Bulldogs", "Central State Marauders", "Coppin State Eagles",
+    "Delaware State Hornets", "Edward Waters Tigers", "Elizabeth City State Vikings", "Fayetteville State Broncos",
+    "Florida A&M Rattlers", "Fort Valley State Wildcats", "Grambling State Tigers", "Hampton Pirates",
+    "Howard Bison", "Jackson State Tigers", "Kentucky State Thorobreds", "Lane Dragons",
+    "Lincoln University Lions", "Livingstone Blue Bears", "Miles Golden Bears", "Mississippi Valley State Delta Devils",
+    "Morgan State Bears", "Norfolk State Spartans", "North Carolina A&T Aggies", "North Carolina Central Eagles",
+    "Prairie View A&M Panthers", "Savannah State Tigers", "Shaw Bears", "South Carolina State Bulldogs",
+    "Southern Jaguars", "Southern University Jaguars", "Stillman Tigers", "Tennessee State Tigers",
+    "Texas Southern Tigers", "Tuskegee Golden Tigers", "Virginia State Trojans", "Virginia Union Panthers",
+    "Winston-Salem State Rams",
   ],
   UFC: ["UFC (All Events)"],
   "Premier League": [
@@ -245,11 +272,14 @@ export const TEAMS_BY_LEAGUE: Record<string, string[]> = {
     "Manchester City", "Manchester United", "Newcastle United", "Nottingham Forest",
     "Southampton", "Tottenham Hotspur", "West Ham United", "Wolverhampton Wanderers",
   ],
+  UCI: [
+    "UCI Pro Tour (All Events)", "Tour de France", "Giro d'Italia", "Vuelta a España",
+  ],
   "UEFA Champions League": [
-    "Real Madrid", "Barcelona", "Bayern Munich", "Manchester City",
-    "Liverpool", "Paris Saint-Germain", "Inter Milan", "Borussia Dortmund",
-    "Juventus", "Atletico Madrid", "AC Milan", "Porto",
-    "Benfica", "Ajax", "RB Leipzig", "Napoli",
+    "AC Milan", "Ajax", "Atletico Madrid", "Barcelona",
+    "Bayern Munich", "Benfica", "Borussia Dortmund", "Inter Milan",
+    "Juventus", "Liverpool", "Manchester City", "Napoli",
+    "Paris Saint-Germain", "Porto", "RB Leipzig", "Real Madrid",
   ],
 };
 

@@ -1075,7 +1075,7 @@ function MenuItem({
         ctx?.close(); // ✅ close before opening modal
         onClick?.();
       }}
-      className="ampere-focus"
+      className="ampere-focus menu-item-glow"
       role="menuitem"
       style={{
         width: "100%",
@@ -1090,6 +1090,7 @@ function MenuItem({
         justifyContent: "space-between",
         alignItems: "center",
         gap: 10,
+        transition: "box-shadow 0.2s ease, border-color 0.2s ease",
       }}
     >
       <div style={{ minWidth: 0 }}>
@@ -1545,46 +1546,46 @@ function buildDemoCatalog(): {
   });
 
   const forYou: Card[] = [
-    mk({ title: "The Bear", subtitle: "Season highlights", platformId: "hulu", genre: "Basic Streaming", metaLeft: "Comedy-drama", metaRight: "HD" }),
+    mk({ title: "The Bear", subtitle: "Season highlights", platformId: "hulu", genre: "Basic", metaLeft: "Comedy-drama", metaRight: "HD" }),
     mk({ title: "Planet Earth: Space", subtitle: "Documentary series", platformId: "pbspassport", genre: "Documentaries", metaLeft: "Doc", metaRight: "4K" }),
-    mk({ title: "Anime Night: Classics", subtitle: "New episodes", platformId: "crunchyroll", genre: "Anime / Asian cinema", metaLeft: "Anime", metaRight: "Sub/Dub" }),
+    mk({ title: "Anime Night: Classics", subtitle: "New episodes", platformId: "crunchyroll", genre: "Anime & AsianTV", metaLeft: "Anime", metaRight: "Sub/Dub" }),
     mk({ title: "Kidoodle Adventure Hour", subtitle: "Free kids playlist", platformId: "kidoodletv", genre: "Kids", metaLeft: "Kids", metaRight: "Free" }),
-    mk({ title: "UFC Countdown", subtitle: "Fight week special", platformId: "espnplus", league: "UFC", genre: "Premium Sports Streaming", metaLeft: "UFC", metaRight: "LIVE soon", badge: "UPCOMING" }),
-    mk({ title: "Indie Spotlight", subtitle: "Festival picks", platformId: "mubi", genre: "Indie and Arthouse Film", metaLeft: "Indie", metaRight: "Curated" }),
+    mk({ title: "UFC Countdown", subtitle: "Fight week special", platformId: "espnplus", league: "UFC", genre: "Sports", metaLeft: "UFC", metaRight: "LIVE soon", badge: "UPCOMING" }),
+    mk({ title: "Indie Spotlight", subtitle: "Festival picks", platformId: "mubi", genre: "Arthouse", metaLeft: "Indie", metaRight: "Curated" }),
     mk({ title: "LGBTQ+ Picks", subtitle: "Tonight’s selection", platformId: "dekkoo", genre: "LGBT", metaLeft: "LGBT", metaRight: "Curated" }),
     mk({ title: "Gaming: Speedrun Marathon", subtitle: "Live marathon", platformId: "twitch", genre: "Gaming", metaLeft: "Gaming", metaRight: "LIVE", badge: "LIVE" }),
   ];
 
   const liveNow: Card[] = [
-    mk({ title: "NFL: Chiefs vs Bills", subtitle: "Weeknight football", platformId: "espn", league: "NFL", genre: "Premium Sports Streaming", badge: "LIVE", metaLeft: "NFL", metaRight: "Live", timeRemaining: "Q3 • 10:22" }),
+    mk({ title: "NFL: Chiefs vs Bills", subtitle: "Weeknight football", platformId: "espn", league: "NFL", genre: "Sports", badge: "LIVE", metaLeft: "NFL", metaRight: "Live", timeRemaining: "Q3 • 10:22" }),
     mk({ title: "NBA: Lakers vs Celtics", subtitle: "Rivalry night", platformId: "youtubetv", league: "NBA", genre: "LiveTV", badge: "LIVE", metaLeft: "NBA", metaRight: "Live", timeRemaining: "2nd • 04:18" }),
-    mk({ title: "NHL: Bruins vs Rangers", subtitle: "Original Six vibes", platformId: "nhl", league: "NHL", genre: "Premium Sports Streaming", badge: "LIVE", metaLeft: "NHL", metaRight: "Live", timeRemaining: "3rd • 07:11" }),
+    mk({ title: "NHL: Bruins vs Rangers", subtitle: "Original Six vibes", platformId: "nhl", league: "NHL", genre: "Sports", badge: "LIVE", metaLeft: "NHL", metaRight: "Live", timeRemaining: "3rd • 07:11" }),
     mk({ title: "NCAAF: Georgia vs Alabama", subtitle: "Top matchup", platformId: "fubotv", league: "NCAAF", genre: "LiveTV", badge: "LIVE", metaLeft: "NCAAF", metaRight: "Live", timeRemaining: "Q2 • 05:41" }),
     mk({ title: "FS1: Soccer Night", subtitle: "Live match window", platformId: "foxsports1", league: "Soccer", genre: "LiveTV", badge: "LIVE", metaLeft: "FS1", metaRight: "Live" }),
-    mk({ title: "UFC Fight Night", subtitle: "Main card", platformId: "espnplus", league: "UFC", genre: "Premium Sports Streaming", badge: "LIVE", metaLeft: "UFC", metaRight: "Live" }),
+    mk({ title: "UFC Fight Night", subtitle: "Main card", platformId: "espnplus", league: "UFC", genre: "Sports", badge: "LIVE", metaLeft: "UFC", metaRight: "Live" }),
   ];
 
   const continueWatching: Card[] = [
-    mk({ title: "Stranger Things", subtitle: "Continue Episode 4", platformId: "netflix", genre: "Basic Streaming", metaLeft: "Sci-fi", metaRight: "Resume" }),
-    mk({ title: "The Batman", subtitle: "Continue at 01:12:33", platformId: "max", genre: "Movie Streaming", metaLeft: "Movie", metaRight: "Resume" }),
-    mk({ title: "Crunchyroll Picks", subtitle: "Continue queue", platformId: "crunchyroll", genre: "Anime / Asian cinema", metaLeft: "Anime", metaRight: "Resume" }),
-    mk({ title: "Indie Library", subtitle: "Continue watchlist", platformId: "criterion", genre: "Indie and Arthouse Film", metaLeft: "Arthouse", metaRight: "Resume" }),
+    mk({ title: "Stranger Things", subtitle: "Continue Episode 4", platformId: "netflix", genre: "Basic", metaLeft: "Sci-fi", metaRight: "Resume" }),
+    mk({ title: "The Batman", subtitle: "Continue at 01:12:33", platformId: "max", genre: "Movies", metaLeft: "Movie", metaRight: "Resume" }),
+    mk({ title: "Crunchyroll Picks", subtitle: "Continue queue", platformId: "crunchyroll", genre: "Anime & AsianTV", metaLeft: "Anime", metaRight: "Resume" }),
+    mk({ title: "Indie Library", subtitle: "Continue watchlist", platformId: "criterion", genre: "Arthouse", metaLeft: "Arthouse", metaRight: "Resume" }),
   ];
 
   const trending: Card[] = [
-    mk({ title: "Top 10 Today", subtitle: "Across streaming", platformId: "netflix", genre: "Basic Streaming", metaLeft: "Trending", metaRight: "Now" }),
+    mk({ title: "Top 10 Today", subtitle: "Across streaming", platformId: "netflix", genre: "Basic", metaLeft: "Trending", metaRight: "Now" }),
     mk({ title: "Horror / Cult Night", subtitle: "New arrivals", platformId: "shudder", genre: "Horror / Cult", metaLeft: "Horror", metaRight: "New" }),
-    mk({ title: "Free Movies Marathon", subtitle: "Watch free", platformId: "tubi", genre: "Free Streaming", metaLeft: "Free", metaRight: "No sign-up" }),
+    mk({ title: "Free Movies Marathon", subtitle: "Watch free", platformId: "tubi", genre: "Free", metaLeft: "Free", metaRight: "No sign-up" }),
     mk({ title: "Kids: Bedtime Stories", subtitle: "Calm picks", platformId: "pbskids", genre: "Kids", metaLeft: "Kids", metaRight: "Safe" }),
     mk({ title: "Live Gaming: Esports Finals", subtitle: "Championship", platformId: "youtube", genre: "Gaming", badge: "LIVE", metaLeft: "Gaming", metaRight: "Live" }),
     mk({ title: "LGBT: Weekend Premiere", subtitle: "New episode drop", platformId: "outtv", genre: "LGBT", metaLeft: "LGBT", metaRight: "New" }),
   ];
 
   const blackMediaCards: Card[] = [
-    mk({ title: "Black Star Network: Live", subtitle: "News + culture", platformId: "blackstarnetwork", genre: "Black culture & diaspora", badge: "LIVE", metaLeft: "Live", metaRight: "Now" }),
-    mk({ title: "MANSA Originals", subtitle: "Curated stories", platformId: "mansa", genre: "Black culture & diaspora", metaLeft: "Originals", metaRight: "New" }),
-    mk({ title: "ALLBLK: Drama Picks", subtitle: "Binge-ready", platformId: "allblk", genre: "Black culture & diaspora", metaLeft: "Drama", metaRight: "HD" }),
-    mk({ title: "HBCU Game of the Week", subtitle: "Showcase", platformId: "hbcugosports", league: "HBCUGOSPORTS", genre: "Premium Sports Streaming", badge: "UPCOMING", metaLeft: "HBCU", metaRight: "Soon", startTime: "Sat 7:30 PM" }),
+    mk({ title: "Black Star Network: Live", subtitle: "News + culture", platformId: "blackstarnetwork", genre: "Black Media", badge: "LIVE", metaLeft: "Live", metaRight: "Now" }),
+    mk({ title: "MANSA Originals", subtitle: "Curated stories", platformId: "mansa", genre: "Black Media", metaLeft: "Originals", metaRight: "New" }),
+    mk({ title: "ALLBLK: Drama Picks", subtitle: "Binge-ready", platformId: "allblk", genre: "Black Media", metaLeft: "Drama", metaRight: "HD" }),
+    mk({ title: "HBCU Game of the Week", subtitle: "Showcase", platformId: "hbcugosports", league: "HBCUGOSPORTS", genre: "Sports", badge: "UPCOMING", metaLeft: "HBCU", metaRight: "Soon", startTime: "Sat 7:30 PM" }),
   ];
 
   return { forYou, liveNow, continueWatching, trending, blackMediaCards };
@@ -1872,10 +1873,11 @@ export default function AmpereApp() {
   useEffect(() => {
     if (powerState !== "booting") return;
     track("power_booting", {});
+    // Fallback timer: if video doesn't trigger onEnded, auto-transition after 8s
     const t = setTimeout(() => {
       setPowerState("on");
       track("power_on", {});
-    }, 900);
+    }, 8000);
     return () => clearTimeout(t);
   }, [powerState]);
 
@@ -1992,13 +1994,13 @@ export default function AmpereApp() {
             ) : (
               <>
                 {/* Boot video */}
-                <div style={{ borderRadius: 18, overflow: "hidden", background: "black", maxHeight: 200 }}>
+                <div style={{ borderRadius: 18, overflow: "hidden", background: "black", maxHeight: 360 }}>
                   <video
                     autoPlay
                     muted
                     playsInline
-                    style={{ width: "100%", maxHeight: 200, objectFit: "contain" }}
-                    onEnded={() => setPowerState("on")}
+                    style={{ width: "100%", maxHeight: 360, objectFit: "contain" }}
+                    onEnded={() => { setPowerState("on"); track("power_on", {}); }}
                   >
                     <source src={assetPath("/assets/boot/power-on.mp4")} type="video/mp4" />
                   </video>
@@ -2138,7 +2140,7 @@ export default function AmpereApp() {
             </div>
 
             <div style={{ minWidth: 0, display: "grid", gap: 6 }}>
-              <div style={{ width: isMobile ? 170 : 220, height: isMobile ? 20 : 24 }}>
+              <div style={{ width: isMobile ? 200 : 280, height: isMobile ? 28 : 36 }}>
                 <SmartImg sources={brandWideCandidates()} size={900} rounded={0} border={false} fit="contain" fill fallbackText="AMPÈRE" />
               </div>
 
@@ -2158,7 +2160,7 @@ export default function AmpereApp() {
           </div>
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
-            <PillButton label="Voice" iconNode={<IconMic />} onClick={() => setOpenVoice(true)} ariaLabel="Voice" />
+            <PillButton label="Voice" iconNode={<SmartImg sources={voiceIconCandidates()} size={18} rounded={0} border={false} fit="contain" fallbackText="" />} onClick={() => setOpenVoice(true)} ariaLabel="Voice" />
             <PillButton label="Remote" iconNode={<IconRemote />} onClick={() => setOpenRemote(true)} ariaLabel="Remote" />
 
             <Dropdown label="Settings" iconLeft={<SmartImg sources={settingsIconCandidates()} size={18} rounded={0} border={false} fit="contain" fallbackText="⚙" />}>
@@ -2167,10 +2169,30 @@ export default function AmpereApp() {
               <MenuItem title="Connect Platforms" subtitle="Open / Subscribe to streaming services" onClick={() => setOpenConnect(true)} right="›" />
               <MenuItem title="Archive" subtitle="History + attribution log" onClick={() => setOpenArchive(true)} right="›" />
               <MenuItem title="App Store" subtitle="Browse additional apps" onClick={() => setOpenAppStore(true)} right="›" />
-              <MenuItem title="Change Header Image" subtitle="Upload a header background" onClick={() => headerInputRef.current?.click()} right="⬆" />
             </Dropdown>
 
-            {/* Power Off direct button */}
+            <Dropdown
+              label="Profile"
+              iconLeft={
+                <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                  <SmartImg sources={avatarSources} size={22} rounded={9} border={true} fit="cover" fallbackText={profile.name.slice(0, 1).toUpperCase()} />
+                </span>
+              }
+            >
+              <MenuItem title="Profile Settings" subtitle="Name, avatar, header image" onClick={() => setOpenProfileSettings(true)} right="›" />
+              <MenuItem title="Change Header Image" subtitle="Recommended: 1500 × 500 px" onClick={() => headerInputRef.current?.click()} right="⬆" />
+              <MenuItem title="Set-Up Wizard" subtitle="Resume onboarding" onClick={() => setOpenSetup(true)} right="›" />
+              <MenuItem
+                title="About AMPERE"
+                subtitle="App info, history, and architecture"
+                onClick={() => {
+                  setOpenAbout(true);
+                }}
+                right="i"
+              />
+            </Dropdown>
+
+            {/* Power Off direct button - right of Profile */}
             <button
               type="button"
               className="ampere-focus"
@@ -2178,7 +2200,7 @@ export default function AmpereApp() {
               aria-label="Power Off"
               title="Power Off"
               style={{
-                padding: "10px 12px",
+                padding: "6px 10px",
                 borderRadius: 999,
                 border: "1px solid rgba(255,72,72,0.22)",
                 background: "rgba(255,72,72,0.08)",
@@ -2193,26 +2215,6 @@ export default function AmpereApp() {
             >
               {"\u23FB"}
             </button>
-
-            <Dropdown
-              label="Profile"
-              iconLeft={
-                <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
-                  <SmartImg sources={avatarSources} size={22} rounded={9} border={true} fit="cover" fallbackText={profile.name.slice(0, 1).toUpperCase()} />
-                </span>
-              }
-            >
-              <MenuItem title="Profile Settings" subtitle="Name, avatar, header image" onClick={() => setOpenProfileSettings(true)} right="›" />
-              <MenuItem title="Set-Up Wizard" subtitle="Resume onboarding" onClick={() => setOpenSetup(true)} right="›" />
-              <MenuItem
-                title="About AMPERE"
-                subtitle="App info, history, and architecture"
-                onClick={() => {
-                  setOpenAbout(true);
-                }}
-                right="i"
-              />
-            </Dropdown>
           </div>
         </div>
       </header>
@@ -2438,6 +2440,49 @@ export default function AmpereApp() {
                 Clear
               </button>
 
+              {/* QWERTY On-Screen Keyboard */}
+              <div style={{ width: "100%", display: "grid", gap: 4, padding: "8px 0" }}>
+                {[
+                  ["Q","W","E","R","T","Y","U","I","O","P"],
+                  ["A","S","D","F","G","H","J","K","L"],
+                  ["Z","X","C","V","B","N","M","⌫"],
+                  ["SPACE","CLEAR","GO"],
+                ].map((row, ri) => (
+                  <div key={ri} style={{ display: "flex", gap: 4, justifyContent: "center" }}>
+                    {row.map((k) => (
+                      <button
+                        key={k}
+                        type="button"
+                        className="ampere-focus"
+                        onClick={() => {
+                          if (k === "⌫") setSearchInput((s) => s.slice(0, -1));
+                          else if (k === "SPACE") setSearchInput((s) => s + " ");
+                          else if (k === "CLEAR") { setSearchInput(""); setSearchQuery(""); }
+                          else if (k === "GO") submitSearch();
+                          else setSearchInput((s) => s + k.toLowerCase());
+                        }}
+                        style={{
+                          padding: k.length > 1 ? "8px 14px" : "8px 0",
+                          width: k.length > 1 ? undefined : isMobile ? 28 : 36,
+                          minWidth: k.length > 1 ? 56 : undefined,
+                          flex: k === "SPACE" ? "1 1 120px" : undefined,
+                          borderRadius: 8,
+                          border: "1px solid rgba(255,255,255,0.12)",
+                          background: k === "GO" ? "rgba(58,167,255,0.15)" : "rgba(255,255,255,0.06)",
+                          color: "white",
+                          fontWeight: 800,
+                          fontSize: isMobile ? 12 : 14,
+                          cursor: "pointer",
+                          textAlign: "center",
+                        }}
+                      >
+                        {k}
+                      </button>
+                    ))}
+                  </div>
+                ))}
+              </div>
+
               <div style={{ width: "100%", opacity: 0.75, fontWeight: 900, fontSize: 13 }}>
                 {searchQuery ? (
                   <>
@@ -2489,7 +2534,7 @@ export default function AmpereApp() {
 
             <Section title="Trending" rightText="See all" onRightClick={() => setOpenSeeAll("trending")}>
               <CardGrid
-                cards={trending.filter((c) => c.genre === "Premium Sports Streaming" || c.genre === "LiveTV").slice(0, 18)}
+                cards={trending.filter((c) => c.genre === "Sports" || c.genre === "LiveTV").slice(0, 18)}
                 cardMinW={density.cardMinW}
                 heroH={density.heroH}
                 onOpen={openCardAndLog}
@@ -2985,7 +3030,7 @@ export default function AmpereApp() {
               {[
                 { name: "Basic", price: "Free", features: ["Web remote control", "Manual platform switching", "Viewing history", "Up to 3 platforms"], color: "rgba(255,255,255,0.08)" },
                 { name: "Pro", price: "$4.99/mo", features: ["InstantSwitch (< 300ms)", "Voice & gesture control", "Unlimited platforms", "Sports Hub + Game Day Mode", "Multi-profile support"], color: "rgba(58,167,255,0.10)" },
-                { name: "Family", price: "$7.99/mo", features: ["Everything in Pro", "Up to 6 profiles", "Parental controls + Kid Mode", "Offline cached schedules", "Priority support"], color: "rgba(138,43,226,0.10)" },
+                { name: "Family", price: "$7.99/mo", features: ["Everything in Pro", "Up to 5 profiles", "Parental controls + Kid Mode", "Offline cached schedules", "Priority support"], color: "rgba(138,43,226,0.10)" },
               ].map((plan) => (
                 <div
                   key={plan.name}
@@ -3247,6 +3292,7 @@ function ProfileSettingsContent({
         >
           Upload Avatar
         </button>
+        <div style={{ fontSize: 11, opacity: 0.5, fontWeight: 900 }}>Recommended: 400 × 400 px</div>
 
         <button
           type="button"
@@ -3264,6 +3310,7 @@ function ProfileSettingsContent({
         >
           Upload Header
         </button>
+        <div style={{ fontSize: 11, opacity: 0.5, fontWeight: 900 }}>Recommended: 1500 × 500 px</div>
 
         <button
           type="button"
@@ -3451,23 +3498,59 @@ function ArchiveContent() {
   );
 }
 
+const APP_STORE_EXTRAS: Platform[] = [
+  // Local Stations
+  { id: "abclocal", label: "ABC Local", kind: "livetv", genres: ["LiveTV", "Free"] },
+  { id: "cbslocal", label: "CBS Local", kind: "livetv", genres: ["LiveTV", "Free"] },
+  { id: "nbclocal", label: "NBC Local", kind: "livetv", genres: ["LiveTV", "Free"] },
+  { id: "foxlocal", label: "FOX Local", kind: "livetv", genres: ["LiveTV", "Free"] },
+  { id: "pbslocal", label: "PBS Local Stations", kind: "livetv", genres: ["LiveTV", "Free", "Documentaries"] },
+  { id: "theweatherchannel", label: "The Weather Channel", kind: "livetv", genres: ["LiveTV", "Free"] },
+  { id: "newsmax", label: "Newsmax", kind: "livetv", genres: ["LiveTV", "Free"] },
+  { id: "comet", label: "Comet TV", kind: "livetv", genres: ["LiveTV", "Free"] },
+  { id: "courttv", label: "Court TV", kind: "livetv", genres: ["LiveTV", "Free"] },
+  { id: "ion", label: "ION Television", kind: "livetv", genres: ["LiveTV", "Free"] },
+  // Lifestyle
+  { id: "discoveryplus", label: "Discovery+", kind: "streaming", genres: ["Basic", "Documentaries"] },
+  { id: "magnolia", label: "Magnolia Network", kind: "streaming", genres: ["Basic"] },
+  { id: "foodnetwork", label: "Food Network", kind: "streaming", genres: ["Basic"] },
+  { id: "hgtv", label: "HGTV", kind: "streaming", genres: ["Basic"] },
+  { id: "tlc", label: "TLC", kind: "streaming", genres: ["Basic"] },
+  { id: "hallmark", label: "Hallmark Movies Now", kind: "streaming", genres: ["Movies"] },
+  { id: "gaia", label: "Gaia", kind: "niche", genres: ["Documentaries"] },
+  { id: "tastemade", label: "Tastemade", kind: "streaming", genres: ["Free"] },
+  { id: "peloton", label: "Peloton", kind: "niche", genres: ["Basic"] },
+  { id: "beachbod", label: "BODi (Beachbody)", kind: "niche", genres: ["Basic"] },
+  // Music & Audio
+  { id: "spotify", label: "Spotify", kind: "streaming", genres: ["Free"] },
+  { id: "tidalapp", label: "TIDAL", kind: "streaming", genres: ["Premium"] },
+  { id: "pandora", label: "Pandora", kind: "streaming", genres: ["Free"] },
+  { id: "iheartradio", label: "iHeartRadio", kind: "streaming", genres: ["Free"] },
+  // Education
+  { id: "masterclass", label: "MasterClass", kind: "niche", genres: ["Documentaries"] },
+  { id: "skillshare", label: "Skillshare", kind: "niche", genres: ["Documentaries"] },
+  { id: "curiouscast", label: "CuriosityStream", kind: "niche", genres: ["Documentaries"] },
+];
+
 function AppStoreContent({ isMobile, onInstall }: { isMobile: boolean; onInstall: (pid: string) => void }) {
   const [search, setSearch] = useState("");
   const [installedIds, setInstalledIds] = useState<Set<string>>(new Set());
 
+  const allApps = useMemo(() => [...PLATFORMS, ...APP_STORE_EXTRAS], []);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const sorted = [...PLATFORMS].sort((a, b) => a.label.localeCompare(b.label));
+    const sorted = [...allApps].sort((a, b) => a.label.localeCompare(b.label));
     if (!q) return sorted;
     return sorted.filter(
       (p) => p.label.toLowerCase().includes(q) || (p.kind ?? "").includes(q) || (p.genres ?? []).some((g) => g.toLowerCase().includes(q))
     );
-  }, [search]);
+  }, [search, allApps]);
 
   const categories = useMemo(() => {
     const cats: Record<string, Platform[]> = {};
     for (const p of filtered) {
-      const cat = p.kind === "sports" ? "Sports" : p.kind === "kids" ? "Kids & Family" : p.kind === "gaming" ? "Gaming" : p.kind === "livetv" ? "Live TV" : p.kind === "niche" ? "Specialty" : "Streaming";
+      const cat = p.kind === "sports" ? "Sports" : p.kind === "kids" ? "Kids & Family" : p.kind === "gaming" ? "Gaming" : p.kind === "livetv" ? "Live TV & Local Stations" : p.kind === "niche" ? "Specialty & Lifestyle" : "Streaming";
       if (!cats[cat]) cats[cat] = [];
       cats[cat].push(p);
     }
@@ -4323,8 +4406,21 @@ function SetupWizardContent({
       {/* STEP 2 */}
       {setupStep === 2 ? (
         <div style={{ display: "grid", gap: 12 }}>
-          <div style={{ opacity: 0.82, fontWeight: 900, lineHeight: 1.5 }}>
-            Choose the services you use most. These become your Favorite Platforms.
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+            <div style={{ opacity: 0.82, fontWeight: 900, lineHeight: 1.5 }}>
+              Choose the services you use most. These become your Favorite Platforms.
+            </div>
+            <button
+              type="button"
+              className="ampere-focus"
+              onClick={() => {
+                const allIds = sortedPlatforms.map((p) => p.id);
+                setDraftPlatforms(draftPlatforms.length === allIds.length ? [] : allIds);
+              }}
+              style={{ padding: "6px 10px", borderRadius: 999, border: "1px solid rgba(58,167,255,0.22)", background: "rgba(58,167,255,0.10)", color: "white", fontWeight: 950, cursor: "pointer", fontSize: 12, whiteSpace: "nowrap" }}
+            >
+              {draftPlatforms.length === sortedPlatforms.length ? "Deselect All" : "Select All"}
+            </button>
           </div>
 
           {draftPlatforms.length ? (
@@ -4338,7 +4434,7 @@ function SetupWizardContent({
             <div style={{ opacity: 0.75, fontWeight: 900 }}>Pick at least one platform.</div>
           )}
 
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(4, minmax(0, 1fr))", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(4, minmax(0, 1fr))", gap: 6 }}>
             {sortedPlatforms.map((p) => (
               <PillButton
                 key={`wiz_plat_${p.id}`}
@@ -4357,11 +4453,23 @@ function SetupWizardContent({
       {/* STEP 3 */}
       {setupStep === 3 ? (
         <div style={{ display: "grid", gap: 12 }}>
-          <div style={{ opacity: 0.82, fontWeight: 900, lineHeight: 1.5 }}>
-            Pick leagues you care about (optional). This helps personalize “Live” and recommendations.
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+            <div style={{ opacity: 0.82, fontWeight: 900, lineHeight: 1.5 }}>
+              Pick leagues you care about (optional). This helps personalize "Live" and recommendations.
+            </div>
+            <button
+              type="button"
+              className="ampere-focus"
+              onClick={() => {
+                setDraftLeagues(draftLeagues.length === leaguesSelectable.length ? [] : [...leaguesSelectable]);
+              }}
+              style={{ padding: "6px 10px", borderRadius: 999, border: "1px solid rgba(58,167,255,0.22)", background: "rgba(58,167,255,0.10)", color: "white", fontWeight: 950, cursor: "pointer", fontSize: 12, whiteSpace: "nowrap" }}
+            >
+              {draftLeagues.length === leaguesSelectable.length ? "Deselect All" : "Select All"}
+            </button>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))", gap: 6 }}>
             {leaguesSelectable.map((l) => (
               <PillButton
                 key={`wiz_league_${l}`}
@@ -4562,8 +4670,8 @@ function SetupWizardContent({
         </div>
       ) : null}
 
-      {/* NAV */}
-      <div style={{ display: "flex", gap: 10, justifyContent: "space-between", flexWrap: "wrap", marginTop: 4 }}>
+      {/* NAV - Sticky footer */}
+      <div style={{ display: "flex", gap: 10, justifyContent: "space-between", flexWrap: "wrap", marginTop: 4, position: "sticky", bottom: 0, background: "var(--panel-strong)", padding: "12px 0", borderTop: "1px solid rgba(255,255,255,0.08)", zIndex: 5 }}>
         <button
           type="button"
           className="ampere-focus"
