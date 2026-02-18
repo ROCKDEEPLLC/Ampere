@@ -179,24 +179,27 @@ button {
 
 .pill {
  border-radius: 999px;
- border: 1px solid var(--panel-border);
- background: rgba(255,255,255,0.06);
+ border: 1px solid rgba(255,255,255,0.10);
+ background: linear-gradient(180deg, rgba(30,30,30,0.95) 0%, rgba(10,10,10,0.90) 100%);
  padding: 6px 10px;
  display: inline-flex;
  align-items: center;
  gap: 6px;
  font-size: 13px;
- transition: background 0.2s ease;
+ box-shadow: 0 1px 3px rgba(0,0,0,0.40), 0 0 0 1px rgba(255,255,255,0.04) inset;
+ backdrop-filter: blur(8px);
+ transition: background 0.2s ease, box-shadow 0.2s ease;
 }
 
 
 .pill:hover {
- background: rgba(255,255,255,0.10);
+ background: linear-gradient(180deg, rgba(40,40,40,0.95) 0%, rgba(18,18,18,0.95) 100%);
+ box-shadow: 0 0 8px rgba(58,167,255,0.20), 0 1px 3px rgba(0,0,0,0.40);
 }
 
 
 .pill:active {
- background: rgba(255,255,255,0.15);
+ background: linear-gradient(180deg, rgba(45,45,45,0.95) 0%, rgba(20,20,20,0.95) 100%);
 }
 
 

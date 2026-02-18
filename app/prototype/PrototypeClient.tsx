@@ -851,12 +851,12 @@ function PillButton({
         gap: 6,
         padding: "6px 10px",
         borderRadius: 999,
-        border: active ? "1px solid rgba(58,167,255,0.38)" : "1px solid var(--stroke)",
+        border: active ? "1px solid rgba(58,167,255,0.45)" : "1px solid rgba(255,255,255,0.10)",
         background: active
-          ? "linear-gradient(180deg, rgba(58,167,255,0.18), rgba(0,0,0,0.06)), rgba(255,255,255,0.06)"
+          ? "linear-gradient(180deg, rgba(58,167,255,0.18) 0%, rgba(10,10,10,0.85) 100%)"
           : subtle
-          ? "rgba(0,0,0,0.18)"
-          : "rgba(255,255,255,0.05)",
+          ? "rgba(5,5,5,0.70)"
+          : "linear-gradient(180deg, rgba(30,30,30,0.95) 0%, rgba(10,10,10,0.90) 100%)",
         color: "white",
         cursor: "pointer",
         fontSize: 13,
@@ -864,30 +864,35 @@ function PillButton({
         userSelect: "none",
         minWidth: 0,
         position: "relative",
-        boxShadow: active ? "0 0 0 1px rgba(58,167,255,0.10) inset" : undefined,
+        boxShadow: active
+          ? "0 0 8px rgba(58,167,255,0.25), 0 0 0 1px rgba(58,167,255,0.15) inset"
+          : "0 1px 3px rgba(0,0,0,0.40), 0 0 0 1px rgba(255,255,255,0.04) inset",
+        backdropFilter: "blur(8px)",
       }}
     >
       {iconNode ? (
-        <span style={{ width: 18, height: 18, display: "inline-flex", alignItems: "center", justifyContent: "center", flex: "0 0 auto" }}>
+        <span style={{ width: 20, height: 20, display: "inline-flex", alignItems: "center", justifyContent: "center", flex: "0 0 auto", borderRadius: 6, boxShadow: "0 0 6px rgba(58,167,255,0.20)", border: "1px solid rgba(58,167,255,0.15)" }}>
           {iconNode}
         </span>
       ) : iconSources && iconSources.length ? (
-        <span style={{ flex: "0 0 auto" }}>
-          <SmartImg sources={iconSources} size={18} rounded={6} fit="contain" fallbackText={label.slice(0, 1).toUpperCase()} />
+        <span style={{ flex: "0 0 auto", borderRadius: 6, boxShadow: "0 0 6px rgba(58,167,255,0.20)", border: "1px solid rgba(58,167,255,0.15)", overflow: "hidden", display: "inline-flex" }}>
+          <SmartImg sources={iconSources} size={20} rounded={6} fit="contain" fallbackText={label.slice(0, 1).toUpperCase()} />
         </span>
       ) : (
         <span
           aria-hidden="true"
           style={{
-            width: 18,
-            height: 18,
+            width: 20,
+            height: 20,
             borderRadius: 6,
-            background: "rgba(255,255,255,0.10)",
+            background: "rgba(255,255,255,0.08)",
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
             fontSize: 10,
             flex: "0 0 auto",
+            boxShadow: "0 0 6px rgba(58,167,255,0.15)",
+            border: "1px solid rgba(58,167,255,0.10)",
           }}
         >
           •
@@ -1545,47 +1550,137 @@ function buildDemoCatalog(): {
     title: p.title,
   });
 
+  // ── For You (one preview per major platform) ──
   const forYou: Card[] = [
+    // Basic
     mk({ title: "The Bear", subtitle: "Season highlights", platformId: "hulu", genre: "Basic", metaLeft: "Comedy-drama", metaRight: "HD" }),
+    mk({ title: "Stranger Things 5", subtitle: "New season premiere", platformId: "netflix", genre: "Basic", metaLeft: "Sci-fi", metaRight: "4K" }),
+    mk({ title: "The Lord of the Rings", subtitle: "Rings of Power S2", platformId: "primevideo", genre: "Basic", metaLeft: "Fantasy", metaRight: "4K HDR" }),
+    mk({ title: "Loki Season 3", subtitle: "New episodes weekly", platformId: "disneyplus", genre: "Basic", metaLeft: "Marvel", metaRight: "4K" }),
+    mk({ title: "The Last of Us", subtitle: "Episode 6 premiere", platformId: "max", genre: "Premium", metaLeft: "Drama", metaRight: "HD" }),
+    mk({ title: "Yellowstone", subtitle: "Season finale", platformId: "peacock", genre: "Basic", metaLeft: "Western", metaRight: "HD" }),
+    mk({ title: "Lioness", subtitle: "New CIA thriller", platformId: "paramountplus", genre: "Basic", metaLeft: "Action", metaRight: "HD" }),
+    mk({ title: "Severance", subtitle: "Mind-bending S2", platformId: "appletv", genre: "Premium", metaLeft: "Thriller", metaRight: "4K" }),
+    mk({ title: "MrBeast Challenge", subtitle: "Most viewed", platformId: "youtube", genre: "Free", metaLeft: "Entertainment", metaRight: "4K" }),
+    // Premium
+    mk({ title: "BMF Season 3", subtitle: "New episodes", platformId: "starz", genre: "Premium", metaLeft: "Crime", metaRight: "HD" }),
+    mk({ title: "Walking Dead: Daryl", subtitle: "Paris adventure", platformId: "amcplus", genre: "Premium", metaLeft: "Horror", metaRight: "HD" }),
+    mk({ title: "BET Awards Special", subtitle: "Full show replay", platformId: "betplus", genre: "Premium", metaLeft: "Awards", metaRight: "HD" }),
+    mk({ title: "Condor S3", subtitle: "Spy thriller", platformId: "mgmplus", genre: "Premium", metaLeft: "Thriller", metaRight: "HD" }),
+    // Movies
+    mk({ title: "Criterion Collection", subtitle: "Classic cinema", platformId: "criterion", genre: "Movies", metaLeft: "Curated", metaRight: "Restored" }),
+    mk({ title: "MUBI Weekly Pick", subtitle: "Festival winner", platformId: "mubi", genre: "Arthouse", metaLeft: "Indie", metaRight: "Curated" }),
+    mk({ title: "Vudu: New Releases", subtitle: "Rent or buy", platformId: "vudu", genre: "Movies", metaLeft: "Movies", metaRight: "New" }),
+    // Documentaries
     mk({ title: "Planet Earth: Space", subtitle: "Documentary series", platformId: "pbspassport", genre: "Documentaries", metaLeft: "Doc", metaRight: "4K" }),
-    mk({ title: "Anime Night: Classics", subtitle: "New episodes", platformId: "crunchyroll", genre: "Anime & AsianTV", metaLeft: "Anime", metaRight: "Sub/Dub" }),
-    mk({ title: "Kidoodle Adventure Hour", subtitle: "Free kids playlist", platformId: "kidoodletv", genre: "Kids", metaLeft: "Kids", metaRight: "Free" }),
+    mk({ title: "CuriosityStream: Cosmos", subtitle: "Deep space exploration", platformId: "curiositystream", genre: "Documentaries", metaLeft: "Science", metaRight: "4K" }),
+    mk({ title: "MagellanTV: War Stories", subtitle: "History deep dive", platformId: "magellantv", genre: "Documentaries", metaLeft: "History", metaRight: "HD" }),
+    // Anime & AsianTV
+    mk({ title: "Demon Slayer S4", subtitle: "New episodes", platformId: "crunchyroll", genre: "Anime & AsianTV", metaLeft: "Anime", metaRight: "Sub/Dub" }),
+    mk({ title: "HIDIVE: Oshi no Ko", subtitle: "Exclusive premiere", platformId: "hidive", genre: "Anime & AsianTV", metaLeft: "Anime", metaRight: "Sub" }),
+    mk({ title: "Viki: K-Drama Hits", subtitle: "Top Korean drama", platformId: "viki", genre: "Anime & AsianTV", metaLeft: "K-Drama", metaRight: "Sub" }),
+    mk({ title: "iQIYI: C-Drama Weekly", subtitle: "Chinese drama pick", platformId: "iqiyi", genre: "Anime & AsianTV", metaLeft: "C-Drama", metaRight: "Sub" }),
+    mk({ title: "AsianCrush: Action", subtitle: "Martial arts cinema", platformId: "asiancrush", genre: "Anime & AsianTV", metaLeft: "Action", metaRight: "HD" }),
+    // Kids
+    mk({ title: "Kidoodle Adventure", subtitle: "Safe fun for kids", platformId: "kidoodletv", genre: "Kids", metaLeft: "Kids", metaRight: "Free" }),
+    mk({ title: "PBS Kids: Wild Kratts", subtitle: "Animal adventures", platformId: "pbskids", genre: "Kids", metaLeft: "Education", metaRight: "Free" }),
+    mk({ title: "Noggin: Blue's Clues", subtitle: "Interactive learning", platformId: "noggin", genre: "Kids", metaLeft: "Preschool", metaRight: "Ad-free" }),
+    mk({ title: "YouTube Kids: Sing Along", subtitle: "Music & dance", platformId: "youtubekids", genre: "Kids", metaLeft: "Music", metaRight: "Free" }),
+    // Sports
     mk({ title: "UFC Countdown", subtitle: "Fight week special", platformId: "espnplus", league: "UFC", genre: "Sports", metaLeft: "UFC", metaRight: "LIVE soon", badge: "UPCOMING" }),
-    mk({ title: "Indie Spotlight", subtitle: "Festival picks", platformId: "mubi", genre: "Arthouse", metaLeft: "Indie", metaRight: "Curated" }),
-    mk({ title: "LGBTQ+ Picks", subtitle: "Tonight’s selection", platformId: "dekkoo", genre: "LGBT", metaLeft: "LGBT", metaRight: "Curated" }),
+    mk({ title: "NFL+ RedZone", subtitle: "Every touchdown", platformId: "nflplus", league: "NFL", genre: "Sports", metaLeft: "NFL", metaRight: "Live" }),
+    mk({ title: "NBA League Pass", subtitle: "Full game replays", platformId: "nbaleaguepass", league: "NBA", genre: "Sports", metaLeft: "NBA", metaRight: "On Demand" }),
+    mk({ title: "MLB.TV: Highlights", subtitle: "Best plays tonight", platformId: "mlbtv", league: "MLB", genre: "Sports", metaLeft: "MLB", metaRight: "4K" }),
+    mk({ title: "DAZN: Boxing Main Event", subtitle: "PPV night", platformId: "dazn", genre: "Sports", metaLeft: "Boxing", metaRight: "HD" }),
+    // Gaming
     mk({ title: "Gaming: Speedrun Marathon", subtitle: "Live marathon", platformId: "twitch", genre: "Gaming", metaLeft: "Gaming", metaRight: "LIVE", badge: "LIVE" }),
+    mk({ title: "Kick: Top Streamer", subtitle: "Live gameplay", platformId: "kick", genre: "Gaming", metaLeft: "Streaming", metaRight: "Live" }),
+    // Free
+    mk({ title: "Tubi: Action Movies", subtitle: "Free blockbusters", platformId: "tubi", genre: "Free", metaLeft: "Action", metaRight: "Free" }),
+    mk({ title: "Pluto TV: Comedy Central", subtitle: "Live channel", platformId: "plutotv", genre: "Free", metaLeft: "Comedy", metaRight: "Free" }),
+    mk({ title: "Roku Channel: Originals", subtitle: "Exclusive series", platformId: "rokuchannel", genre: "Free", metaLeft: "Original", metaRight: "Free" }),
+    mk({ title: "Freevee: Bosch Legacy", subtitle: "Amazon originals", platformId: "freevee", genre: "Free", metaLeft: "Thriller", metaRight: "Free" }),
+    mk({ title: "Xumo: News Live", subtitle: "24/7 news stream", platformId: "xumo", genre: "Free", metaLeft: "News", metaRight: "Free" }),
+    mk({ title: "Plex: Discover", subtitle: "Universal watchlist", platformId: "plex", genre: "Free", metaLeft: "Mixed", metaRight: "Free" }),
+    mk({ title: "Crackle: Snatch", subtitle: "Crime comedy", platformId: "crackle", genre: "Free", metaLeft: "Crime", metaRight: "Free" }),
+    // Horror / Cult
+    mk({ title: "Shudder: Creepshow", subtitle: "Horror anthology", platformId: "shudder", genre: "Horror / Cult", metaLeft: "Horror", metaRight: "New" }),
+    mk({ title: "Screambox: Slasher", subtitle: "Cult favorites", platformId: "screambox", genre: "Horror / Cult", metaLeft: "Slasher", metaRight: "HD" }),
+    mk({ title: "Arrow Player: Giallo", subtitle: "Italian horror", platformId: "arrow", genre: "Horror / Cult", metaLeft: "Cult", metaRight: "Restored" }),
+    // LGBT
+    mk({ title: "LGBTQ+ Picks", subtitle: "Tonight's selection", platformId: "dekkoo", genre: "LGBT", metaLeft: "LGBT", metaRight: "Curated" }),
+    mk({ title: "HERE TV: Drama", subtitle: "Original series", platformId: "heretv", genre: "LGBT", metaLeft: "Drama", metaRight: "HD" }),
+    mk({ title: "OUTtv: Weekend", subtitle: "New premiere", platformId: "outtv", genre: "LGBT", metaLeft: "LGBT", metaRight: "New" }),
+    mk({ title: "Revry: Music Festival", subtitle: "Live concert", platformId: "revry", genre: "LGBT", metaLeft: "Music", metaRight: "Live" }),
+    // Arthouse
+    mk({ title: "OVID: Global Cinema", subtitle: "World premieres", platformId: "ovid", genre: "Arthouse", metaLeft: "World", metaRight: "Exclusive" }),
+    mk({ title: "Kanopy: Film School", subtitle: "Free via library", platformId: "kanopy", genre: "Arthouse", metaLeft: "Cinema", metaRight: "Free" }),
+    mk({ title: "Fandor: Directors Cut", subtitle: "Indie showcase", platformId: "fandor", genre: "Arthouse", metaLeft: "Indie", metaRight: "Curated" }),
+    // Live TV
+    mk({ title: "YouTube TV: NBA", subtitle: "Full game access", platformId: "youtubetv", genre: "LiveTV", metaLeft: "Sports", metaRight: "Live" }),
+    mk({ title: "Hulu + Live TV", subtitle: "Live channels + library", platformId: "hululive", genre: "LiveTV", metaLeft: "Bundle", metaRight: "Live" }),
+    mk({ title: "Sling: Orange + Blue", subtitle: "Live TV package", platformId: "sling", genre: "LiveTV", metaLeft: "Cable", metaRight: "Live" }),
+    mk({ title: "FuboTV: Premier League", subtitle: "Match day", platformId: "fubotv", genre: "LiveTV", metaLeft: "Soccer", metaRight: "4K" }),
+    // Black Media
+    mk({ title: "Kweli TV: African Film", subtitle: "Pan-African stories", platformId: "kwelitv", genre: "Black Media", metaLeft: "African", metaRight: "HD" }),
+    mk({ title: "UrbanFlix: Originals", subtitle: "Black indie cinema", platformId: "urbanflixtv", genre: "Black Media", metaLeft: "Indie", metaRight: "HD" }),
+    mk({ title: "Brown Sugar: Classic", subtitle: "Blaxploitation era", platformId: "brownsugar", genre: "Black Media", metaLeft: "Classic", metaRight: "HD" }),
+    mk({ title: "UMC: Faith & Family", subtitle: "Inspirational", platformId: "umc", genre: "Black Media", metaLeft: "Faith", metaRight: "HD" }),
+    mk({ title: "AfrolandTV: Culture", subtitle: "Global Black stories", platformId: "afrolandtv", genre: "Black Media", metaLeft: "Culture", metaRight: "New" }),
+    mk({ title: "Americanu: Diaspora", subtitle: "Diaspora narratives", platformId: "americanu", genre: "Black Media", metaLeft: "Diaspora", metaRight: "HD" }),
+    mk({ title: "HBCU GO Sports", subtitle: "HBCU athletics", platformId: "hbcugosports", genre: "Sports", metaLeft: "HBCU", metaRight: "Live", badge: "LIVE" }),
   ];
 
+  // ── Live Now ──
   const liveNow: Card[] = [
     mk({ title: "NFL: Chiefs vs Bills", subtitle: "Weeknight football", platformId: "espn", league: "NFL", genre: "Sports", badge: "LIVE", metaLeft: "NFL", metaRight: "Live", timeRemaining: "Q3 • 10:22" }),
     mk({ title: "NBA: Lakers vs Celtics", subtitle: "Rivalry night", platformId: "youtubetv", league: "NBA", genre: "LiveTV", badge: "LIVE", metaLeft: "NBA", metaRight: "Live", timeRemaining: "2nd • 04:18" }),
     mk({ title: "NHL: Bruins vs Rangers", subtitle: "Original Six vibes", platformId: "nhl", league: "NHL", genre: "Sports", badge: "LIVE", metaLeft: "NHL", metaRight: "Live", timeRemaining: "3rd • 07:11" }),
-    mk({ title: "NCAAF: Georgia vs Alabama", subtitle: "Top matchup", platformId: "fubotv", league: "NCAAF", genre: "LiveTV", badge: "LIVE", metaLeft: "NCAAF", metaRight: "Live", timeRemaining: "Q2 • 05:41" }),
-    mk({ title: "FS1: Soccer Night", subtitle: "Live match window", platformId: "foxsports1", league: "Soccer", genre: "LiveTV", badge: "LIVE", metaLeft: "FS1", metaRight: "Live" }),
+    mk({ title: "MLB: Yankees vs Dodgers", subtitle: "Crosstown classic", platformId: "mlbtv", league: "MLB", genre: "Sports", badge: "LIVE", metaLeft: "MLB", metaRight: "Live", timeRemaining: "5th • 2-1" }),
+    mk({ title: "Premier League: Arsenal vs Chelsea", subtitle: "London derby", platformId: "fubotv", league: "Premier League", genre: "Sports", badge: "LIVE", metaLeft: "EPL", metaRight: "Live", timeRemaining: "65'" }),
+    mk({ title: "Ligue 1: PSG vs Marseille", subtitle: "Le Classique", platformId: "fubotv", league: "France Ligue 1", genre: "Sports", badge: "LIVE", metaLeft: "Ligue 1", metaRight: "Live", timeRemaining: "38'" }),
+    mk({ title: "NCAAF: Georgia vs Alabama", subtitle: "Top matchup", platformId: "espnplus", league: "NCAA", genre: "Sports", badge: "LIVE", metaLeft: "NCAA", metaRight: "Live", timeRemaining: "Q2 • 05:41" }),
+    mk({ title: "KHL: CSKA vs SKA", subtitle: "Russian hockey", platformId: "espnplus", league: "KHL", genre: "Sports", badge: "LIVE", metaLeft: "KHL", metaRight: "Live", timeRemaining: "2nd • 12:05" }),
+    mk({ title: "FS1: Soccer Night", subtitle: "Live match window", platformId: "foxsports1", genre: "LiveTV", badge: "LIVE", metaLeft: "FS1", metaRight: "Live" }),
     mk({ title: "UFC Fight Night", subtitle: "Main card", platformId: "espnplus", league: "UFC", genre: "Sports", badge: "LIVE", metaLeft: "UFC", metaRight: "Live" }),
+    mk({ title: "MLS: Inter Miami vs Galaxy", subtitle: "Messi in action", platformId: "appletv", league: "MLS", genre: "Sports", badge: "LIVE", metaLeft: "MLS", metaRight: "Live", timeRemaining: "52'" }),
+    mk({ title: "EFL: Bolton vs Luton", subtitle: "League One clash", platformId: "espnplus", league: "EFL League One", genre: "Sports", badge: "LIVE", metaLeft: "EFL", metaRight: "Live", timeRemaining: "70'" }),
   ];
 
+  // ── Continue Watching ──
   const continueWatching: Card[] = [
-    mk({ title: "Stranger Things", subtitle: "Continue Episode 4", platformId: "netflix", genre: "Basic", metaLeft: "Sci-fi", metaRight: "Resume" }),
+    mk({ title: "Stranger Things 5", subtitle: "Continue Episode 4", platformId: "netflix", genre: "Basic", metaLeft: "Sci-fi", metaRight: "Resume" }),
     mk({ title: "The Batman", subtitle: "Continue at 01:12:33", platformId: "max", genre: "Movies", metaLeft: "Movie", metaRight: "Resume" }),
-    mk({ title: "Crunchyroll Picks", subtitle: "Continue queue", platformId: "crunchyroll", genre: "Anime & AsianTV", metaLeft: "Anime", metaRight: "Resume" }),
-    mk({ title: "Indie Library", subtitle: "Continue watchlist", platformId: "criterion", genre: "Arthouse", metaLeft: "Arthouse", metaRight: "Resume" }),
+    mk({ title: "Demon Slayer S4", subtitle: "Continue queue", platformId: "crunchyroll", genre: "Anime & AsianTV", metaLeft: "Anime", metaRight: "Resume" }),
+    mk({ title: "Criterion Collection", subtitle: "Continue watchlist", platformId: "criterion", genre: "Arthouse", metaLeft: "Arthouse", metaRight: "Resume" }),
+    mk({ title: "Severance S2", subtitle: "Continue Episode 3", platformId: "appletv", genre: "Premium", metaLeft: "Thriller", metaRight: "Resume" }),
+    mk({ title: "The Bear S3", subtitle: "Continue Episode 7", platformId: "hulu", genre: "Basic", metaLeft: "Drama", metaRight: "Resume" }),
   ];
 
+  // ── Trending ──
   const trending: Card[] = [
     mk({ title: "Top 10 Today", subtitle: "Across streaming", platformId: "netflix", genre: "Basic", metaLeft: "Trending", metaRight: "Now" }),
     mk({ title: "Horror / Cult Night", subtitle: "New arrivals", platformId: "shudder", genre: "Horror / Cult", metaLeft: "Horror", metaRight: "New" }),
     mk({ title: "Free Movies Marathon", subtitle: "Watch free", platformId: "tubi", genre: "Free", metaLeft: "Free", metaRight: "No sign-up" }),
-    mk({ title: "Kids: Bedtime Stories", subtitle: "Calm picks", platformId: "pbskids", genre: "Kids", metaLeft: "Kids", metaRight: "Safe" }),
-    mk({ title: "Live Gaming: Esports Finals", subtitle: "Championship", platformId: "youtube", genre: "Gaming", badge: "LIVE", metaLeft: "Gaming", metaRight: "Live" }),
-    mk({ title: "LGBT: Weekend Premiere", subtitle: "New episode drop", platformId: "outtv", genre: "LGBT", metaLeft: "LGBT", metaRight: "New" }),
+    mk({ title: "Kids: Wild Kratts", subtitle: "Nature adventures", platformId: "pbskids", genre: "Kids", metaLeft: "Kids", metaRight: "Safe" }),
+    mk({ title: "Live Gaming: Esports", subtitle: "Championship finals", platformId: "youtube", genre: "Gaming", badge: "LIVE", metaLeft: "Gaming", metaRight: "Live" }),
+    mk({ title: "OUTtv: Weekend Premiere", subtitle: "New episode drop", platformId: "outtv", genre: "LGBT", metaLeft: "LGBT", metaRight: "New" }),
+    mk({ title: "Disney+: Inside Out 3", subtitle: "Animated sequel", platformId: "disneyplus", genre: "Basic", metaLeft: "Animation", metaRight: "4K" }),
+    mk({ title: "Max: House of Dragon", subtitle: "Season 3 premiere", platformId: "max", genre: "Premium", metaLeft: "Fantasy", metaRight: "4K HDR" }),
+    mk({ title: "Peacock: Olympic Replays", subtitle: "Best moments", platformId: "peacock", genre: "Sports", metaLeft: "Olympics", metaRight: "4K" }),
+    mk({ title: "Paramount+: Knuckles", subtitle: "Sonic spinoff", platformId: "paramountplus", genre: "Basic", metaLeft: "Animation", metaRight: "HD" }),
   ];
 
+  // ── Black Media ──
   const blackMediaCards: Card[] = [
     mk({ title: "Black Star Network: Live", subtitle: "News + culture", platformId: "blackstarnetwork", genre: "Black Media", badge: "LIVE", metaLeft: "Live", metaRight: "Now" }),
     mk({ title: "MANSA Originals", subtitle: "Curated stories", platformId: "mansa", genre: "Black Media", metaLeft: "Originals", metaRight: "New" }),
     mk({ title: "ALLBLK: Drama Picks", subtitle: "Binge-ready", platformId: "allblk", genre: "Black Media", metaLeft: "Drama", metaRight: "HD" }),
-    mk({ title: "HBCU Game of the Week", subtitle: "Showcase", platformId: "hbcugosports", league: "HBCUGOSPORTS", genre: "Sports", badge: "UPCOMING", metaLeft: "HBCU", metaRight: "Soon", startTime: "Sat 7:30 PM" }),
+    mk({ title: "HBCU Game of the Week", subtitle: "Showcase", platformId: "hbcugosports", league: "NCAA", genre: "Sports", badge: "UPCOMING", metaLeft: "HBCU", metaRight: "Soon", startTime: "Sat 7:30 PM" }),
+    mk({ title: "Brown Sugar: Classics", subtitle: "70s & 80s cinema", platformId: "brownsugar", genre: "Black Media", metaLeft: "Classic", metaRight: "HD" }),
+    mk({ title: "BET+ Original Series", subtitle: "Exclusive premiere", platformId: "betplus", genre: "Black Media", metaLeft: "Original", metaRight: "New" }),
+    mk({ title: "Kweli TV: Pan-African", subtitle: "World cinema", platformId: "kwelitv", genre: "Black Media", metaLeft: "World", metaRight: "HD" }),
+    mk({ title: "UrbanFlix: New Wave", subtitle: "Indie Black cinema", platformId: "urbanflixtv", genre: "Black Media", metaLeft: "Indie", metaRight: "New" }),
   ];
 
   return { forYou, liveNow, continueWatching, trending, blackMediaCards };

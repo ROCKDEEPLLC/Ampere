@@ -65,6 +65,7 @@ export const PLATFORMS: Platform[] = [
   { id: "criterion", label: "The Criterion Channel", kind: "streaming", genres: ["Movies", "Arthouse"] },
   { id: "mubi", label: "MUBI", kind: "streaming", genres: ["Movies", "Arthouse"] },
   { id: "fandango", label: "Fandango at Home", kind: "streaming", genres: ["Movies"], note: "Formerly Vudu" },
+  { id: "vudu", label: "Vudu", kind: "streaming", genres: ["Movies"], note: "Now Fandango at Home" },
   { id: "youtubemovies", label: "YouTube Movies / Google TV", kind: "streaming", genres: ["Movies"] },
   { id: "moviesanywhere", label: "Movies Anywhere", kind: "streaming", genres: ["Movies"] },
 
@@ -174,7 +175,7 @@ export const ALL_PLATFORM_IDS: PlatformId[] = PLATFORMS.map((p) => p.id);
 // LEAGUES
 // ============================================================================
 
-export const LEAGUES = ["ALL", "KFL", "MLB", "MLS", "NBA", "NCAA", "NFL", "NHL", "Premier League", "UCI", "UEFA Champions League", "UFC"] as const;
+export const LEAGUES = ["ALL", "EFL League One", "EFL League Two", "France Ligue 1", "KFL", "KHL", "MLB", "MLS", "NBA", "NCAA", "NFL", "NHL", "Premier League", "UCI", "UEFA Champions League", "UFC"] as const;
 
 export const TEAMS_BY_LEAGUE: Record<string, string[]> = {
   KFL: [
@@ -223,14 +224,14 @@ export const TEAMS_BY_LEAGUE: Record<string, string[]> = {
     "Vancouver Canucks", "Vegas Golden Knights", "Washington Capitals", "Winnipeg Jets",
   ],
   MLS: [
-    "Atlanta United FC", "Austin FC", "CF Montreal", "Charlotte FC",
+    "Atlanta United FC", "Austin FC", "CF Montréal", "Charlotte FC",
     "Chicago Fire FC", "Colorado Rapids", "Columbus Crew", "D.C. United",
     "FC Cincinnati", "FC Dallas", "Houston Dynamo FC", "Inter Miami CF",
     "LA Galaxy", "LAFC", "Minnesota United FC", "Nashville SC",
     "New England Revolution", "New York City FC", "New York Red Bulls", "Orlando City SC",
-    "Philadelphia Union", "Portland Timbers", "Real Salt Lake", "San Jose Earthquakes",
-    "Seattle Sounders FC", "Sporting Kansas City", "St. Louis City SC", "Toronto FC",
-    "Vancouver Whitecaps FC",
+    "Philadelphia Union", "Portland Timbers", "Real Salt Lake", "San Diego FC",
+    "San Jose Earthquakes", "Seattle Sounders FC", "Sporting Kansas City", "St. Louis City SC",
+    "Toronto FC", "Vancouver Whitecaps FC",
   ],
   NCAA: [
     // Power 5 / Power 4 Conference Teams (Division 1 FBS)
@@ -280,6 +281,37 @@ export const TEAMS_BY_LEAGUE: Record<string, string[]> = {
     "Bayern Munich", "Benfica", "Borussia Dortmund", "Inter Milan",
     "Juventus", "Liverpool", "Manchester City", "Napoli",
     "Paris Saint-Germain", "Porto", "RB Leipzig", "Real Madrid",
+  ],
+  "EFL League One": [
+    "AFC Wimbledon", "Barnsley", "Blackpool", "Bolton Wanderers",
+    "Bradford City", "Burton Albion", "Cardiff City", "Doncaster Rovers",
+    "Exeter City", "Huddersfield Town", "Leyton Orient", "Lincoln City",
+    "Luton Town", "Mansfield Town", "Northampton Town", "Peterborough United",
+    "Plymouth Argyle", "Port Vale", "Reading", "Rotherham United",
+    "Stevenage", "Stockport County", "Wigan Athletic", "Wycombe Wanderers",
+  ],
+  "EFL League Two": [
+    "Accrington Stanley", "Barnet", "Barrow", "Bristol Rovers",
+    "Bromley", "Cambridge United", "Cheltenham Town", "Chesterfield",
+    "Colchester United", "Crawley Town", "Crewe Alexandra", "Fleetwood Town",
+    "Gillingham", "Grimsby Town", "Harrogate Town", "MK Dons",
+    "Newport County", "Notts County", "Oldham Athletic", "Salford City",
+    "Shrewsbury Town", "Swindon Town", "Tranmere Rovers", "Walsall",
+  ],
+  "France Ligue 1": [
+    "AJ Auxerre", "Angers SCO", "AS Monaco", "FC Lorient",
+    "FC Metz", "FC Nantes", "Le Havre AC", "Lille OSC",
+    "OGC Nice", "Olympique de Marseille", "Olympique Lyonnais", "Paris FC",
+    "Paris Saint-Germain", "RC Lens", "RC Strasbourg", "Stade Brestois",
+    "Stade Rennais", "Toulouse FC",
+  ],
+  KHL: [
+    "Admiral Vladivostok", "Ak Bars Kazan", "Amur Khabarovsk", "Avangard Omsk",
+    "Avtomobilist Yekaterinburg", "Barys Astana", "CSKA Moscow", "Dinamo Minsk",
+    "Dynamo Moscow", "HK Sochi", "Lada Togliatti", "Lokomotiv Yaroslavl",
+    "Metallurg Magnitogorsk", "Neftekhimik Nizhnekamsk", "Salavat Yulaev Ufa", "Severstal Cherepovets",
+    "Shanghai Dragons", "Sibir Novosibirsk", "SKA St. Petersburg", "Spartak Moscow",
+    "Torpedo Nizhny Novgorod", "Traktor Chelyabinsk",
   ],
 };
 
@@ -400,6 +432,7 @@ const PROVIDER_URLS: Record<string, { open: string; subscribe: string }> = {
   screambox: { open: "https://www.screambox.com", subscribe: "https://www.screambox.com/subscribe" },
   arrow: { open: "https://www.arrowplayer.com", subscribe: "https://www.arrowplayer.com/subscribe" },
   fandango: { open: "https://www.vudu.com", subscribe: "https://www.vudu.com" },
+  vudu: { open: "https://www.vudu.com", subscribe: "https://www.vudu.com" },
   youtubemovies: { open: "https://play.google.com/store/movies", subscribe: "https://tv.google.com" },
   moviesanywhere: { open: "https://moviesanywhere.com", subscribe: "https://moviesanywhere.com" },
   nflplus: { open: "https://www.nfl.com/plus", subscribe: "https://www.nfl.com/plus" },
