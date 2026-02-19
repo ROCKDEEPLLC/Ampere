@@ -1694,7 +1694,6 @@ export default function AmpereApp() {
   const { isMobile, density } = useViewport();
 
   const [activeTab, setActiveTab] = useState<TabKey>("home");
-  const [showAbout, setShowAbout] = useState(false);
   const [activeGenre, setActiveGenre] = useState<GenreKey>("All");
   const [activePlatform, setActivePlatform] = useState<PlatformId>("all");
   const [activeLeague, setActiveLeague] = useState<string>("ALL");
@@ -1768,7 +1767,7 @@ export default function AmpereApp() {
   // Wizard: initialize "shown teams per league" when step 4 entered
   useEffect(() => {
     if (setupStep !== 4) return;
-    const initial = isMobile ? 12 : 20;
+    const initial = 4;
     const next: Record<string, number> = {};
     for (const l of draftLeagues) {
       const canon = canonicalLeagueForTeams(l) ?? l;
@@ -2278,8 +2277,8 @@ export default function AmpereApp() {
               <MenuItem title="Change Header Image" subtitle="Recommended: 1500 × 500 px" onClick={() => headerInputRef.current?.click()} right="⬆" />
               <MenuItem title="Set-Up Wizard" subtitle="Resume onboarding" onClick={() => setOpenSetup(true)} right="›" />
               <MenuItem
-                title="About AMPERE"
-                subtitle="App info, history, and architecture"
+                title="About AMP\u00c8RE"
+                subtitle="Backstory, inventors, and architecture"
                 onClick={() => {
                   setOpenAbout(true);
                 }}
@@ -3257,9 +3256,7 @@ export default function AmpereApp() {
         </div>
       </Modal>
 
-      <Modal open={openAbout} title="About AMPÈRE" onClose={() => setOpenAbout(false)} maxWidth={980}>
-        <AboutContent />
-      </Modal>
+      {openAbout && <AboutSection onClose={() => setOpenAbout(false)} />}
 
       <Modal open={openArchive} title="Archive" onClose={() => setOpenArchive(false)} maxWidth={980}>
         <ArchiveContent />
@@ -3319,10 +3316,6 @@ export default function AmpereApp() {
           }}
         />
 
-        {/* About Modal */}
-        {showAbout && (
-          <AboutSection onClose={() => setShowAbout(false)} />
-        )}
       </Modal>
     </div>
   );
@@ -3742,7 +3735,7 @@ function AboutContent() {
         </div>
       </div>
 
-      <div style={{ fontWeight: 950, fontSize: 22, textAlign: "center" }}>Control, Reimagined.</div>
+      <div style={{ fontWeight: 950, fontSize: 22, textAlign: "center" }}>Choice & Control \u2013 Simplified.</div>
 
       {/* Image placeholder slots */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
@@ -4622,7 +4615,7 @@ function SetupWizardContent({
                 const q = normalizeKey(wizTeamSearch);
                 const filtered = q ? all.filter((t) => normalizeKey(t).includes(q)) : all;
 
-                const shown = wizShownByLeague[canon] ?? (isMobile ? 12 : 20);
+                const shown = wizShownByLeague[canon] ?? 4;
                 const slice = filtered.slice(0, shown);
                 const more = shown < filtered.length;
 
@@ -4666,7 +4659,7 @@ function SetupWizardContent({
                         onClick={() =>
                           setWizShownByLeague((prev) => ({
                             ...prev,
-                            [canon]: Math.min(filtered.length, (prev[canon] ?? shown) + (isMobile ? 12 : 20)),
+                            [canon]: Math.min(filtered.length, (prev[canon] ?? shown) + 12),
                           }))
                         }
                         style={{
