@@ -121,6 +121,25 @@ export const PLATFORMS: Platform[] = [
   { id: "yahoosports", label: "Yahoo Sports Network", kind: "sports", genres: ["Sports"] },
   { id: "fanduelsports", label: "FanDuel Sports Network", kind: "sports", genres: ["Sports"] },
 
+  // ---- REGIONAL SPORTS NETWORKS (Team-specific streaming) ----
+  { id: "yesnetwork", label: "YES Network", kind: "sports", genres: ["Sports"], note: "NY Yankees, Brooklyn Nets" },
+  { id: "nesn", label: "NESN", kind: "sports", genres: ["Sports"], note: "Boston Red Sox, Boston Bruins" },
+  { id: "snla", label: "SportsNet LA", kind: "sports", genres: ["Sports"], note: "LA Dodgers" },
+  { id: "masn", label: "MASN", kind: "sports", genres: ["Sports"], note: "Baltimore Orioles, Washington Nationals" },
+  { id: "marquee", label: "Marquee Sports Network", kind: "sports", genres: ["Sports"], note: "Chicago Cubs" },
+  { id: "sny", label: "SNY", kind: "sports", genres: ["Sports"], note: "NY Mets" },
+  { id: "attsportsnet", label: "AT&T SportsNet", kind: "sports", genres: ["Sports"], note: "Pittsburgh Pirates, Houston Astros, Rocky Mountain region" },
+  { id: "nbcsportsboston", label: "NBC Sports Boston", kind: "sports", genres: ["Sports"], note: "Boston Celtics, Bruins regional" },
+  { id: "msgnetwork", label: "MSG Network", kind: "sports", genres: ["Sports"], note: "NY Knicks, NY Rangers, NJ Devils" },
+  { id: "ballysports", label: "Bally Sports", kind: "sports", genres: ["Sports"], note: "Multiple RSNs across regions" },
+  { id: "rootsports", label: "ROOT Sports", kind: "sports", genres: ["Sports"], note: "Seattle Mariners, Pittsburgh, AT&T Rocky Mountain" },
+  { id: "spectrumsnets", label: "Spectrum SportsNet", kind: "sports", genres: ["Sports"], note: "LA Lakers, LA Galaxy" },
+  { id: "nbcsportschicago", label: "NBC Sports Chicago", kind: "sports", genres: ["Sports"], note: "Chicago White Sox, Bulls, Blackhawks" },
+  { id: "nbcsportsphilly", label: "NBC Sports Philadelphia", kind: "sports", genres: ["Sports"], note: "Philadelphia 76ers, Phillies, Flyers" },
+  { id: "nbcsnw", label: "NBC Sports Northwest", kind: "sports", genres: ["Sports"], note: "Portland Trail Blazers" },
+  { id: "kcsr", label: "KC Sports Network", kind: "sports", genres: ["Sports"], note: "Kansas City Royals, Sporting KC" },
+  { id: "monumental", label: "Monumental Sports Network", kind: "sports", genres: ["Sports"], note: "Washington Wizards, Capitals" },
+
   // ---- GAMING ----
   { id: "twitch", label: "Twitch", kind: "gaming", genres: ["Gaming"] },
   { id: "kick", label: "Kick", kind: "gaming", genres: ["Gaming"] },
@@ -198,11 +217,26 @@ export const LEAGUES = [
   "Argentine Primera", "Brasileir\u00e3o S\u00e9rie A", "Chilean Primera", "Colombian Liga BetPlay",
   "Copa Libertadores", "Copa Sudamericana", "Ecuadorian Liga Pro", "Paraguayan Primera",
   "Peruvian Liga 1", "Uruguayan Primera", "Venezuelan Primera",
-  // Europe & other
-  "EFL League One", "EFL League Two", "France Ligue 1",
+  // Europe
+  "Bundesliga", "EFL League One", "EFL League Two", "Eredivisie",
+  "France Ligue 1", "La Liga", "Primeira Liga", "Premier League",
+  "Scottish Premiership", "Serie A", "Super Lig",
+  "Russian Premier League", "UEFA Champions League",
+  // Africa
+  "CAF Champions League", "Egyptian Premier League",
+  "Kenyan Premier League", "Nigerian NPFL",
+  "South African Premier Division",
+  // Asia
+  "AFC Champions League", "Chinese Super League",
+  "Indian Super League", "I-League", "J-League", "K-League",
+  "Liga 1 Indonesia", "Saudi Pro League", "Thai League",
+  "UAE Pro League", "V-League",
+  // Oceania
+  "A-League", "AFL", "NRL", "Super Rugby",
+  // North America & other
   "HBCUGoSports", "IFL", "KHL",
   "MLB", "MLS", "NBA", "NCAA", "NFL", "NHL",
-  "Premier League", "UCI", "UEFA Champions League", "UFC",
+  "UCI", "UFC",
 ] as const;
 
 export const TEAMS_BY_LEAGUE: Record<string, string[]> = {
@@ -279,6 +313,168 @@ export const TEAMS_BY_LEAGUE: Record<string, string[]> = {
     "Deportivo Lara", "Deportivo T\u00e1chira", "Estudiantes de M\u00e9rida", "Hermanos Colmenarez",
     "Metropolitanos FC", "Mineros de Guayana", "Monagas SC", "Portuguesa FC",
     "UCV FC", "Zamora FC",
+  ],
+  // ======== EUROPEAN LEAGUES ========
+  "Premier League": [
+    "Arsenal", "Aston Villa", "AFC Bournemouth", "Brentford", "Brighton",
+    "Chelsea", "Crystal Palace", "Everton", "Fulham", "Ipswich Town",
+    "Leicester City", "Liverpool", "Manchester City", "Manchester United",
+    "Newcastle United", "Nottingham Forest", "Southampton", "Tottenham Hotspur",
+    "West Ham United", "Wolverhampton Wanderers",
+  ],
+  "La Liga": [
+    "Alav\u00e9s", "Athletic Bilbao", "Atl\u00e9tico Madrid", "Barcelona", "Betis",
+    "Celta Vigo", "Espanyol", "Getafe", "Girona", "Las Palmas",
+    "Legan\u00e9s", "Mallorca", "Osasuna", "Rayo Vallecano", "Real Madrid",
+    "Real Sociedad", "Sevilla", "Valencia", "Valladolid", "Villarreal",
+  ],
+  "Bundesliga": [
+    "Augsburg", "Bayer Leverkusen", "Bayern Munich", "Bochum",
+    "Borussia Dortmund", "Borussia M\u00f6nchengladbach", "Eintracht Frankfurt",
+    "Freiburg", "Heidenheim", "Hoffenheim", "Holstein Kiel",
+    "Mainz 05", "RB Leipzig", "St. Pauli", "Stuttgart",
+    "Union Berlin", "Werder Bremen", "Wolfsburg",
+  ],
+  "Serie A": [
+    "Atalanta", "Bologna", "Cagliari", "Como", "Empoli",
+    "Fiorentina", "Genoa", "Hellas Verona", "Inter Milan",
+    "Juventus", "Lazio", "Lecce", "AC Milan", "Monza",
+    "Napoli", "Parma", "Roma", "Torino", "Udinese", "Venezia",
+  ],
+  "Eredivisie": [
+    "Ajax", "AZ Alkmaar", "Feyenoord", "FC Groningen", "FC Twente",
+    "FC Utrecht", "Go Ahead Eagles", "Heerenveen", "Heracles",
+    "NAC Breda", "NEC Nijmegen", "PEC Zwolle", "PSV Eindhoven",
+    "RKC Waalwijk", "Sparta Rotterdam", "Willem II",
+  ],
+  "Primeira Liga": [
+    "Arouca", "AVS", "Benfica", "Boavista", "Braga",
+    "Casa Pia", "Estrela Amadora", "Estoril", "Famalic\u00e3o",
+    "Gil Vicente", "Moreirense", "Nacional", "Porto",
+    "Rio Ave", "Santa Clara", "Sporting CP", "Vit\u00f3ria de Guimar\u00e3es",
+  ],
+  "Scottish Premiership": [
+    "Aberdeen", "Celtic", "Dundee", "Dundee United",
+    "Hearts", "Hibernian", "Kilmarnock", "Motherwell",
+    "Rangers", "Ross County", "St Johnstone", "St Mirren",
+  ],
+  "Super Lig": [
+    "Adana Demirspor", "Alanyaspor", "Antalyaspor", "Be\u015fikta\u015f",
+    "Fenerbah\u00e7e", "Galatasaray", "Gaziantep FK", "Hatayspor",
+    "Istanbul Ba\u015fak\u015fehir", "Kasimpa\u015fa", "Kayserispor", "Konyaspor",
+    "Pendikspor", "Rizespor", "Samsunspor", "Sivasspor",
+    "Trabzonspor",
+  ],
+  "Russian Premier League": [
+    "CSKA Moscow", "Dynamo Moscow", "FK Krasnodar", "Lokomotiv Moscow",
+    "Rubin Kazan", "Spartak Moscow", "Zenit St. Petersburg",
+  ],
+  // ======== AFRICAN LEAGUES ========
+  "South African Premier Division": [
+    "AmaZulu", "Cape Town City", "Chippa United", "Golden Arrows",
+    "Kaizer Chiefs", "Mamelodi Sundowns", "Moroka Swallows",
+    "Orlando Pirates", "Richards Bay", "Royal AM",
+    "Sekhukhune United", "Stellenbosch", "SuperSport United",
+    "TS Galaxy",
+  ],
+  "Nigerian NPFL": [
+    "Akwa United", "Bendel Insurance", "Doma United", "Enyimba",
+    "Heartland", "Kano Pillars", "Kwara United", "Lobi Stars",
+    "Niger Tornadoes", "Plateau United", "Rangers International",
+    "Remo Stars", "Rivers United", "Shooting Stars",
+    "Sunshine Stars", "Wikki Tourists",
+  ],
+  "Egyptian Premier League": [
+    "Al Ahly", "Al Ittihad Alexandria", "Al Masry", "Ceramica Cleopatra",
+    "El Gouna", "ENPPI", "Future FC", "Ghazl El Mahalla",
+    "Ismaily", "National Bank", "Pharco", "Pyramids FC",
+    "Smouha", "Zamalek", "ZED FC",
+  ],
+  "Kenyan Premier League": [
+    "AFC Leopards", "Bandari", "Gor Mahia", "Kakamega Homeboyz",
+    "Kariobangi Sharks", "KCB", "Kenya Police", "Mathare United",
+    "Murang'a Seal", "Nairobi City Stars", "Nzoia Sugar",
+    "Posta Rangers", "Sofapaka", "Tusker", "Ulinzi Stars",
+  ],
+  "CAF Champions League": [
+    "Al Ahly", "Zamalek", "Mamelodi Sundowns", "Esperance",
+    "Wydad Casablanca", "TP Mazembe", "Raja Casablanca",
+    "Enyimba", "Kaizer Chiefs", "Simba SC", "Al Hilal Omdurman",
+    "JS Kabylie",
+  ],
+  // ======== ASIAN LEAGUES ========
+  "J-League": [
+    "Albirex Niigata", "Avispa Fukuoka", "Cerezo Osaka", "FC Tokyo",
+    "Gamba Osaka", "Kashima Antlers", "Kashiwa Reysol",
+    "Kawasaki Frontale", "Kyoto Sanga", "Machida Zelvia",
+    "Nagoya Grampus", "Sanfrecce Hiroshima", "Sagan Tosu",
+    "Shonan Bellmare", "Tokyo Verdy", "Urawa Red Diamonds",
+    "Vissel Kobe", "Yokohama F. Marinos",
+  ],
+  "K-League": [
+    "Daegu FC", "Daejeon Hana Citizen", "FC Seoul", "Gangwon FC",
+    "Gimcheon Sangmu", "Gwangju FC", "Incheon United",
+    "Jeju United", "Jeonbuk Hyundai Motors", "Pohang Steelers",
+    "Suwon FC", "Ulsan HD",
+  ],
+  "Chinese Super League": [
+    "Beijing Guoan", "Changchun Yatai", "Chengdu Rongcheng",
+    "Dalian Professional", "Henan Songshan Longmen",
+    "Meizhou Hakka", "Nantong Zhiyun", "Qingdao Hainiu",
+    "Shandong Taishan", "Shanghai Port", "Shanghai Shenhua",
+    "Shenzhen FC", "Tianjin Jinmen Tiger", "Wuhan Three Towns",
+    "Zhejiang Professional",
+  ],
+  "Indian Super League": [
+    "ATK Mohun Bagan", "Bengaluru FC", "Chennaiyin FC", "East Bengal",
+    "FC Goa", "Hyderabad FC", "Jamshedpur FC", "Kerala Blasters",
+    "Mohammedan SC", "Mumbai City FC", "NorthEast United",
+    "Odisha FC", "Punjab FC",
+  ],
+  "Saudi Pro League": [
+    "Al Ahli", "Al Ettifaq", "Al Fateh", "Al Fayha",
+    "Al Hilal", "Al Ittihad", "Al Khaleej", "Al Nassr",
+    "Al Raed", "Al Riyadh", "Al Shabab", "Al Tai",
+    "Al Wehda", "Damac", "Neom",
+  ],
+  "Thai League": [
+    "BG Pathum United", "Buriram United", "Chiang Rai United",
+    "Khon Kaen United", "Muangthong United", "Nakhon Ratchasima",
+    "Port FC", "Ratchaburi FC",
+  ],
+  "AFC Champions League": [
+    "Al Hilal", "Al Nassr", "Al Ain", "Persepolis",
+    "Jeonbuk Hyundai Motors", "Urawa Red Diamonds",
+    "Shanghai Port", "Ulsan HD", "Vissel Kobe",
+    "Yokohama F. Marinos", "BG Pathum United", "Johor Darul Ta'zim",
+  ],
+  // ======== OCEANIA LEAGUES ========
+  "A-League": [
+    "Adelaide United", "Brisbane Roar", "Central Coast Mariners",
+    "Macarthur FC", "Melbourne City", "Melbourne Victory",
+    "Newcastle Jets", "Perth Glory", "Sydney FC",
+    "Wellington Phoenix", "Western Sydney Wanderers", "Western United",
+  ],
+  "NRL": [
+    "Brisbane Broncos", "Canberra Raiders", "Canterbury Bulldogs",
+    "Cronulla Sharks", "Dolphins", "Gold Coast Titans",
+    "Manly Sea Eagles", "Melbourne Storm", "Newcastle Knights",
+    "New Zealand Warriors", "North Queensland Cowboys",
+    "Parramatta Eels", "Penrith Panthers", "South Sydney Rabbitohs",
+    "St George Illawarra Dragons", "Sydney Roosters", "Wests Tigers",
+  ],
+  "AFL": [
+    "Adelaide Crows", "Brisbane Lions", "Carlton", "Collingwood",
+    "Essendon", "Fremantle", "Geelong Cats", "Gold Coast Suns",
+    "GWS Giants", "Hawthorn", "Melbourne", "North Melbourne",
+    "Port Adelaide", "Richmond", "St Kilda", "Sydney Swans",
+    "West Coast Eagles", "Western Bulldogs",
+  ],
+  "Super Rugby": [
+    "ACT Brumbies", "Blues", "Chiefs", "Crusaders",
+    "Drua", "Force", "Highlanders", "Hurricanes",
+    "Melbourne Rebels", "Moana Pasifika", "NSW Waratahs",
+    "Queensland Reds",
   ],
   // ======== NORTH AMERICAN / OTHER LEAGUES ========
   IFL: [
@@ -371,13 +567,6 @@ export const TEAMS_BY_LEAGUE: Record<string, string[]> = {
     "Winston-Salem State Rams",
   ],
   UFC: ["UFC (All Events)"],
-  "Premier League": [
-    "Arsenal", "Aston Villa", "Bournemouth", "Brentford",
-    "Brighton & Hove Albion", "Chelsea", "Crystal Palace", "Everton",
-    "Fulham", "Ipswich Town", "Leicester City", "Liverpool",
-    "Manchester City", "Manchester United", "Newcastle United", "Nottingham Forest",
-    "Southampton", "Tottenham Hotspur", "West Ham United", "Wolverhampton Wanderers",
-  ],
   UCI: [
     "UCI Pro Tour (All Events)", "Tour de France", "Giro d'Italia", "Vuelta a España",
   ],
@@ -462,6 +651,61 @@ export function canonicalLeagueForTeams(league: string): string | null {
   const key = normalizeKey(league);
   for (const [k] of Object.entries(TEAMS_BY_LEAGUE)) {
     if (normalizeKey(k) === key) return k;
+  }
+  return null;
+}
+
+// ============================================================================
+// TEAM RSN MAPPINGS — Teams with own streaming/TV contracts
+// (Not covered by league-wide deals)
+// ============================================================================
+
+export const TEAM_RSN_MAP: Record<string, { team: string; league: string; rsn: string; rsnLabel: string }> = {
+  // MLB
+  "ny_yankees":    { team: "New York Yankees",     league: "MLB", rsn: "yesnetwork",       rsnLabel: "YES Network" },
+  "boston_redsox":  { team: "Boston Red Sox",        league: "MLB", rsn: "nesn",             rsnLabel: "NESN" },
+  "la_dodgers":    { team: "Los Angeles Dodgers",   league: "MLB", rsn: "snla",             rsnLabel: "SportsNet LA" },
+  "baltimore_o":   { team: "Baltimore Orioles",     league: "MLB", rsn: "masn",             rsnLabel: "MASN" },
+  "wash_nats":     { team: "Washington Nationals",  league: "MLB", rsn: "masn",             rsnLabel: "MASN" },
+  "chicago_cubs":  { team: "Chicago Cubs",          league: "MLB", rsn: "marquee",          rsnLabel: "Marquee Sports Network" },
+  "ny_mets":       { team: "New York Mets",         league: "MLB", rsn: "sny",              rsnLabel: "SNY" },
+  "houston_astros":{ team: "Houston Astros",        league: "MLB", rsn: "attsportsnet",     rsnLabel: "AT&T SportsNet" },
+  "pitt_pirates":  { team: "Pittsburgh Pirates",    league: "MLB", rsn: "attsportsnet",     rsnLabel: "AT&T SportsNet" },
+  "seattle_m":     { team: "Seattle Mariners",      league: "MLB", rsn: "rootsports",       rsnLabel: "ROOT Sports" },
+  "la_angels":     { team: "Los Angeles Angels",    league: "MLB", rsn: "ballysports",      rsnLabel: "Bally Sports" },
+  "chi_whitesox":  { team: "Chicago White Sox",     league: "MLB", rsn: "nbcsportschicago", rsnLabel: "NBC Sports Chicago" },
+  "philly_phils":  { team: "Philadelphia Phillies", league: "MLB", rsn: "nbcsportsphilly",  rsnLabel: "NBC Sports Philadelphia" },
+  "kc_royals":     { team: "Kansas City Royals",    league: "MLB", rsn: "kcsr",             rsnLabel: "KC Sports Network" },
+  // NBA
+  "ny_knicks":     { team: "New York Knicks",       league: "NBA", rsn: "msgnetwork",       rsnLabel: "MSG Network" },
+  "boston_celtics": { team: "Boston Celtics",        league: "NBA", rsn: "nbcsportsboston",  rsnLabel: "NBC Sports Boston" },
+  "la_lakers":     { team: "Los Angeles Lakers",    league: "NBA", rsn: "spectrumsnets",    rsnLabel: "Spectrum SportsNet" },
+  "chi_bulls":     { team: "Chicago Bulls",         league: "NBA", rsn: "nbcsportschicago", rsnLabel: "NBC Sports Chicago" },
+  "philly_76ers":  { team: "Philadelphia 76ers",    league: "NBA", rsn: "nbcsportsphilly",  rsnLabel: "NBC Sports Philadelphia" },
+  "portland_tb":   { team: "Portland Trail Blazers",league: "NBA", rsn: "nbcsnw",           rsnLabel: "NBC Sports Northwest" },
+  "wash_wizards":  { team: "Washington Wizards",    league: "NBA", rsn: "monumental",       rsnLabel: "Monumental Sports Network" },
+  // NHL
+  "ny_rangers":    { team: "New York Rangers",      league: "NHL", rsn: "msgnetwork",       rsnLabel: "MSG Network" },
+  "nj_devils":     { team: "New Jersey Devils",     league: "NHL", rsn: "msgnetwork",       rsnLabel: "MSG Network" },
+  "boston_bruins":  { team: "Boston Bruins",         league: "NHL", rsn: "nesn",             rsnLabel: "NESN" },
+  "chi_blackhawks":{ team: "Chicago Blackhawks",    league: "NHL", rsn: "nbcsportschicago", rsnLabel: "NBC Sports Chicago" },
+  "philly_flyers": { team: "Philadelphia Flyers",   league: "NHL", rsn: "nbcsportsphilly",  rsnLabel: "NBC Sports Philadelphia" },
+  "wash_caps":     { team: "Washington Capitals",   league: "NHL", rsn: "monumental",       rsnLabel: "Monumental Sports Network" },
+  // MLS
+  "la_galaxy":     { team: "LA Galaxy",             league: "MLS", rsn: "spectrumsnets",    rsnLabel: "Spectrum SportsNet" },
+  "sporting_kc":   { team: "Sporting Kansas City",  league: "MLS", rsn: "kcsr",             rsnLabel: "KC Sports Network" },
+};
+
+/**
+ * Get the RSN platform for a given team name (fuzzy match).
+ */
+export function getRSNForTeam(teamName: string): { rsn: string; rsnLabel: string } | null {
+  const normalized = teamName.toLowerCase().replace(/[^a-z0-9]/g, "");
+  for (const entry of Object.values(TEAM_RSN_MAP)) {
+    const entryNorm = entry.team.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (entryNorm === normalized || normalized.includes(entryNorm) || entryNorm.includes(normalized)) {
+      return { rsn: entry.rsn, rsnLabel: entry.rsnLabel };
+    }
   }
   return null;
 }
@@ -559,6 +803,24 @@ const PROVIDER_URLS: Record<string, { open: string; subscribe: string }> = {
   estrella: { open: "https://www.estrellatv.com", subscribe: "https://www.estrellatv.com" },
   cinelatinotv: { open: "https://www.cinelatino.com", subscribe: "https://www.cinelatino.com" },
   pantaya: { open: "https://www.pantaya.com", subscribe: "https://www.pantaya.com/subscribe" },
+  // RSNs (Regional Sports Networks)
+  yesnetwork: { open: "https://www.yesnetwork.com", subscribe: "https://www.yesnetwork.com" },
+  nesn: { open: "https://www.nesn.com", subscribe: "https://nesn.com/nesn-360" },
+  snla: { open: "https://www.sportsnetla.com", subscribe: "https://www.sportsnetla.com" },
+  masn: { open: "https://www.masnsports.com", subscribe: "https://www.masnsports.com" },
+  marquee: { open: "https://www.marqueesportsnetwork.com", subscribe: "https://www.marqueesportsnetwork.com" },
+  sny: { open: "https://www.sny.tv", subscribe: "https://www.sny.tv" },
+  attsportsnet: { open: "https://www.attsportsnet.com", subscribe: "https://www.attsportsnet.com" },
+  nbcsportsboston: { open: "https://www.nbcsports.com/boston", subscribe: "https://www.nbcsports.com/boston" },
+  msgnetwork: { open: "https://www.msgnetworks.com", subscribe: "https://www.msgnetworks.com" },
+  ballysports: { open: "https://www.ballysports.com", subscribe: "https://www.ballysports.com" },
+  rootsports: { open: "https://www.rootsports.com", subscribe: "https://www.rootsports.com" },
+  spectrumsnets: { open: "https://www.spectrumsnets.com", subscribe: "https://www.spectrumsnets.com" },
+  nbcsportschicago: { open: "https://www.nbcsports.com/chicago", subscribe: "https://www.nbcsports.com/chicago" },
+  nbcsportsphilly: { open: "https://www.nbcsports.com/philadelphia", subscribe: "https://www.nbcsports.com/philadelphia" },
+  nbcsnw: { open: "https://www.nbcsports.com/northwest", subscribe: "https://www.nbcsports.com/northwest" },
+  kcsr: { open: "https://www.kcsportsnetwork.com", subscribe: "https://www.kcsportsnetwork.com" },
+  monumental: { open: "https://www.monumentalsportsnetwork.com", subscribe: "https://www.monumentalsportsnetwork.com" },
 };
 
 export function providerUrlOpen(pid: PlatformId | null, title?: string): string {

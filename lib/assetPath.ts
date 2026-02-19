@@ -179,6 +179,24 @@ const KNOWN_SERVICE_FILES: Record<string, string> = {
   estrella: "all.png",
   cinelatinotv: "all.png",
   pantaya: "all.png",
+  // ---- Regional Sports Networks ----
+  yesnetwork: "all.png",
+  nesn: "all.png",
+  snla: "all.png",
+  masn: "all.png",
+  marquee: "all.png",
+  sny: "all.png",
+  attsportsnet: "all.png",
+  nbcsportsboston: "all.png",
+  msgnetwork: "all.png",
+  ballysports: "all.png",
+  rootsports: "all.png",
+  spectrumsnets: "all.png",
+  nbcsportschicago: "all.png",
+  nbcsportsphilly: "all.png",
+  nbcsnw: "all.png",
+  kcsr: "all.png",
+  monumental: "all.png",
 };
 
 // ============================================================================
@@ -411,6 +429,12 @@ export function teamLogoCandidates(league: string, team: string): string[] {
     assetPath(`/assets/teams/${eflDir}/${lastWordSlug}.png`),
     // UEFA teams
     assetPath(`/assets/teams/uefa champions league/${teamSlug}.png`),
+    // NCAA D1 teams — local assets + GitHub gist source
+    // Source: https://gist.github.com/saiemgilani/c6596f0e1c8b148daabc2b7f1e6f6add
+    assetPath(`/assets/teams/ncaa/${teamSlug}.png`),
+    assetPath(`/assets/teams/ncaa/${t}.png`),
+    assetPath(`/assets/teams/ncaa/${teamSlug}-logo.png`),
+    assetPath(`/assets/teams/ncaa d1/${teamSlug}.png`),
     // Legacy paths
     assetPath(`/assets/leagues/teams/${league}/${team}.png`),
     assetPath(`/assets/leagues/teams/${l}/${t}.png`),
@@ -418,6 +442,26 @@ export function teamLogoCandidates(league: string, team: string): string[] {
   ];
 
   return paths;
+}
+
+// ============================================================================
+// NCAA D1 LOGO SOURCE
+// College team logos can be scraped/downloaded from this public gist:
+// https://gist.github.com/saiemgilani/c6596f0e1c8b148daabc2b7f1e6f6add
+//
+// Usage: Download logos from the gist's JSON into /public/assets/teams/ncaa/
+// The gist contains team IDs, names, and logo URLs for all D1 programs.
+// ============================================================================
+
+export const NCAA_LOGO_GIST_URL = "https://gist.github.com/saiemgilani/c6596f0e1c8b148daabc2b7f1e6f6add";
+
+/**
+ * Generate a candidate URL for an NCAA D1 team logo using the ESPN CDN
+ * pattern found in the gist. ESPN hosts logos at a predictable pattern.
+ * teamId: The ESPN numeric team ID (found in the gist).
+ */
+export function ncaaLogoFromESPN(teamId: number | string): string {
+  return `https://a.espncdn.com/i/teamlogos/ncaa/500/${teamId}.png`;
 }
 
 // ============================================================================

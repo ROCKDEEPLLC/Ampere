@@ -1291,7 +1291,9 @@ function CardThumb({
           ) : null}
         </div>
 
-        <div style={{ position: "absolute", left: 10, bottom: 8, display: "flex", gap: 8, alignItems: "center" }}>
+        <div style={{ position: "absolute", left: 10, bottom: 8, display: "flex", gap: 6, alignItems: "center" }}>
+          {team1Sources.length > 0 ? <SmartImg sources={team1Sources} size={22} rounded={8} fit="contain" fallbackText="" /> : null}
+          {team2Sources.length > 0 ? <SmartImg sources={team2Sources} size={22} rounded={8} fit="contain" fallbackText="" /> : null}
           {leagueSources.length ? <SmartImg sources={leagueSources} size={26} rounded={10} fit="contain" fallbackText={(card.league ?? "L")[0]} /> : null}
           {platformIcon.length ? <SmartImg sources={platformIcon} size={26} rounded={10} fit="contain" fallbackText={(platform?.label ?? "P")[0]} /> : null}
         </div>
@@ -1730,6 +1732,7 @@ export default function AmpereApp() {
 
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [pressedKey, setPressedKey] = useState<string | null>(null);
 
   const demo = useMemo(() => buildDemoCatalog(), []);
   const [loading, setLoading] = useState(true);
@@ -2072,8 +2075,8 @@ export default function AmpereApp() {
                   className="ampere-focus"
                   onClick={() => setPowerState("booting")}
                   style={{
-                    padding: "14px 16px",
-                    borderRadius: 18,
+                    padding: "14px 24px",
+                    borderRadius: 999,
                     border: "1px solid rgba(58,167,255,0.30)",
                     background: "rgba(58,167,255,0.14)",
                     color: "white",
@@ -2223,7 +2226,7 @@ export default function AmpereApp() {
               style={{
                 width: isMobile ? 44 : 52,
                 height: isMobile ? 44 : 52,
-                borderRadius: 18,
+                borderRadius: "50%",
                 overflow: "hidden",
                 border: "1px solid rgba(255,255,255,0.12)",
                 background: "rgba(255,255,255,0.06)",
@@ -2232,7 +2235,7 @@ export default function AmpereApp() {
                 flex: "0 0 auto",
               }}
             >
-              <SmartImg sources={brandMarkCandidates()} size={isMobile ? 44 : 52} rounded={18} border={false} fit="contain" fallbackText="A" />
+              <SmartImg sources={brandMarkCandidates()} size={isMobile ? 44 : 52} rounded={999} border={false} fit="contain" fallbackText="A" />
             </div>
 
             <div style={{ minWidth: 0, display: "grid", gap: 6 }}>
@@ -2551,6 +2554,8 @@ export default function AmpereApp() {
                         type="button"
                         className="ampere-focus"
                         onClick={() => {
+                          setPressedKey(k);
+                          setTimeout(() => setPressedKey(null), 200);
                           if (k === "⌫") setSearchInput((s) => s.slice(0, -1));
                           else if (k === "SPACE") setSearchInput((s) => s + " ");
                           else if (k === "CLEAR") { setSearchInput(""); setSearchQuery(""); }
@@ -2563,13 +2568,22 @@ export default function AmpereApp() {
                           minWidth: k.length > 1 ? 56 : undefined,
                           flex: k === "SPACE" ? "1 1 120px" : undefined,
                           borderRadius: 8,
-                          border: "1px solid rgba(255,255,255,0.12)",
-                          background: k === "GO" ? "rgba(58,167,255,0.15)" : "rgba(255,255,255,0.06)",
+                          border: pressedKey === k
+                            ? "1px solid rgba(58,167,255,0.7)"
+                            : "1px solid rgba(255,255,255,0.12)",
+                          background: pressedKey === k
+                            ? "rgba(58,167,255,0.35)"
+                            : k === "GO" ? "rgba(58,167,255,0.15)" : "rgba(255,255,255,0.06)",
                           color: "white",
                           fontWeight: 800,
                           fontSize: isMobile ? 12 : 14,
                           cursor: "pointer",
                           textAlign: "center",
+                          boxShadow: pressedKey === k
+                            ? "0 0 12px rgba(58,167,255,0.5), 0 0 24px rgba(58,167,255,0.2)"
+                            : "none",
+                          transition: "all 0.15s ease",
+                          transform: pressedKey === k ? "scale(1.08)" : "scale(1)",
                         }}
                       >
                         {k}
