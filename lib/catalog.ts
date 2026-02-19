@@ -37,6 +37,7 @@ export const GENRES = [
   { key: "Movies" },
   { key: "Premium" },
   { key: "Sports" },
+  { key: "Vistazo" },
 ] as const;
 
 // ============================================================================
@@ -154,6 +155,20 @@ export const PLATFORMS: Platform[] = [
   { id: "outtv", label: "OUTtv", kind: "niche", genres: ["LGBT"] },
   { id: "dekkoo", label: "Dekkoo", kind: "niche", genres: ["LGBT"] },
 
+  // ---- VISTAZO (LATINO / SPANISH-LANGUAGE) ----
+  { id: "vixpremium", label: "ViX Premium", kind: "streaming", genres: ["Vistazo"], note: "TelevisaUnivision streaming" },
+  { id: "fubolatino", label: "Fubo Latino", kind: "livetv", genres: ["Vistazo", "Sports", "LiveTV"], note: "Spanish-language live TV & sports" },
+  { id: "telemundodeportes", label: "Telemundo Deportes Ahora", kind: "sports", genres: ["Vistazo", "Sports"], note: "NBC/Telemundo sports" },
+  { id: "slinglatino", label: "Sling Latino", kind: "livetv", genres: ["Vistazo", "LiveTV"], note: "Spanish-language Sling packages" },
+  { id: "espndeportes", label: "ESPN Deportes", kind: "sports", genres: ["Vistazo", "Sports"], note: "ESPN en espa\u00f1ol" },
+  { id: "directvdeportes", label: "DIRECTV Deportes", kind: "sports", genres: ["Vistazo", "Sports"], note: "Latin American sports" },
+  { id: "xfinitynowlatino", label: "Xfinity/NOW TV Latino", kind: "livetv", genres: ["Vistazo", "LiveTV"], note: "Comcast Spanish-language tier" },
+  { id: "univision", label: "Univision", kind: "streaming", genres: ["Vistazo"], note: "Spanish-language broadcast" },
+  { id: "telemundo", label: "Telemundo", kind: "streaming", genres: ["Vistazo"], note: "NBC Spanish-language network" },
+  { id: "estrella", label: "Estrella TV", kind: "streaming", genres: ["Vistazo"], note: "Mexican entertainment" },
+  { id: "cinelatinotv", label: "Cinelatino", kind: "streaming", genres: ["Vistazo", "Movies"], note: "Latin American films" },
+  { id: "pantaya", label: "Pantaya", kind: "streaming", genres: ["Vistazo", "Movies"], note: "Spanish-language movies" },
+
   // ---- BLACK CULTURE & DIASPORA ----
   { id: "kwelitv", label: "KweliTV", kind: "niche", genres: ["Black Media"] },
   { id: "hbcugo", label: "HBCUGO", kind: "niche", genres: ["Black Media"] },
@@ -177,9 +192,95 @@ export const ALL_PLATFORM_IDS: PlatformId[] = PLATFORMS.map((p) => p.id);
 // LEAGUES
 // ============================================================================
 
-export const LEAGUES = ["ALL", "EFL League One", "EFL League Two", "France Ligue 1", "HBCUGoSports", "IFL", "KHL", "MLB", "MLS", "NBA", "NCAA", "NFL", "NHL", "Premier League", "UCI", "UEFA Champions League", "UFC"] as const;
+export const LEAGUES = [
+  "ALL",
+  // South America
+  "Argentine Primera", "Brasileir\u00e3o S\u00e9rie A", "Chilean Primera", "Colombian Liga BetPlay",
+  "Copa Libertadores", "Copa Sudamericana", "Ecuadorian Liga Pro", "Paraguayan Primera",
+  "Peruvian Liga 1", "Uruguayan Primera", "Venezuelan Primera",
+  // Europe & other
+  "EFL League One", "EFL League Two", "France Ligue 1",
+  "HBCUGoSports", "IFL", "KHL",
+  "MLB", "MLS", "NBA", "NCAA", "NFL", "NHL",
+  "Premier League", "UCI", "UEFA Champions League", "UFC",
+] as const;
 
 export const TEAMS_BY_LEAGUE: Record<string, string[]> = {
+  // ======== SOUTH AMERICAN LEAGUES ========
+  "Argentine Primera": [
+    "Atl\u00e9tico Tucum\u00e1n", "Banfield", "Barracas Central", "Belgrano",
+    "Boca Juniors", "Central C\u00f3rdoba", "Defensa y Justicia", "Estudiantes",
+    "Gimnasia La Plata", "Godoy Cruz", "Hurac\u00e1n", "Independiente",
+    "Independiente Rivadavia", "Instituto", "Lan\u00fas", "Newell's Old Boys",
+    "Platense", "Racing Club", "River Plate", "Rosario Central",
+    "San Lorenzo", "Sarmiento", "Talleres", "Tigre",
+    "Uni\u00f3n de Santa Fe", "V\u00e9lez S\u00e1rsfield",
+  ],
+  "Brasileir\u00e3o S\u00e9rie A": [
+    "Athl\u00e9tico Paranaense", "Atl\u00e9tico Mineiro", "Bahia", "Botafogo",
+    "Corinthians", "Crici\u00fama", "Cruzeiro", "Cuiab\u00e1",
+    "Flamengo", "Fluminense", "Fortaleza", "Gr\u00eamio",
+    "Internacional", "Juventude", "Palmeiras", "Red Bull Bragantino",
+    "Santos", "S\u00e3o Paulo", "Vasco da Gama", "Vit\u00f3ria",
+  ],
+  "Chilean Primera": [
+    "Audax Italiano", "Cobreloa", "Cobresal", "Colo-Colo",
+    "Coquimbo Unido", "Deportes Copiap\u00f3", "Deportes Iquique", "Everton de Vi\u00f1a",
+    "Huachipato", "Nublense", "O'Higgins", "Palestino",
+    "Universidad Cat\u00f3lica", "Universidad de Chile", "Uni\u00f3n Espa\u00f1ola", "Uni\u00f3n La Calera",
+  ],
+  "Colombian Liga BetPlay": [
+    "Aguilas Doradas", "Alianza FC", "Am\u00e9rica de Cali", "Atl\u00e9tico Bucaramanga",
+    "Atl\u00e9tico Nacional", "Boyac\u00e1 Chicó", "Deportes Tolima", "Deportivo Cali",
+    "Deportivo Pasto", "Envigado", "Independiente Medell\u00edn", "Independiente Santa Fe",
+    "Jaguares de C\u00f3rdoba", "Junior FC", "La Equidad", "Millonarios",
+    "Once Caldas", "Patriotas Boyac\u00e1", "Deportivo Pereira",
+  ],
+  "Copa Libertadores": [
+    "Boca Juniors", "River Plate", "Flamengo", "Palmeiras",
+    "Atl\u00e9tico Mineiro", "S\u00e3o Paulo", "Fluminense", "Colo-Colo",
+    "Pe\u00f1arol", "Nacional", "Independiente del Valle", "LDU Quito",
+    "Olimpia", "Cerro Porte\u00f1o", "Universitario", "Sporting Cristal",
+    "The Strongest", "Bol\u00edvar", "Millonarios", "Atl\u00e9tico Nacional",
+    "Junior FC", "Libertad", "Caracas FC", "Deportivo T\u00e1chira",
+  ],
+  "Copa Sudamericana": [
+    "Defensa y Justicia", "Independiente", "Racing Club", "Lan\u00fas",
+    "Fortaleza", "Cruzeiro", "Internacional", "Botafogo",
+    "Deportivo Cali", "Deportes Tolima", "Universidad Cat\u00f3lica", "Huachipato",
+    "LDU Quito", "Barcelona SC", "Sol de Am\u00e9rica", "Sportivo Luque\u00f1o",
+    "Melgar", "Cienciano", "Wanderers", "Liverpool FC (Uruguay)",
+  ],
+  "Ecuadorian Liga Pro": [
+    "Aucas", "Barcelona SC", "Delfín", "Deportivo Cuenca",
+    "El Nacional", "Emelec", "Independiente del Valle", "LDU Quito",
+    "Liga de Portoviejo", "Macará", "Mushuc Runa", "Orense",
+    "T\u00e9cnico Universitario", "Universidad Cat\u00f3lica (Ecuador)",
+  ],
+  "Paraguayan Primera": [
+    "Cerro Porte\u00f1o", "Club Guaraní", "General Caballero JLM", "Libertad",
+    "Nacional", "Olimpia", "Sol de Am\u00e9rica", "Sportivo Ameliano",
+    "Sportivo Luque\u00f1o", "Tacuary", "12 de Octubre",
+  ],
+  "Peruvian Liga 1": [
+    "ADT Tarma", "Alianza Atl\u00e9tico", "Alianza Lima", "Atl\u00e9tico Grau",
+    "Carlos Manucci", "Cienciano", "Comerciantes Unidos", "Cusco FC",
+    "Deportivo Garcilaso", "Melgar", "Sport Boys", "Sport Huancayo",
+    "Sporting Cristal", "Universitario", "UTC Cajamarca", "Uni\u00f3n Comercio",
+  ],
+  "Uruguayan Primera": [
+    "Boston River", "Cerro", "Cerro Largo", "Danubio",
+    "Defensor Sporting", "F\u00e9nix", "Liverpool FC (Uruguay)", "Miramar Misiones",
+    "Nacional", "Pe\u00f1arol", "Plaza Colonia", "Racing (Uruguay)",
+    "River Plate (Uruguay)", "Wanderers",
+  ],
+  "Venezuelan Primera": [
+    "Academ\u00eda Puerto Cabello", "Caracas FC", "Carabobo FC", "Deportivo La Guaira",
+    "Deportivo Lara", "Deportivo T\u00e1chira", "Estudiantes de M\u00e9rida", "Hermanos Colmenarez",
+    "Metropolitanos FC", "Mineros de Guayana", "Monagas SC", "Portuguesa FC",
+    "UCV FC", "Zamora FC",
+  ],
+  // ======== NORTH AMERICAN / OTHER LEAGUES ========
   IFL: [
     "Arkansas Twisters", "Duke City Gladiators", "Frisco Fighters", "Iowa Barnstormers",
     "Jacksonville Sharks", "Massachusetts Pirates", "NAZ Wranglers", "Northern Arizona Wranglers",
@@ -445,6 +546,19 @@ const PROVIDER_URLS: Record<string, { open: string; subscribe: string }> = {
   nhl: { open: "https://www.nhl.com/subscribe", subscribe: "https://www.nhl.com/subscribe" },
   yahoosports: { open: "https://sports.yahoo.com", subscribe: "https://sports.yahoo.com" },
   fanduelsports: { open: "https://www.fanduel.com/sports-network", subscribe: "https://www.fanduel.com/sports-network" },
+  // Vistazo
+  vixpremium: { open: "https://www.vix.com", subscribe: "https://www.vix.com/es/premium" },
+  fubolatino: { open: "https://www.fubo.tv/latino", subscribe: "https://www.fubo.tv/latino" },
+  telemundodeportes: { open: "https://www.telemundodeportes.com", subscribe: "https://www.telemundodeportes.com" },
+  slinglatino: { open: "https://www.sling.com/latino", subscribe: "https://www.sling.com/latino" },
+  espndeportes: { open: "https://www.espn.com/espndeportes", subscribe: "https://www.espn.com/espndeportes" },
+  directvdeportes: { open: "https://www.directvgo.com", subscribe: "https://www.directvgo.com" },
+  xfinitynowlatino: { open: "https://www.xfinity.com/learn/digital-cable-tv/latino", subscribe: "https://www.xfinity.com/learn/digital-cable-tv/latino" },
+  univision: { open: "https://www.univision.com", subscribe: "https://www.univision.com" },
+  telemundo: { open: "https://www.telemundo.com", subscribe: "https://www.telemundo.com" },
+  estrella: { open: "https://www.estrellatv.com", subscribe: "https://www.estrellatv.com" },
+  cinelatinotv: { open: "https://www.cinelatino.com", subscribe: "https://www.cinelatino.com" },
+  pantaya: { open: "https://www.pantaya.com", subscribe: "https://www.pantaya.com/subscribe" },
 };
 
 export function providerUrlOpen(pid: PlatformId | null, title?: string): string {

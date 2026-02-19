@@ -1967,11 +1967,11 @@ export default function AmpereApp() {
   useEffect(() => {
     if (powerState !== "booting") return;
     track("power_booting", {});
-    // Fallback timer: if video doesn't trigger onEnded, auto-transition after 8s
+    // Boot timer: video loops for 15s before auto-transition to the app
     const t = setTimeout(() => {
       setPowerState("on");
       track("power_on", {});
-    }, 8000);
+    }, 15000);
     return () => clearTimeout(t);
   }, [powerState]);
 
@@ -2087,14 +2087,14 @@ export default function AmpereApp() {
               </>
             ) : (
               <>
-                {/* Boot video */}
+                {/* Boot video - plays full video, min 10s before allowing transition */}
                 <div style={{ borderRadius: 18, overflow: "hidden", background: "black", maxHeight: 360 }}>
                   <video
                     autoPlay
                     muted
                     playsInline
+                    loop
                     style={{ width: "100%", maxHeight: 360, objectFit: "contain" }}
-                    onEnded={() => { setPowerState("on"); track("power_on", {}); }}
                   >
                     <source src={assetPath("/assets/boot/power-on.mp4")} type="video/mp4" />
                   </video>
@@ -2174,10 +2174,12 @@ export default function AmpereApp() {
       {/* HEADER */}
       <header
         style={{
-          padding: density.pad,
+          paddingLeft: density.pad,
+          paddingRight: density.pad,
+          paddingBottom: density.pad,
+          paddingTop: "max(env(safe-area-inset-top), 10px)",
           background: headerBg,
           borderBottom: "1px solid var(--stroke)",
-          paddingTop: "max(env(safe-area-inset-top), 10px)",
           position: "relative",
           zIndex: 50,
         }}
@@ -2277,7 +2279,7 @@ export default function AmpereApp() {
               <MenuItem title="Change Header Image" subtitle="Recommended: 1500 × 500 px" onClick={() => headerInputRef.current?.click()} right="⬆" />
               <MenuItem title="Set-Up Wizard" subtitle="Resume onboarding" onClick={() => setOpenSetup(true)} right="›" />
               <MenuItem
-                title="About AMP\u00c8RE"
+                title={"About AMPÈRE"}
                 subtitle="Backstory, inventors, and architecture"
                 onClick={() => {
                   setOpenAbout(true);
@@ -2678,11 +2680,13 @@ export default function AmpereApp() {
       {/* FOOTER */}
       <footer
         style={{
-          padding: density.pad,
+          paddingLeft: density.pad,
+          paddingRight: density.pad,
+          paddingTop: density.pad,
+          paddingBottom: "max(env(safe-area-inset-bottom), 10px)",
           borderTop: "1px solid var(--stroke)",
           background: "rgba(0,0,0,0.60)",
           backdropFilter: "blur(10px)",
-          paddingBottom: "max(env(safe-area-inset-bottom), 10px)",
           position: "relative",
           zIndex: 10,
         }}

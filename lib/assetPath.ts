@@ -116,7 +116,7 @@ const KNOWN_SERVICE_FILES: Record<string, string> = {
   // ---- Sports ----
   espn: "ESPN.png",
   espnplus: "espn-plus.png",
-  foxsports1: "ESPN.png",
+  foxsports1: "all.png",
   dazn: "Dazn.png",
   nflplus: "NFL+.jpg",
   nbaleaguepass: "nbaleaguepass.png",
@@ -166,6 +166,19 @@ const KNOWN_SERVICE_FILES: Record<string, string> = {
   allblk: "ALLBLK.png",
   mansa: "Mansa.png",
   blackmedia: "blackmedia.png",
+  // ---- Vistazo (Latino) ----
+  vixpremium: "all.png",
+  fubolatino: "FUBOTV.png",
+  telemundodeportes: "all.png",
+  slinglatino: "sling.png",
+  espndeportes: "ESPN.png",
+  directvdeportes: "all.png",
+  xfinitynowlatino: "all.png",
+  univision: "all.png",
+  telemundo: "all.png",
+  estrella: "all.png",
+  cinelatinotv: "all.png",
+  pantaya: "all.png",
 };
 
 // ============================================================================
@@ -222,6 +235,7 @@ export function genreImageCandidates(genreKey: string): string[] {
     Movies: "moviestreaming.png",
     Premium: "premiummovies.png",
     Sports: "premiumsports.png",
+    Vistazo: "all.png",
   };
 
   const known = KNOWN_GENRE_FILES[genreKey];
