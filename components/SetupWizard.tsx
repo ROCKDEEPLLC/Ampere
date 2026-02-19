@@ -18,6 +18,7 @@
 
 import React, { useState, useEffect } from "react";
 import { PLATFORMS, GENRES, platformsForGenre } from "../lib/catalog";
+import { GLOBAL_REGIONS, LANGUAGES, type GlobalRegion, type Language } from "../lib/globalRegions";
 import { SmartImage } from "./SmartImage";
 import { brandWideCandidates } from "../lib/assetPath";
 
@@ -26,8 +27,10 @@ import { brandWideCandidates } from "../lib/assetPath";
 // ============================================================================
 
 export interface WizardState {
-  step: 1 | 2 | 3 | 4 | 5;
+  step: 1 | 2 | 3 | 4 | 5 | 6;
   name: string;
+  selectedRegion: string;
+  selectedLanguage: string;
   selectedPlatforms: string[];
   selectedGenres: string[];
   selectedLeagues: string[];
@@ -59,6 +62,8 @@ interface SetupWizardProps {
 const DEFAULT_STATE: WizardState = {
   step: 1,
   name: "",
+  selectedRegion: "north_america",
+  selectedLanguage: "en",
   selectedPlatforms: [],
   selectedGenres: [],
   selectedLeagues: [],
@@ -119,7 +124,7 @@ export function SetupWizard({
   };
 
   const nextStep = () => {
-    if (state.step < 5) {
+    if (state.step < 6) {
       updateState({ step: (state.step + 1) as WizardState["step"] });
     }
   };
@@ -133,10 +138,11 @@ export function SetupWizard({
   const canProceed = () => {
     switch (state.step) {
       case 1: return state.name.trim().length >= 2;
-      case 2: return state.selectedPlatforms.length >= 3;
-      case 3: return state.selectedGenres.length >= 2;
-      case 4: return true; // Sports is optional
-      case 5: return true; // Photos are optional
+      case 2: return !!state.selectedRegion; // Region selection
+      case 3: return state.selectedPlatforms.length >= 3;
+      case 4: return state.selectedGenres.length >= 2;
+      case 5: return true; // Sports is optional
+      case 6: return true; // Photos are optional
       default: return false;
     }
   };
@@ -160,7 +166,7 @@ export function SetupWizard({
         />
 
         {/* Progress Bar */}
-        <ProgressBar currentStep={state.step} totalSteps={5} />
+        <ProgressBar currentStep={state.step} totalSteps={6} />
 
         {/* Step Content */}
         <div className="wizard-content">
@@ -172,30 +178,41 @@ export function SetupWizard({
           )}
 
           {state.step === 2 && (
-            <Step2Platforms
-              selected={state.selectedPlatforms}
-              onChange={(platforms) => updateState({ selectedPlatforms: platforms })}
+            <Step2Region
+              selectedRegion={state.selectedRegion}
+              selectedLanguage={state.selectedLanguage}
+              onRegionChange={(region) => updateState({ selectedRegion: region })}
+              onLanguageChange={(lang) => updateState({ selectedLanguage: lang })}
             />
           )}
 
           {state.step === 3 && (
-            <Step3Genres
+            <Step3Platforms
+              selected={state.selectedPlatforms}
+              selectedRegion={state.selectedRegion}
+              onChange={(platforms) => updateState({ selectedPlatforms: platforms })}
+            />
+          )}
+
+          {state.step === 4 && (
+            <Step4Genres
               selected={state.selectedGenres}
               onChange={(genres) => updateState({ selectedGenres: genres })}
             />
           )}
 
-          {state.step === 4 && (
-            <Step4Sports
+          {state.step === 5 && (
+            <Step5Sports
               selectedLeagues={state.selectedLeagues}
               selectedTeams={state.selectedTeams}
+              selectedRegion={state.selectedRegion}
               onLeaguesChange={(leagues) => updateState({ selectedLeagues: leagues })}
               onTeamsChange={(teams) => updateState({ selectedTeams: teams })}
             />
           )}
 
-          {state.step === 5 && (
-            <Step5Photos
+          {state.step === 6 && (
+            <Step6Photos
               profilePhoto={state.profilePhoto}
               headerPhoto={state.headerPhoto}
               onProfileChange={(photo) => updateState({ profilePhoto: photo })}
@@ -452,14 +469,207 @@ function Step1Welcome({ name, onChange }: { name: string; onChange: (name: strin
 }
 
 // ============================================================================
-// STEP 2: PLATFORMS
+// STEP 2: REGION & LANGUAGE
 // ============================================================================
 
-function Step2Platforms({ 
-  selected, 
-  onChange 
-}: { 
-  selected: string[]; 
+function Step2Region({
+  selectedRegion,
+  selectedLanguage,
+  onRegionChange,
+  onLanguageChange,
+}: {
+  selectedRegion: string;
+  selectedLanguage: string;
+  onRegionChange: (region: string) => void;
+  onLanguageChange: (lang: string) => void;
+}) {
+  const region = GLOBAL_REGIONS.find(r => r.id === selectedRegion);
+  const availableLanguages = region?.supportedLanguages ?? LANGUAGES.slice(0, 5);
+
+  return (
+    <div className="step-container">
+      <h1 className="step-title">Where Are You Located?</h1>
+      <p className="step-description">
+        Select your region to see the streaming platforms available near you.
+        You can also choose your preferred language.
+      </p>
+
+      <div className="region-grid">
+        {GLOBAL_REGIONS.map(r => (
+          <button
+            key={r.id}
+            onClick={() => {
+              onRegionChange(r.id);
+              // Auto-set language to region default if current isn't supported
+              if (!r.supportedLanguages.find(l => l.code === selectedLanguage)) {
+                onLanguageChange(r.defaultLanguage);
+              }
+            }}
+            className={`region-card ${selectedRegion === r.id ? 'selected' : ''}`}
+          >
+            <div className="region-emoji">{r.emoji}</div>
+            <div className="region-name">{r.name}</div>
+            <div className="region-sub">{r.subregions.slice(0, 3).join(", ")}{r.subregions.length > 3 ? "..." : ""}</div>
+            {selectedRegion === r.id && <div className="region-check">✓</div>}
+          </button>
+        ))}
+      </div>
+
+      <div className="language-section">
+        <label htmlFor="language-select">Preferred Language</label>
+        <select
+          id="language-select"
+          value={selectedLanguage}
+          onChange={(e) => onLanguageChange(e.target.value)}
+          className="wizard-select"
+        >
+          {availableLanguages.map(lang => (
+            <option key={lang.code} value={lang.code}>
+              {lang.nativeName} ({lang.name})
+            </option>
+          ))}
+        </select>
+        <p className="language-hint">
+          You can browse content from other regions while keeping your preferred language.
+        </p>
+      </div>
+
+      <style jsx>{`
+        .step-container {
+          max-width: 700px;
+          margin: 0 auto;
+        }
+
+        .step-title {
+          font-size: 28px;
+          font-weight: 800;
+          margin-bottom: 12px;
+        }
+
+        .step-description {
+          color: var(--muted);
+          line-height: 1.6;
+          margin-bottom: 24px;
+        }
+
+        .region-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+          gap: 10px;
+          margin-bottom: 28px;
+        }
+
+        .region-card {
+          padding: 14px;
+          background: rgba(255, 255, 255, 0.05);
+          border: 2px solid var(--panel-border);
+          border-radius: 14px;
+          cursor: pointer;
+          transition: all 0.2s;
+          text-align: center;
+          position: relative;
+        }
+
+        .region-card:hover {
+          background: rgba(255, 255, 255, 0.08);
+          transform: translateY(-2px);
+        }
+
+        .region-card.selected {
+          background: rgba(59, 130, 246, 0.15);
+          border-color: var(--blue);
+        }
+
+        .region-emoji {
+          font-size: 28px;
+          margin-bottom: 6px;
+        }
+
+        .region-name {
+          font-weight: 700;
+          font-size: 14px;
+          margin-bottom: 4px;
+        }
+
+        .region-sub {
+          font-size: 11px;
+          color: var(--muted);
+          line-height: 1.3;
+        }
+
+        .region-check {
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          width: 22px;
+          height: 22px;
+          border-radius: 50%;
+          background: var(--blue);
+          color: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 12px;
+        }
+
+        .language-section {
+          margin-top: 8px;
+        }
+
+        .language-section label {
+          display: block;
+          font-weight: 600;
+          margin-bottom: 8px;
+        }
+
+        .wizard-select {
+          width: 100%;
+          padding: 12px 16px;
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid var(--panel-border);
+          border-radius: 12px;
+          font-size: 15px;
+          color: white;
+          appearance: none;
+        }
+
+        .wizard-select:focus {
+          border-color: var(--blue);
+          outline: none;
+        }
+
+        .wizard-select option {
+          background: #1a1a2e;
+          color: white;
+        }
+
+        .language-hint {
+          margin-top: 8px;
+          font-size: 13px;
+          color: var(--muted2);
+        }
+
+        @media (max-width: 640px) {
+          .region-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+// ============================================================================
+// STEP 3: PLATFORMS
+// ============================================================================
+
+function Step3Platforms({
+  selected,
+  selectedRegion,
+  onChange
+}: {
+  selected: string[];
+  selectedRegion: string;
   onChange: (platforms: string[]) => void;
 }) {
   const togglePlatform = (id: string) => {
@@ -470,9 +680,12 @@ function Step2Platforms({
     }
   };
 
-  const popularPlatforms = PLATFORMS.filter(p => 
-    ["netflix", "hulu", "primevideo", "disneyplus", "max", "youtube", "appletv", "peacock"].includes(p.id)
-  );
+  // Show platforms relevant to the selected region
+  const region = GLOBAL_REGIONS.find(r => r.id === selectedRegion);
+  const regionPlatformIds = region
+    ? [...region.popularPlatforms, ...region.localPlatforms]
+    : ["netflix", "hulu", "primevideo", "disneyplus", "max", "youtube", "appletv", "peacock"];
+  const popularPlatforms = PLATFORMS.filter(p => regionPlatformIds.includes(p.id));
 
   return (
     <div className="step-container">
@@ -574,10 +787,10 @@ function Step2Platforms({
 }
 
 // ============================================================================
-// STEP 3: GENRES
+// STEP 4: GENRES
 // ============================================================================
 
-function Step3Genres({ 
+function Step4Genres({ 
   selected, 
   onChange 
 }: { 
@@ -664,20 +877,29 @@ function Step3Genres({
 }
 
 // ============================================================================
-// STEP 4: SPORTS (OPTIONAL)
+// STEP 5: SPORTS (OPTIONAL)
 // ============================================================================
 
-function Step4Sports({
+function Step5Sports({
   selectedLeagues,
   selectedTeams,
+  selectedRegion,
   onLeaguesChange,
   onTeamsChange,
 }: {
   selectedLeagues: string[];
   selectedTeams: string[];
+  selectedRegion: string;
   onLeaguesChange: (leagues: string[]) => void;
   onTeamsChange: (teams: string[]) => void;
 }) {
+  // Filter sports leagues to the selected region
+  const region = GLOBAL_REGIONS.find(r => r.id === selectedRegion);
+  const regionLeagueNames = region?.sportsLeagues ?? [];
+  const filteredLeagues = SPORTS_LEAGUES.filter(l =>
+    regionLeagueNames.some(rln => rln.toLowerCase().includes(l.name.toLowerCase()) || l.name.toLowerCase().includes(rln.toLowerCase()))
+  );
+  const leaguesToShow = filteredLeagues.length > 0 ? filteredLeagues : SPORTS_LEAGUES;
   const toggleLeague = (id: string) => {
     if (selectedLeagues.includes(id)) {
       onLeaguesChange(selectedLeagues.filter(l => l !== id));
@@ -694,7 +916,7 @@ function Step4Sports({
       </p>
 
       <div className="sports-grid">
-        {SPORTS_LEAGUES.map(league => (
+        {leaguesToShow.map(league => (
           <button
             key={league.id}
             onClick={() => toggleLeague(league.id)}
@@ -784,10 +1006,10 @@ function Step4Sports({
 }
 
 // ============================================================================
-// STEP 5: PHOTOS (OPTIONAL)
+// STEP 6: PHOTOS (OPTIONAL)
 // ============================================================================
 
-function Step5Photos({
+function Step6Photos({
   profilePhoto,
   headerPhoto,
   onProfileChange,
@@ -959,7 +1181,7 @@ function WizardFooter({
   onNext: () => void;
   onComplete: () => void;
 }) {
-  const isLastStep = step === 5;
+  const isLastStep = step === 6;
 
   return (
     <div className="wizard-footer">

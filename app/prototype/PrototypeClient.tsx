@@ -32,6 +32,7 @@ import {
   canonicalLeagueForTeams,
 } from "../../lib/catalog";
 import type { PlatformId, GenreKey, Platform } from "../../lib/catalog";
+import { GLOBAL_REGIONS, LANGUAGES } from "../../lib/globalRegions";
 import { parseCommand } from "../../lib/intent";
 /* =========================
    Types
@@ -82,8 +83,10 @@ type AttributionEvent = {
 };
 
 type WizardDraft = {
-  step: 1 | 2 | 3 | 4 | 5;
+  step: 1 | 2 | 3 | 4 | 5 | 6;
   name: string;
+  region?: string;
+  language?: string;
   platforms: PlatformId[];
   leagues: string[];
   teams: string[];
@@ -399,7 +402,7 @@ function loadWizardDraft(): WizardDraft | null {
   if (!parsed) return null;
   const step = (parsed.step ?? 1) as any;
   return {
-    step: ([1, 2, 3, 4, 5].includes(step) ? step : 1) as any,
+    step: ([1, 2, 3, 4, 5, 6].includes(step) ? step : 1) as any,
     name: String(parsed.name ?? ""),
     platforms: Array.isArray(parsed.platforms) ? (parsed.platforms.filter(Boolean) as PlatformId[]) : [],
     leagues: Array.isArray(parsed.leagues) ? parsed.leagues.filter(Boolean) : [],
@@ -1715,11 +1718,15 @@ export default function AmpereApp() {
   const [openProfileSettings, setOpenProfileSettings] = useState(false);
   const [openArchive, setOpenArchive] = useState(false);
   const [openAppStore, setOpenAppStore] = useState(false);
+  const [openSwitchProfile, setOpenSwitchProfile] = useState(false);
+  const [openKidMode, setOpenKidMode] = useState(false);
 
   const [powerState, setPowerState] = useState<"off" | "booting" | "on">("off");
 
-  const [setupStep, setSetupStep] = useState<1 | 2 | 3 | 4 | 5>(1);
+  const [setupStep, setSetupStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
   const [draftName, setDraftName] = useState(profile.name);
+  const [draftRegion, setDraftRegion] = useState<string>("north_america");
+  const [draftLanguage, setDraftLanguage] = useState<string>("en");
   const [draftPlatforms, setDraftPlatforms] = useState<PlatformId[]>(profile.favoritePlatformIds);
   const [draftLeagues, setDraftLeagues] = useState<string[]>(profile.favoriteLeagues);
   const [draftTeams, setDraftTeams] = useState<string[]>(profile.favoriteTeams);
@@ -1787,12 +1794,16 @@ export default function AmpereApp() {
     if (saved) {
       setSetupStep(saved.step);
       setDraftName(saved.name || profile.name);
+      setDraftRegion(saved.region || "north_america");
+      setDraftLanguage(saved.language || "en");
       setDraftPlatforms(saved.platforms.length ? saved.platforms : profile.favoritePlatformIds);
       setDraftLeagues(saved.leagues.length ? saved.leagues : profile.favoriteLeagues);
       setDraftTeams(saved.teams.length ? saved.teams : profile.favoriteTeams);
     } else {
       setSetupStep(1);
       setDraftName(profile.name);
+      setDraftRegion("north_america");
+      setDraftLanguage("en");
       setDraftPlatforms(profile.favoritePlatformIds);
       setDraftLeagues(profile.favoriteLeagues);
       setDraftTeams(profile.favoriteTeams);
@@ -1806,6 +1817,8 @@ export default function AmpereApp() {
     saveWizardDraft({
       step: setupStep,
       name: draftName,
+      region: draftRegion,
+      language: draftLanguage,
       platforms: uniq(draftPlatforms.filter(Boolean)),
       leagues: uniq(draftLeagues.filter(Boolean)),
       teams: uniq(draftTeams.filter(Boolean)),
@@ -1935,7 +1948,9 @@ export default function AmpereApp() {
     openAbout ||
     openProfileSettings ||
     openArchive ||
-    openAppStore;
+    openAppStore ||
+    openSwitchProfile ||
+    openKidMode;
 
   const onBack = () => {
     if (openCard) return setOpenCard(null);
@@ -1950,6 +1965,8 @@ export default function AmpereApp() {
     if (openProfileSettings) return setOpenProfileSettings(false);
     if (openArchive) return setOpenArchive(false);
     if (openAppStore) return setOpenAppStore(false);
+    if (openSwitchProfile) return setOpenSwitchProfile(false);
+    if (openKidMode) return setOpenKidMode(false);
   };
 
   const resetFilters = () => {
@@ -2014,9 +2031,10 @@ export default function AmpereApp() {
 
   const canNextWizard = () => {
     if (setupStep === 1) return !!draftName.trim();
-    if (setupStep === 2) return draftPlatforms.length > 0;
-    if (setupStep === 3) return true; // leagues optional
-    if (setupStep === 4) return true; // teams optional
+    if (setupStep === 2) return !!draftRegion; // region selection
+    if (setupStep === 3) return draftPlatforms.length > 0;
+    if (setupStep === 4) return true; // leagues optional
+    if (setupStep === 5) return true; // teams optional
     return true;
   };
 
@@ -2278,6 +2296,8 @@ export default function AmpereApp() {
                 </span>
               }
             >
+              <MenuItem title="Switch Profile" subtitle="PIN-protected profile switching" onClick={() => setOpenSwitchProfile(true)} right="›" />
+              <MenuItem title="Kid Mode" subtitle="Simplified UI for children" onClick={() => setOpenKidMode(true)} right="›" />
               <MenuItem title="Profile Settings" subtitle="Name, avatar, header image" onClick={() => setOpenProfileSettings(true)} right="›" />
               <MenuItem title="Change Header Image" subtitle="Recommended: 1500 × 500 px" onClick={() => headerInputRef.current?.click()} right="⬆" />
               <MenuItem title="Set-Up Wizard" subtitle="Resume onboarding" onClick={() => setOpenSetup(true)} right="›" />
@@ -3280,6 +3300,32 @@ export default function AmpereApp() {
         <ArchiveContent />
       </Modal>
 
+      {/* Switch Profile Modal */}
+      <Modal open={openSwitchProfile} title="Switch Profile" onClose={() => setOpenSwitchProfile(false)} maxWidth={600}>
+        <SwitchProfileContent
+          currentName={profile.name}
+          onSwitch={(name) => {
+            const next = normalizeProfile({ ...profile, name });
+            setProfile(next);
+            saveProfile(next);
+            track("profile_switch", { name });
+            setOpenSwitchProfile(false);
+          }}
+          onClose={() => setOpenSwitchProfile(false)}
+        />
+      </Modal>
+
+      {/* Kid Mode Modal */}
+      <Modal open={openKidMode} title="Kid Mode" onClose={() => setOpenKidMode(false)} maxWidth={800}>
+        <KidModeContent
+          onActivate={() => {
+            track("kid_mode_activate", {});
+            setOpenKidMode(false);
+          }}
+          onClose={() => setOpenKidMode(false)}
+        />
+      </Modal>
+
       {/* App Store Modal */}
       <Modal open={openAppStore} title="App Store" onClose={() => setOpenAppStore(false)} maxWidth={980}>
         <AppStoreContent isMobile={isMobile} onInstall={(pid: string) => {
@@ -3303,13 +3349,17 @@ export default function AmpereApp() {
         />
       </Modal>
 
-      <Modal open={openSetup} title={`Set-Up Wizard — Step ${setupStep} of 5`} onClose={() => setOpenSetup(false)} maxWidth={980}>
+      <Modal open={openSetup} title={`Set-Up Wizard — Step ${setupStep} of 6`} onClose={() => setOpenSetup(false)} maxWidth={980}>
         <SetupWizardContent
           isMobile={isMobile}
           setupStep={setupStep}
           setSetupStep={setSetupStep}
           draftName={draftName}
           setDraftName={setDraftName}
+          draftRegion={draftRegion}
+          setDraftRegion={setDraftRegion}
+          draftLanguage={draftLanguage}
+          setDraftLanguage={setDraftLanguage}
           draftPlatforms={draftPlatforms}
           setDraftPlatforms={setDraftPlatforms}
           draftLeagues={draftLeagues}
@@ -3326,6 +3376,8 @@ export default function AmpereApp() {
             clearWizardDraft();
             setSetupStep(1);
             setDraftName(profile.name);
+            setDraftRegion("north_america");
+            setDraftLanguage("en");
             setDraftPlatforms(profile.favoritePlatformIds);
             setDraftLeagues(profile.favoriteLeagues);
             setDraftTeams(profile.favoriteTeams);
@@ -3641,17 +3693,28 @@ const APP_STORE_EXTRAS: Platform[] = [
 function AppStoreContent({ isMobile, onInstall }: { isMobile: boolean; onInstall: (pid: string) => void }) {
   const [search, setSearch] = useState("");
   const [installedIds, setInstalledIds] = useState<Set<string>>(new Set());
+  const [regionFilter, setRegionFilter] = useState<string>("all");
 
   const allApps = useMemo(() => [...PLATFORMS, ...APP_STORE_EXTRAS], []);
 
+  // Build set of local platform ids for the selected region
+  const regionLocalIds = useMemo(() => {
+    if (regionFilter === "all") return null;
+    const region = GLOBAL_REGIONS.find((r) => r.id === regionFilter);
+    return region ? new Set([...region.popularPlatforms, ...region.localPlatforms]) : null;
+  }, [regionFilter]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const sorted = [...allApps].sort((a, b) => a.label.localeCompare(b.label));
-    if (!q) return sorted;
-    return sorted.filter(
+    let list = [...allApps].sort((a, b) => a.label.localeCompare(b.label));
+    if (regionLocalIds) {
+      list = list.filter((p) => regionLocalIds.has(p.id));
+    }
+    if (!q) return list;
+    return list.filter(
       (p) => p.label.toLowerCase().includes(q) || (p.kind ?? "").includes(q) || (p.genres ?? []).some((g) => g.toLowerCase().includes(q))
     );
-  }, [search, allApps]);
+  }, [search, allApps, regionLocalIds]);
 
   const categories = useMemo(() => {
     const cats: Record<string, Platform[]> = {};
@@ -3666,7 +3729,48 @@ function AppStoreContent({ isMobile, onInstall }: { isMobile: boolean; onInstall
   return (
     <div style={{ display: "grid", gap: 14 }}>
       <div style={{ opacity: 0.82, fontWeight: 900, lineHeight: 1.5 }}>
-        Browse and install additional streaming apps. Installed apps appear in your platform list and Connect Platforms.
+        Browse and install additional streaming apps. Filter by region to discover local platforms.
+      </div>
+
+      {/* Region filter tabs */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        <button
+          type="button"
+          className="ampere-focus"
+          onClick={() => setRegionFilter("all")}
+          style={{
+            padding: "8px 12px",
+            borderRadius: 999,
+            border: regionFilter === "all" ? "2px solid rgba(58,167,255,0.7)" : "1px solid rgba(255,255,255,0.14)",
+            background: regionFilter === "all" ? "rgba(58,167,255,0.14)" : "rgba(255,255,255,0.04)",
+            color: "white",
+            fontWeight: 950,
+            cursor: "pointer",
+            fontSize: 12,
+          }}
+        >
+          All Regions
+        </button>
+        {GLOBAL_REGIONS.map((r) => (
+          <button
+            key={r.id}
+            type="button"
+            className="ampere-focus"
+            onClick={() => setRegionFilter(r.id)}
+            style={{
+              padding: "8px 12px",
+              borderRadius: 999,
+              border: regionFilter === r.id ? "2px solid rgba(58,167,255,0.7)" : "1px solid rgba(255,255,255,0.14)",
+              background: regionFilter === r.id ? "rgba(58,167,255,0.14)" : "rgba(255,255,255,0.04)",
+              color: "white",
+              fontWeight: 950,
+              cursor: "pointer",
+              fontSize: 12,
+            }}
+          >
+            {r.emoji} {r.name}
+          </button>
+        ))}
       </div>
 
       <input
@@ -3684,6 +3788,10 @@ function AppStoreContent({ isMobile, onInstall }: { isMobile: boolean; onInstall
           fontWeight: 850,
         }}
       />
+
+      <div style={{ opacity: 0.7, fontWeight: 900, fontSize: 12 }}>
+        Showing {filtered.length} app(s){regionFilter !== "all" ? ` for ${GLOBAL_REGIONS.find((r) => r.id === regionFilter)?.name ?? regionFilter}` : ""}
+      </div>
 
       {Object.entries(categories).map(([cat, platforms]) => (
         <div key={cat} style={{ display: "grid", gap: 10 }}>
@@ -3739,6 +3847,354 @@ function AppStoreContent({ isMobile, onInstall }: { isMobile: boolean; onInstall
       {!filtered.length ? (
         <div style={{ opacity: 0.75, fontWeight: 900, padding: 20, textAlign: "center" }}>No apps match your search.</div>
       ) : null}
+    </div>
+  );
+}
+
+/* =========================
+   Switch Profile (PIN-protected)
+   ========================= */
+
+const DEMO_PROFILES = [
+  { id: "main", name: "Main", avatar: "", pin: "1234", role: "parent" as const },
+  { id: "partner", name: "Partner", avatar: "", pin: "5678", role: "parent" as const },
+  { id: "kids", name: "Kids", avatar: "", pin: "", role: "child" as const },
+  { id: "guest", name: "Guest", avatar: "", pin: "", role: "viewer" as const },
+];
+
+function SwitchProfileContent({
+  currentName,
+  onSwitch,
+  onClose,
+}: {
+  currentName: string;
+  onSwitch: (name: string) => void;
+  onClose: () => void;
+}) {
+  const [selectedProfile, setSelectedProfile] = useState<string | null>(null);
+  const [pinInput, setPinInput] = useState("");
+  const [pinError, setPinError] = useState(false);
+
+  const selected = DEMO_PROFILES.find((p) => p.id === selectedProfile);
+  const needsPin = selected && selected.pin.length > 0;
+
+  const handlePinSubmit = () => {
+    if (!selected) return;
+    if (selected.pin && pinInput !== selected.pin) {
+      setPinError(true);
+      setPinInput("");
+      return;
+    }
+    onSwitch(selected.name);
+  };
+
+  return (
+    <div style={{ display: "grid", gap: 16 }}>
+      <div style={{ opacity: 0.82, fontWeight: 900, lineHeight: 1.5 }}>
+        Who&apos;s watching? Select a profile to switch. PIN-protected profiles require entry.
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))", gap: 12 }}>
+        {DEMO_PROFILES.map((p) => {
+          const isCurrent = p.name.toLowerCase() === currentName.toLowerCase();
+          const isSelected = selectedProfile === p.id;
+          return (
+            <button
+              key={p.id}
+              type="button"
+              className="ampere-focus"
+              onClick={() => {
+                setSelectedProfile(p.id);
+                setPinInput("");
+                setPinError(false);
+              }}
+              style={{
+                padding: 16,
+                borderRadius: 18,
+                border: isSelected ? "2px solid rgba(58,167,255,0.7)" : "1px solid rgba(255,255,255,0.12)",
+                background: isSelected ? "rgba(58,167,255,0.14)" : "rgba(255,255,255,0.04)",
+                color: "white",
+                fontWeight: 950,
+                cursor: "pointer",
+                textAlign: "center",
+                display: "grid",
+                gap: 8,
+                opacity: isCurrent ? 0.5 : 1,
+              }}
+            >
+              <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(58,167,255,0.18)", display: "grid", placeItems: "center", margin: "0 auto", fontWeight: 950, fontSize: 20 }}>
+                {p.name[0]}
+              </div>
+              <div style={{ fontSize: 14 }}>{p.name}</div>
+              <div style={{ fontSize: 11, opacity: 0.6 }}>
+                {isCurrent ? "Current" : p.pin ? "PIN" : p.role}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {selectedProfile && needsPin ? (
+        <div style={{ display: "grid", gap: 10, borderRadius: 18, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)", padding: 16 }}>
+          <div style={{ fontWeight: 950 }}>Enter PIN for {selected?.name}</div>
+          <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+            {[0, 1, 2, 3].map((i) => (
+              <div
+                key={i}
+                style={{
+                  width: 48,
+                  height: 56,
+                  borderRadius: 14,
+                  border: pinError ? "2px solid rgba(255,60,60,0.6)" : "1px solid rgba(255,255,255,0.2)",
+                  background: "rgba(0,0,0,0.35)",
+                  display: "grid",
+                  placeItems: "center",
+                  fontSize: 24,
+                  fontWeight: 950,
+                  color: "white",
+                }}
+              >
+                {pinInput[i] ? "\u2022" : ""}
+              </div>
+            ))}
+          </div>
+          {pinError ? (
+            <div style={{ color: "rgba(255,80,80,0.9)", fontWeight: 900, fontSize: 13, textAlign: "center" }}>
+              Incorrect PIN. Try again.
+            </div>
+          ) : null}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6, maxWidth: 240, margin: "0 auto" }}>
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, null, 0, "del"].map((key) => (
+              <button
+                key={`pin_${key}`}
+                type="button"
+                className="ampere-focus"
+                onClick={() => {
+                  if (key === null) return;
+                  if (key === "del") { setPinInput((prev) => prev.slice(0, -1)); setPinError(false); return; }
+                  if (pinInput.length >= 4) return;
+                  const next = pinInput + String(key);
+                  setPinInput(next);
+                  setPinError(false);
+                  // Auto-submit when 4 digits entered
+                  if (next.length === 4 && selected) {
+                    if (next === selected.pin) { onSwitch(selected.name); }
+                    else { setPinError(true); setPinInput(""); }
+                  }
+                }}
+                disabled={key === null}
+                style={{
+                  padding: "12px 0",
+                  borderRadius: 12,
+                  border: "1px solid rgba(255,255,255,0.14)",
+                  background: key === null ? "transparent" : "rgba(255,255,255,0.06)",
+                  color: "white",
+                  fontWeight: 950,
+                  fontSize: 18,
+                  cursor: key === null ? "default" : "pointer",
+                  visibility: key === null ? "hidden" : "visible",
+                }}
+              >
+                {key === "del" ? "\u232b" : key}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {selectedProfile && !needsPin ? (
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+          <button
+            type="button"
+            className="ampere-focus"
+            onClick={() => selected && onSwitch(selected.name)}
+            style={{
+              padding: "12px 20px",
+              borderRadius: 14,
+              border: "1px solid rgba(58,167,255,0.22)",
+              background: "rgba(58,167,255,0.14)",
+              color: "white",
+              fontWeight: 950,
+              cursor: "pointer",
+            }}
+          >
+            Switch to {selected?.name}
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+/* =========================
+   Kid Mode
+   ========================= */
+
+function KidModeContent({
+  onActivate,
+  onClose,
+}: {
+  onActivate: () => void;
+  onClose: () => void;
+}) {
+  const [pinInput, setPinInput] = useState("");
+  const [confirmed, setConfirmed] = useState(false);
+  const parentPin = "1234"; // Demo PIN
+
+  return (
+    <div style={{ display: "grid", gap: 16 }}>
+      {!confirmed ? (
+        <>
+          <div style={{ opacity: 0.82, fontWeight: 900, lineHeight: 1.5 }}>
+            Kid Mode provides a simplified, safe browsing experience with age-appropriate content only.
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div style={{ borderRadius: 18, border: "1px solid rgba(58,167,255,0.18)", background: "rgba(58,167,255,0.06)", padding: 16, display: "grid", gap: 8 }}>
+              <div style={{ fontWeight: 950, fontSize: 16 }}>What changes</div>
+              <ul style={{ margin: 0, paddingLeft: 16, fontWeight: 900, opacity: 0.85, lineHeight: 1.8, fontSize: 13 }}>
+                <li>Simplified navigation (3 tabs)</li>
+                <li>Large, colorful tiles</li>
+                <li>No search keyboard</li>
+                <li>Content filtered to G/PG only</li>
+                <li>No purchase/subscribe buttons</li>
+              </ul>
+            </div>
+            <div style={{ borderRadius: 18, border: "1px solid rgba(138,43,226,0.18)", background: "rgba(138,43,226,0.06)", padding: 16, display: "grid", gap: 8 }}>
+              <div style={{ fontWeight: 950, fontSize: 16 }}>Parental controls</div>
+              <ul style={{ margin: 0, paddingLeft: 16, fontWeight: 900, opacity: 0.85, lineHeight: 1.8, fontSize: 13 }}>
+                <li>PIN required to exit</li>
+                <li>Screen time limits</li>
+                <li>Activity log visible to parents</li>
+                <li>Bedtime auto-lock</li>
+                <li>Content whitelist support</li>
+              </ul>
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gap: 10 }}>
+            <div style={{ fontWeight: 950 }}>Time limit</div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {["30 min", "1 hour", "2 hours", "No limit"].map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  className="ampere-focus"
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: 14,
+                    border: "1px solid rgba(255,255,255,0.14)",
+                    background: t === "1 hour" ? "rgba(58,167,255,0.14)" : "rgba(255,255,255,0.04)",
+                    color: "white",
+                    fontWeight: 950,
+                    cursor: "pointer",
+                  }}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="ampere-focus"
+            onClick={() => setConfirmed(true)}
+            style={{
+              padding: "14px 20px",
+              borderRadius: 14,
+              border: "1px solid rgba(58,167,255,0.22)",
+              background: "rgba(58,167,255,0.14)",
+              color: "white",
+              fontWeight: 950,
+              cursor: "pointer",
+              fontSize: 16,
+            }}
+          >
+            Activate Kid Mode
+          </button>
+        </>
+      ) : (
+        <div style={{ display: "grid", gap: 14, textAlign: "center", padding: 20 }}>
+          <div style={{ fontSize: 48 }}>&#x1F476;</div>
+          <div style={{ fontWeight: 950, fontSize: 20 }}>Kid Mode Active</div>
+          <div style={{ opacity: 0.82, fontWeight: 900, lineHeight: 1.5 }}>
+            The interface has been simplified for children. Enter the parent PIN to exit Kid Mode.
+          </div>
+          <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+            {[0, 1, 2, 3].map((i) => (
+              <div
+                key={i}
+                style={{
+                  width: 48,
+                  height: 56,
+                  borderRadius: 14,
+                  border: "1px solid rgba(255,255,255,0.2)",
+                  background: "rgba(0,0,0,0.35)",
+                  display: "grid",
+                  placeItems: "center",
+                  fontSize: 24,
+                  fontWeight: 950,
+                  color: "white",
+                }}
+              >
+                {pinInput[i] ? "\u2022" : ""}
+              </div>
+            ))}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6, maxWidth: 240, margin: "0 auto" }}>
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, null, 0, "del"].map((key) => (
+              <button
+                key={`kidpin_${key}`}
+                type="button"
+                className="ampere-focus"
+                onClick={() => {
+                  if (key === null) return;
+                  if (key === "del") { setPinInput((prev) => prev.slice(0, -1)); return; }
+                  if (pinInput.length >= 4) return;
+                  const next = pinInput + String(key);
+                  setPinInput(next);
+                  if (next.length === 4) {
+                    if (next === parentPin) { onActivate(); }
+                    else { setPinInput(""); }
+                  }
+                }}
+                disabled={key === null}
+                style={{
+                  padding: "12px 0",
+                  borderRadius: 12,
+                  border: "1px solid rgba(255,255,255,0.14)",
+                  background: key === null ? "transparent" : "rgba(255,255,255,0.06)",
+                  color: "white",
+                  fontWeight: 950,
+                  fontSize: 18,
+                  cursor: key === null ? "default" : "pointer",
+                  visibility: key === null ? "hidden" : "visible",
+                }}
+              >
+                {key === "del" ? "\u232b" : key}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            className="ampere-focus"
+            onClick={onClose}
+            style={{
+              padding: "10px 14px",
+              borderRadius: 14,
+              border: "1px solid rgba(255,255,255,0.14)",
+              background: "rgba(255,255,255,0.04)",
+              color: "white",
+              fontWeight: 950,
+              cursor: "pointer",
+              marginTop: 8,
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -4400,6 +4856,10 @@ function SetupWizardContent({
   setSetupStep,
   draftName,
   setDraftName,
+  draftRegion,
+  setDraftRegion,
+  draftLanguage,
+  setDraftLanguage,
   draftPlatforms,
   setDraftPlatforms,
   draftLeagues,
@@ -4415,8 +4875,12 @@ function SetupWizardContent({
   onStartOver,
 }: {
   isMobile: boolean;
-  setupStep: 1 | 2 | 3 | 4 | 5;
-  setSetupStep: (s: 1 | 2 | 3 | 4 | 5) => void;
+  setupStep: 1 | 2 | 3 | 4 | 5 | 6;
+  setSetupStep: (s: 1 | 2 | 3 | 4 | 5 | 6) => void;
+  draftRegion: string;
+  setDraftRegion: (s: string) => void;
+  draftLanguage: string;
+  setDraftLanguage: (s: string) => void;
   draftName: string;
   setDraftName: (s: string) => void;
   draftPlatforms: PlatformId[];
@@ -4437,11 +4901,11 @@ function SetupWizardContent({
   const sortedPlatforms = useMemo(() => [...PLATFORMS].slice().sort((a, b) => a.label.localeCompare(b.label)), []);
 
   const stepTitle =
-    setupStep === 1 ? "Your Profile" : setupStep === 2 ? "Pick Platforms" : setupStep === 3 ? "Pick Leagues" : setupStep === 4 ? "Pick Teams" : "Review";
+    setupStep === 1 ? "Your Profile" : setupStep === 2 ? "Your Region" : setupStep === 3 ? "Pick Platforms" : setupStep === 4 ? "Pick Leagues" : setupStep === 5 ? "Pick Teams" : "Review";
 
   const goNext = () => {
     if (!canNext) return;
-    const n = Math.min(5, (setupStep + 1) as any) as any;
+    const n = Math.min(6, (setupStep + 1) as any) as any;
     setSetupStep(n);
     track("wizard_step_next", { from: setupStep, to: n });
   };
@@ -4457,7 +4921,7 @@ function SetupWizardContent({
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
         <div style={{ display: "grid", gap: 6 }}>
           <div style={{ fontWeight: 950, fontSize: 18 }}>{stepTitle}</div>
-          <div style={{ opacity: 0.78, fontWeight: 900 }}>Progress: {setupStep}/5 • Autosaved</div>
+          <div style={{ opacity: 0.78, fontWeight: 900 }}>Progress: {setupStep}/6 • Autosaved</div>
         </div>
 
         <button
@@ -4509,8 +4973,72 @@ function SetupWizardContent({
         </div>
       ) : null}
 
-      {/* STEP 2 */}
+      {/* STEP 2 — Region */}
       {setupStep === 2 ? (
+        <div style={{ display: "grid", gap: 12 }}>
+          <div style={{ opacity: 0.82, fontWeight: 900, lineHeight: 1.5 }}>
+            Select your region to customize platforms, leagues, and language options.
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(4, minmax(0, 1fr))", gap: 8 }}>
+            {GLOBAL_REGIONS.map((r) => (
+              <button
+                key={r.id}
+                type="button"
+                className="ampere-focus"
+                onClick={() => {
+                  setDraftRegion(r.id);
+                  setDraftLanguage(r.defaultLanguage);
+                }}
+                style={{
+                  padding: "14px 10px",
+                  borderRadius: 16,
+                  border: draftRegion === r.id ? "2px solid rgba(58,167,255,0.7)" : "1px solid rgba(255,255,255,0.12)",
+                  background: draftRegion === r.id ? "rgba(58,167,255,0.14)" : "rgba(255,255,255,0.04)",
+                  color: "white",
+                  fontWeight: 950,
+                  cursor: "pointer",
+                  textAlign: "center",
+                  display: "grid",
+                  gap: 4,
+                }}
+              >
+                <span style={{ fontSize: 24 }}>{r.emoji}</span>
+                <span style={{ fontSize: 13 }}>{r.name}</span>
+              </button>
+            ))}
+          </div>
+
+          <div style={{ display: "grid", gap: 8 }}>
+            <div style={{ fontWeight: 950 }}>Language</div>
+            <select
+              value={draftLanguage}
+              onChange={(e) => setDraftLanguage(e.target.value)}
+              className="ampere-focus"
+              style={{
+                padding: "12px 14px",
+                borderRadius: 14,
+                border: "1px solid var(--stroke2)",
+                background: "rgba(0,0,0,0.35)",
+                color: "white",
+                outline: "none",
+                fontWeight: 900,
+              }}
+            >
+              {(() => {
+                const region = GLOBAL_REGIONS.find((r) => r.id === draftRegion);
+                const langs = region?.supportedLanguages ?? LANGUAGES.slice(0, 3);
+                return langs.map((lang) => (
+                  <option key={lang.code} value={lang.code}>{lang.name} — {lang.nativeName}</option>
+                ));
+              })()}
+            </select>
+          </div>
+        </div>
+      ) : null}
+
+      {/* STEP 3 — Platforms */}
+      {setupStep === 3 ? (
         <div style={{ display: "grid", gap: 12 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
             <div style={{ opacity: 0.82, fontWeight: 900, lineHeight: 1.5 }}>
@@ -4556,8 +5084,8 @@ function SetupWizardContent({
         </div>
       ) : null}
 
-      {/* STEP 3 */}
-      {setupStep === 3 ? (
+      {/* STEP 4 — Leagues */}
+      {setupStep === 4 ? (
         <div style={{ display: "grid", gap: 12 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
             <div style={{ opacity: 0.82, fontWeight: 900, lineHeight: 1.5 }}>
@@ -4600,8 +5128,8 @@ function SetupWizardContent({
         </div>
       ) : null}
 
-      {/* STEP 4 */}
-      {setupStep === 4 ? (
+      {/* STEP 5 — Teams */}
+      {setupStep === 5 ? (
         <div style={{ display: "grid", gap: 12 }}>
           <div style={{ opacity: 0.82, fontWeight: 900, lineHeight: 1.5 }}>
             Pick favorite teams (optional). Tip: use search to narrow.
@@ -4713,8 +5241,8 @@ function SetupWizardContent({
         </div>
       ) : null}
 
-      {/* STEP 5 */}
-      {setupStep === 5 ? (
+      {/* STEP 6 — Review */}
+      {setupStep === 6 ? (
         <div style={{ display: "grid", gap: 12 }}>
           <div style={{ opacity: 0.82, fontWeight: 900, lineHeight: 1.5 }}>
             Review your selections. Finish to apply them to your profile.
@@ -4797,7 +5325,7 @@ function SetupWizardContent({
           Back
         </button>
 
-        {setupStep < 5 ? (
+        {setupStep < 6 ? (
           <button
             type="button"
             className="ampere-focus"
@@ -4842,7 +5370,7 @@ function SetupWizardContent({
       {setupStep === 1 && !draftName.trim() ? (
         <div style={{ opacity: 0.7, fontWeight: 900, fontSize: 12 }}>Name is required to continue.</div>
       ) : null}
-      {setupStep === 2 && draftPlatforms.length === 0 ? (
+      {setupStep === 3 && draftPlatforms.length === 0 ? (
         <div style={{ opacity: 0.7, fontWeight: 900, fontSize: 12 }}>Pick at least one platform to continue.</div>
       ) : null}
     </div>
