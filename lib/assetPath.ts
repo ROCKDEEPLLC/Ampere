@@ -73,7 +73,7 @@ const KNOWN_SERVICE_FILES: Record<string, string> = {
   nbaleaguepass: "nbaleaguepass.png",
   mlbtv: "mlb.png",
   nhl: "nhl.png",
-  foxsports1: "ESPN.png",
+  foxsports1: "foxsports.png",
   tubi: "tubi.png",
   twitch: "twitch.png",
   sling: "sling.png",
@@ -188,21 +188,20 @@ export function genreImageCandidates(genreKey: string): string[] {
   // Map genre keys to known filenames in /assets/genres/
   const KNOWN_GENRE_FILES: Record<string, string> = {
     All: "all.png",
-    "Basic Streaming": "basicstreaming.png",
-    "Premium Channels": "premiummovies.png",
-    "Premium Streaming": "premiummovies.png",
-    "Movie Streaming": "moviestreaming.png",
+    "Anime & AsianTV": "animeasiancinema.png",
+    Arthouse: "indieandarthouse.png",
+    Basic: "basicstreaming.png",
+    "Black Media": "all.png",
     Documentaries: "documentary.png",
-    "Anime / Asian cinema": "animeasiancinema.png",
-    Kids: "kids.png",
-    LiveTV: "livetv.png",
-    "Premium Sports Streaming": "premiumsports.png",
+    Free: "Free.png",
     Gaming: "all.png",
-    "Free Streaming": "Free.png",
-    "Indie and Arthouse Film": "indieandarthouse.png",
     "Horror / Cult": "horrorcult.png",
+    Kids: "kids.png",
     LGBT: "LGBT.png",
-    "Black culture & diaspora": "all.png",
+    LiveTV: "livetv.png",
+    Movies: "moviestreaming.png",
+    Premium: "premiummovies.png",
+    Sports: "premiumsports.png",
   };
 
   const known = KNOWN_GENRE_FILES[genreKey];
@@ -313,20 +312,30 @@ export function powerIconCandidates(): string[] {
 export function leagueLogoCandidates(league?: string): string[] {
   if (!league) return [];
   const k = league.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const original = league.toLowerCase();
   return [
     assetPath(`/assets/leagues/${k}.png`),
     assetPath(`/assets/leagues/${k}.svg`),
+    assetPath(`/assets/leagues/teams/${league}/${k}.png`),
+    assetPath(`/assets/teams/${original}/${k}.png`),
     assetPath(`/logos/leagues/${k}.png`),
   ];
 }
 
 export function teamLogoCandidates(league: string, team: string): string[] {
   const l = league.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const leagueLower = league.toLowerCase();
   const t = team.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const teamSlug = team.toLowerCase().replace(/\s+/g, "-");
+  const teamWords = team.toLowerCase().replace(/\s+/g, " ");
   return [
+    assetPath(`/assets/teams/${leagueLower}/${teamSlug}.png`),
     assetPath(`/assets/teams/${l}/${t}.png`),
     assetPath(`/assets/teams/${l}/${t}.svg`),
+    assetPath(`/assets/teams/${leagueLower}/${t}.png`),
+    assetPath(`/assets/teams/${leagueLower}/${teamWords}.png`),
     assetPath(`/assets/leagues/teams/${league}/${team}.png`),
+    assetPath(`/assets/leagues/teams/${l}/${t}.png`),
     assetPath(`/logos/teams/${l}/${t}.png`),
   ];
 }
