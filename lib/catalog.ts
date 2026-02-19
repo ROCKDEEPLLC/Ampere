@@ -62,11 +62,11 @@ export const PLATFORMS: Platform[] = [
   { id: "mgmplus", label: "MGM+", kind: "streaming", genres: ["Premium", "Premium", "Movies"] },
 
   // ---- MOVIE STREAMING ----
-  { id: "criterion", label: "The Criterion Channel", kind: "streaming", genres: ["Movies", "Arthouse"] },
+  { id: "criterion", label: "Criterion Channel", kind: "streaming", genres: ["Movies", "Arthouse"] },
   { id: "mubi", label: "MUBI", kind: "streaming", genres: ["Movies", "Arthouse"] },
   { id: "fandango", label: "Fandango at Home", kind: "streaming", genres: ["Movies"], note: "Formerly Vudu" },
   { id: "vudu", label: "Vudu", kind: "streaming", genres: ["Movies"], note: "Now Fandango at Home" },
-  { id: "youtubemovies", label: "YouTube Movies / Google TV", kind: "streaming", genres: ["Movies"] },
+  { id: "youtubemovies", label: "YouTube Movies", kind: "streaming", genres: ["Movies"] },
   { id: "moviesanywhere", label: "Movies Anywhere", kind: "streaming", genres: ["Movies"] },
 
   // ---- DOCUMENTARIES ----
@@ -82,22 +82,22 @@ export const PLATFORMS: Platform[] = [
   { id: "asiancrush", label: "AsianCrush", kind: "streaming", genres: ["Anime & AsianTV"] },
 
   // ---- KIDS ----
-  { id: "disneyplus-kids", label: "Disney+ / DisneyNOW / Disney Jr.", kind: "kids", genres: ["Kids"], note: "Disney, Pixar, Marvel content + live TV" },
+  { id: "disneyplus-kids", label: "Disney Jr.", kind: "kids", genres: ["Kids"], note: "Disney, Pixar, Marvel content + live TV" },
   { id: "pbskids", label: "PBS KIDS", kind: "kids", genres: ["Kids"], note: "Educational, commercial-free" },
   { id: "youtubekids", label: "YouTube Kids", kind: "kids", genres: ["Kids"], note: "Curated, kid-friendly" },
   { id: "noggin", label: "Noggin", kind: "kids", genres: ["Kids"], note: "PAW Patrol, Peppa Pig" },
   { id: "cartoonnetwork", label: "Cartoon Network", kind: "kids", genres: ["Kids"] },
-  { id: "nickelodeon", label: "Nickelodeon / Nick Jr.", kind: "kids", genres: ["Kids"] },
+  { id: "nickelodeon", label: "Nickelodeon", kind: "kids", genres: ["Kids"] },
   { id: "kidoodletv", label: "Kidoodle.TV", kind: "kids", genres: ["Kids"], note: "Safe, curated" },
   { id: "happykids", label: "HappyKids", kind: "kids", genres: ["Kids", "Free"], note: "Free, wide-ranging" },
   { id: "boomerang", label: "Boomerang", kind: "kids", genres: ["Kids"], note: "Classic cartoons" },
-  { id: "babytv", label: "BabyTV / BabyFirst TV", kind: "kids", genres: ["Kids"], note: "Toddlers & babies" },
+  { id: "babytv", label: "BabyTV", kind: "kids", genres: ["Kids"], note: "Toddlers & babies" },
   { id: "sensical", label: "Sensical", kind: "kids", genres: ["Kids", "Free"], note: "Expert-vetted, free" },
   { id: "gonoodle", label: "GoNoodle", kind: "kids", genres: ["Kids", "Free"], note: "Active, educational" },
   { id: "supersimple", label: "Super Simple", kind: "kids", genres: ["Kids", "Free"], note: "Songs & learning" },
   { id: "ryanfriends", label: "Ryan and Friends", kind: "kids", genres: ["Kids"], note: "Kid influencer content" },
-  { id: "bbc-cbeebies", label: "BBC iPlayer (CBeebies/CBBC)", kind: "kids", genres: ["Kids"], note: "UK children's programming" },
-  { id: "numberblocks", label: "Numberblocks / Alphablocks", kind: "kids", genres: ["Kids"], note: "Math & phonics" },
+  { id: "bbc-cbeebies", label: "BBC iPlayer", kind: "kids", genres: ["Kids"], note: "UK children's programming" },
+  { id: "numberblocks", label: "Numberblocks", kind: "kids", genres: ["Kids"], note: "Math & phonics" },
   { id: "babyjohn", label: "Baby John / Nursery Rhymes", kind: "kids", genres: ["Kids"], note: "Songs & learning" },
   { id: "kartoon", label: "Kartoon Channel", kind: "kids", genres: ["Kids"] },
 
@@ -117,11 +117,13 @@ export const PLATFORMS: Platform[] = [
   { id: "mlbtv", label: "MLB.TV", kind: "sports", genres: ["Sports"] },
   { id: "nhl", label: "NHL+", kind: "sports", genres: ["Sports"] },
   { id: "hbcugosports", label: "HBCUGO Sports", kind: "sports", genres: ["Sports", "Black Media"] },
+  { id: "yahoosports", label: "Yahoo Sports Network", kind: "sports", genres: ["Sports"] },
+  { id: "fanduelsports", label: "FanDuel Sports Network", kind: "sports", genres: ["Sports"] },
 
   // ---- GAMING ----
   { id: "twitch", label: "Twitch", kind: "gaming", genres: ["Gaming"] },
   { id: "kick", label: "Kick", kind: "gaming", genres: ["Gaming"] },
-  { id: "xboxcloud", label: "Xbox Cloud Gaming", kind: "gaming", genres: ["Gaming"] },
+  { id: "xboxcloud", label: "XBOX Cloud", kind: "gaming", genres: ["Gaming"] },
   { id: "geforcenow", label: "GeForce NOW", kind: "gaming", genres: ["Gaming"] },
   { id: "playstationplus", label: "PlayStation Plus", kind: "gaming", genres: ["Gaming"] },
   { id: "steam", label: "Steam", kind: "gaming", genres: ["Gaming"] },
@@ -129,7 +131,7 @@ export const PLATFORMS: Platform[] = [
   // ---- FREE STREAMING ----
   { id: "tubi", label: "Tubi", kind: "streaming", genres: ["Free"] },
   { id: "plutotv", label: "Pluto TV", kind: "streaming", genres: ["Free"] },
-  { id: "rokuchannel", label: "The Roku Channel", kind: "streaming", genres: ["Free"] },
+  { id: "rokuchannel", label: "Roku Channel", kind: "streaming", genres: ["Free"] },
   { id: "freevee", label: "Amazon Freevee", kind: "streaming", genres: ["Free"] },
   { id: "xumo", label: "Xumo Play", kind: "streaming", genres: ["Free"] },
   { id: "plex", label: "Plex", kind: "streaming", genres: ["Free"] },
@@ -175,10 +177,10 @@ export const ALL_PLATFORM_IDS: PlatformId[] = PLATFORMS.map((p) => p.id);
 // LEAGUES
 // ============================================================================
 
-export const LEAGUES = ["ALL", "EFL League One", "EFL League Two", "France Ligue 1", "KFL", "KHL", "MLB", "MLS", "NBA", "NCAA", "NFL", "NHL", "Premier League", "UCI", "UEFA Champions League", "UFC"] as const;
+export const LEAGUES = ["ALL", "EFL League One", "EFL League Two", "France Ligue 1", "HBCUGoSports", "IFL", "KHL", "MLB", "MLS", "NBA", "NCAA", "NFL", "NHL", "Premier League", "UCI", "UEFA Champions League", "UFC"] as const;
 
 export const TEAMS_BY_LEAGUE: Record<string, string[]> = {
-  KFL: [
+  IFL: [
     "Arkansas Twisters", "Duke City Gladiators", "Frisco Fighters", "Iowa Barnstormers",
     "Jacksonville Sharks", "Massachusetts Pirates", "NAZ Wranglers", "Northern Arizona Wranglers",
     "Sioux Falls Storm", "Southwest Kansas Storm", "Tucson Sugar Skulls", "Vegas Knight Hawks",
@@ -252,7 +254,9 @@ export const TEAMS_BY_LEAGUE: Record<string, string[]> = {
     "Utah Utes", "Vanderbilt Commodores", "Virginia Cavaliers", "Virginia Tech Hokies",
     "Wake Forest Demon Deacons", "Washington Huskies", "Washington State Cougars", "West Virginia Mountaineers",
     "Wisconsin Badgers",
-    // HBCU Schools
+  ],
+  HBCUGoSports: [
+    // HBCU Football & Basketball Schools
     "Alabama A&M Bulldogs", "Alabama State Hornets", "Alcorn State Braves", "Albany State Golden Rams",
     "Bethune-Cookman Wildcats", "Bowie State Bulldogs", "Central State Marauders", "Coppin State Eagles",
     "Delaware State Hornets", "Edward Waters Tigers", "Elizabeth City State Vikings", "Fayetteville State Broncos",
@@ -439,6 +443,8 @@ const PROVIDER_URLS: Record<string, { open: string; subscribe: string }> = {
   nbaleaguepass: { open: "https://www.nba.com/watch", subscribe: "https://www.nba.com/league-pass" },
   mlbtv: { open: "https://www.mlb.com/tv", subscribe: "https://www.mlb.com/tv" },
   nhl: { open: "https://www.nhl.com/subscribe", subscribe: "https://www.nhl.com/subscribe" },
+  yahoosports: { open: "https://sports.yahoo.com", subscribe: "https://sports.yahoo.com" },
+  fanduelsports: { open: "https://www.fanduel.com/sports-network", subscribe: "https://www.fanduel.com/sports-network" },
 };
 
 export function providerUrlOpen(pid: PlatformId | null, title?: string): string {
