@@ -509,6 +509,15 @@ button, a, input { -webkit-tap-highlight-color: transparent; }
   0%, 100% { transform: scale(1); opacity: 1; }
   50% { transform: scale(1.08); opacity: 0.85; }
 }
+.menu-item-glow:hover {
+  background: rgba(58,167,255,0.22) !important;
+  border-color: rgba(58,167,255,0.40) !important;
+  box-shadow: 0 0 10px rgba(58,167,255,0.25), 0 0 0 1px rgba(58,167,255,0.15) inset;
+}
+.menu-item-glow:active {
+  background: rgba(58,167,255,0.32) !important;
+  border-color: rgba(58,167,255,0.55) !important;
+}
 @keyframes bootProgress {
   0% { width: 0%; }
   100% { width: 100%; }
@@ -854,9 +863,9 @@ function PillButton({
         gap: 6,
         padding: "6px 10px",
         borderRadius: 999,
-        border: active ? "1px solid rgba(58,167,255,0.45)" : "1px solid rgba(255,255,255,0.10)",
+        border: active ? "1px solid rgba(58,167,255,0.6)" : "1px solid rgba(255,255,255,0.10)",
         background: active
-          ? "linear-gradient(180deg, rgba(58,167,255,0.18) 0%, rgba(10,10,10,0.85) 100%)"
+          ? "rgba(58,167,255,0.30)"
           : subtle
           ? "rgba(5,5,5,0.70)"
           : "linear-gradient(180deg, rgba(30,30,30,0.95) 0%, rgba(10,10,10,0.90) 100%)",
@@ -868,7 +877,7 @@ function PillButton({
         minWidth: 0,
         position: "relative",
         boxShadow: active
-          ? "0 0 8px rgba(58,167,255,0.25), 0 0 0 1px rgba(58,167,255,0.15) inset"
+          ? "0 0 12px rgba(58,167,255,0.35), 0 0 0 1px rgba(58,167,255,0.25) inset"
           : "0 1px 3px rgba(0,0,0,0.40), 0 0 0 1px rgba(255,255,255,0.04) inset",
         backdropFilter: "blur(8px)",
       }}
@@ -1008,13 +1017,13 @@ function Dropdown({
           gap: 10,
           padding: "12px 14px",
           borderRadius: 999,
-          border: open ? "1px solid rgba(58,167,255,0.26)" : "1px solid var(--stroke)",
-          background: open ? "rgba(58,167,255,0.10)" : "rgba(255,255,255,0.04)",
+          border: open ? "1px solid rgba(58,167,255,0.6)" : "1px solid var(--stroke)",
+          background: open ? "rgba(58,167,255,0.28)" : "rgba(255,255,255,0.04)",
           color: "white",
           cursor: "pointer",
           fontWeight: 950,
           whiteSpace: "nowrap",
-          boxShadow: open ? "0 0 0 1px rgba(58,167,255,0.10) inset" : undefined,
+          boxShadow: open ? "0 0 12px rgba(58,167,255,0.30), 0 0 0 1px rgba(58,167,255,0.20) inset" : undefined,
         }}
         aria-haspopup="menu"
         aria-expanded={open}
@@ -1987,11 +1996,11 @@ export default function AmpereApp() {
   useEffect(() => {
     if (powerState !== "booting") return;
     track("power_booting", {});
-    // Boot timer: video loops for 15s before auto-transition to the app
+    // Boot timer: video plays for 10s before auto-transition to the app
     const t = setTimeout(() => {
       setPowerState("on");
       track("power_on", {});
-    }, 15000);
+    }, 10000);
     return () => clearTimeout(t);
   }, [powerState]);
 
@@ -2299,7 +2308,6 @@ export default function AmpereApp() {
               <MenuItem title="Switch Profile" subtitle="PIN-protected profile switching" onClick={() => setOpenSwitchProfile(true)} right="›" />
               <MenuItem title="Kid Mode" subtitle="Simplified UI for children" onClick={() => setOpenKidMode(true)} right="›" />
               <MenuItem title="Profile Settings" subtitle="Name, avatar, header image" onClick={() => setOpenProfileSettings(true)} right="›" />
-              <MenuItem title="Change Header Image" subtitle="Recommended: 1500 × 500 px" onClick={() => headerInputRef.current?.click()} right="⬆" />
               <MenuItem title="Set-Up Wizard" subtitle="Resume onboarding" onClick={() => setOpenSetup(true)} right="›" />
               <MenuItem
                 title={"About AMPÈRE"}
