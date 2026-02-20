@@ -429,8 +429,21 @@ function clearWizardDraft() {
 
 function teamLogoCandidates(league: string, team: string): string[] {
   const l = normalizeKey(league);
+  // kebab-case for file matching: "Buffalo Bills" → "buffalo-bills"
+  const kebab = String(team ?? "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   const t = normalizeKey(team);
+  const lk = String(league ?? "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   return [
+    // Exact kebab patterns matching actual files: "kansas-city-chiefs-logo.png"
+    assetPath(`/assets/teams/${l}/${kebab}-logo.png`),
+    assetPath(`/assets/teams/${lk}/${kebab}-logo.png`),
+    // NBA pattern: "nba-boston-celtics-logo-480x480.png"
+    assetPath(`/assets/teams/${l}/${l}-${kebab}-logo-480x480.png`),
+    assetPath(`/assets/teams/${l}/${l}-${kebab}-logo-300x300.png`),
+    // Plain kebab
+    assetPath(`/assets/teams/${l}/${kebab}.png`),
+    assetPath(`/assets/teams/${lk}/${kebab}.png`),
+    // Fallback: normalized key (no hyphens)
     assetPath(`/assets/teams/${l}/${t}.png`),
     assetPath(`/assets/teams/${l}/${t}.svg`),
     assetPath(`/assets/leagues/teams/${league}/${team}.png`),
@@ -970,6 +983,102 @@ function Chip({ label, onRemove }: { label: string; onRemove?: () => void }) {
       <span style={{ opacity: 0.95 }}>{label}</span>
       {onRemove ? <span style={{ opacity: 0.85, fontWeight: 950 }}>✕</span> : null}
     </button>
+  );
+}
+
+/* =========================
+   Reusable QWERTY On-Screen Keyboard
+   ========================= */
+
+function QwertyKeyboard({
+  value,
+  onChange,
+  onSubmit,
+  isMobile,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onSubmit?: () => void;
+  isMobile: boolean;
+  placeholder?: string;
+}) {
+  const [pressedK, setPressedK] = useState<string | null>(null);
+
+  const rows = [
+    ["Q","W","E","R","T","Y","U","I","O","P"],
+    ["A","S","D","F","G","H","J","K","L"],
+    ["Z","X","C","V","B","N","M","⌫"],
+    ["SPACE","CLEAR", ...(onSubmit ? ["GO"] : [])],
+  ];
+
+  return (
+    <div style={{ display: "grid", gap: 6 }}>
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => { if (e.key === "Enter" && onSubmit) onSubmit(); }}
+        placeholder={placeholder ?? "Type here…"}
+        className="ampere-focus"
+        style={{
+          padding: "12px 14px",
+          borderRadius: 14,
+          border: "1px solid var(--stroke2)",
+          background: "rgba(0,0,0,0.35)",
+          color: "white",
+          outline: "none",
+          fontWeight: 850,
+          width: "100%",
+        }}
+      />
+      <div style={{ width: "100%", display: "grid", gap: 4 }}>
+        {rows.map((row, ri) => (
+          <div key={ri} style={{ display: "flex", gap: 4, justifyContent: "center" }}>
+            {row.map((k) => (
+              <button
+                key={k}
+                type="button"
+                className="ampere-focus"
+                onClick={() => {
+                  setPressedK(k);
+                  setTimeout(() => setPressedK(null), 200);
+                  if (k === "⌫") onChange(value.slice(0, -1));
+                  else if (k === "SPACE") onChange(value + " ");
+                  else if (k === "CLEAR") onChange("");
+                  else if (k === "GO" && onSubmit) onSubmit();
+                  else onChange(value + k.toLowerCase());
+                }}
+                style={{
+                  padding: k.length > 1 ? "8px 14px" : "8px 0",
+                  width: k.length > 1 ? undefined : isMobile ? 28 : 36,
+                  minWidth: k.length > 1 ? 56 : undefined,
+                  flex: k === "SPACE" ? "1 1 120px" : undefined,
+                  borderRadius: 10,
+                  border: pressedK === k
+                    ? "1px solid rgba(58,167,255,0.7)"
+                    : "1px solid rgba(255,255,255,0.12)",
+                  background: pressedK === k
+                    ? "rgba(58,167,255,0.35)"
+                    : k === "GO" ? "rgba(58,167,255,0.18)" : "rgba(255,255,255,0.06)",
+                  color: "white",
+                  fontWeight: 800,
+                  fontSize: isMobile ? 12 : 14,
+                  cursor: "pointer",
+                  textAlign: "center",
+                  boxShadow: pressedK === k
+                    ? "0 0 12px rgba(58,167,255,0.5), 0 0 24px rgba(58,167,255,0.2)"
+                    : "none",
+                  transition: "all 0.15s ease",
+                  transform: pressedK === k ? "scale(1.08)" : "scale(1)",
+                }}
+              >
+                {k}
+              </button>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -1729,6 +1838,7 @@ export default function AmpereApp() {
   const [openAppStore, setOpenAppStore] = useState(false);
   const [openSwitchProfile, setOpenSwitchProfile] = useState(false);
   const [openKidMode, setOpenKidMode] = useState(false);
+  const [openTVBrand, setOpenTVBrand] = useState(false);
 
   const [powerState, setPowerState] = useState<"off" | "booting" | "on">("off");
 
@@ -1959,7 +2069,8 @@ export default function AmpereApp() {
     openArchive ||
     openAppStore ||
     openSwitchProfile ||
-    openKidMode;
+    openKidMode ||
+    openTVBrand;
 
   const onBack = () => {
     if (openCard) return setOpenCard(null);
@@ -1976,6 +2087,7 @@ export default function AmpereApp() {
     if (openAppStore) return setOpenAppStore(false);
     if (openSwitchProfile) return setOpenSwitchProfile(false);
     if (openKidMode) return setOpenKidMode(false);
+    if (openTVBrand) return setOpenTVBrand(false);
   };
 
   const resetFilters = () => {
@@ -2295,6 +2407,7 @@ export default function AmpereApp() {
               <MenuItem title="Connect Platforms" subtitle="Open / Subscribe to streaming services" onClick={() => setOpenConnect(true)} right="›" />
               <MenuItem title="Archive" subtitle="History + attribution log" onClick={() => setOpenArchive(true)} right="›" />
               <MenuItem title="App Store" subtitle="Browse additional apps" onClick={() => setOpenAppStore(true)} right="›" />
+              <MenuItem title="TV Connection" subtitle="Connect to your television brand" onClick={() => setOpenTVBrand(true)} right="›" />
             </Dropdown>
 
             <Dropdown
@@ -2684,6 +2797,50 @@ export default function AmpereApp() {
 
         {activeTab === "favs" ? (
           <div style={{ display: "grid", gap: density.gap }}>
+            {/* Favorite Genres filter bar */}
+            <div style={{ display: "grid", gap: 8 }}>
+              <div style={{ fontWeight: 950, fontSize: 14, opacity: 0.85 }}>Favorite Genres</div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {(() => {
+                  // Show genres from the user's favorite platforms
+                  const favGenres = new Set<string>();
+                  for (const pid of profile.favoritePlatformIds) {
+                    const p = platformById(pid);
+                    if (p?.genres) for (const g of p.genres) favGenres.add(g);
+                  }
+                  const genres = favGenres.size ? [...favGenres].sort() : ["All"];
+                  return genres.map((g) => (
+                    <PillButton
+                      key={`favgenre_${g}`}
+                      label={g}
+                      active={activeGenre === g}
+                      onClick={() => setActiveGenre(activeGenre === g ? "All" : g as GenreKey)}
+                    />
+                  ));
+                })()}
+              </div>
+            </div>
+
+            {/* Favorite Platforms filter bar */}
+            <div style={{ display: "grid", gap: 8 }}>
+              <div style={{ fontWeight: 950, fontSize: 14, opacity: 0.85 }}>Favorite Platforms</div>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                <PillButton label="All" active={activePlatform === "all"} onClick={() => setActivePlatform("all")} />
+                {profile.favoritePlatformIds.slice(0, 12).map((pid) => {
+                  const p = platformById(pid);
+                  return (
+                    <PillButton
+                      key={`favplat_bar_${pid}`}
+                      label={p?.label ?? pid}
+                      iconSources={platformIconCandidates(pid)}
+                      active={activePlatform === pid}
+                      onClick={() => setActivePlatform(activePlatform === pid ? "all" : pid)}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+
             <Section title="For You" rightText="See all" onRightClick={() => setOpenSeeAll("for-you")}>
               <CardGrid cards={forYouFavs.slice(0, 10)} cardMinW={density.cardMinW} heroH={density.heroH} onOpen={openCardAndLog} skeleton={loading} />
             </Section>
@@ -3334,6 +3491,11 @@ export default function AmpereApp() {
         />
       </Modal>
 
+      {/* TV Brand Connection Modal */}
+      <Modal open={openTVBrand} title="TV Connection" onClose={() => setOpenTVBrand(false)} maxWidth={700}>
+        <TVBrandContent onClose={() => setOpenTVBrand(false)} />
+      </Modal>
+
       {/* App Store Modal */}
       <Modal open={openAppStore} title="App Store" onClose={() => setOpenAppStore(false)} maxWidth={980}>
         <AppStoreContent isMobile={isMobile} onInstall={(pid: string) => {
@@ -3664,6 +3826,100 @@ function ArchiveContent() {
   );
 }
 
+/* =========================
+   TV Brand Connection
+   ========================= */
+
+const TV_BRANDS = [
+  { id: "samsung", name: "Samsung", features: ["SmartThings", "Tizen OS", "Multi-View", "Ambient Mode"] },
+  { id: "lg", name: "LG", features: ["webOS", "ThinQ AI", "Magic Remote", "Gallery Mode"] },
+  { id: "sony", name: "Sony", features: ["Google TV", "BRAVIA CORE", "Acoustic Surface", "PS5 Link"] },
+  { id: "tcl", name: "TCL", features: ["Google TV", "Roku TV", "AIPQ Engine", "Game Master"] },
+  { id: "hisense", name: "Hisense", features: ["VIDAA", "Google TV", "ULED", "Game Mode Pro"] },
+  { id: "vizio", name: "VIZIO", features: ["SmartCast", "AirPlay 2", "HomeKit", "WatchFree+"] },
+  { id: "roku", name: "Roku TV", features: ["Roku OS", "The Roku Channel", "Voice Remote Pro", "HomeKit"] },
+  { id: "fire", name: "Fire TV (Amazon)", features: ["Fire OS", "Alexa", "Luna Gaming", "Ring Integration"] },
+  { id: "appletv", name: "Apple TV", features: ["tvOS", "AirPlay", "SharePlay", "HomeKit Hub"] },
+  { id: "chromecast", name: "Chromecast / Google TV", features: ["Google TV", "Ambient Mode", "Cast", "Google Home"] },
+  { id: "philips", name: "Philips", features: ["Android TV", "Ambilight", "Google Assistant", "DTS Play-Fi"] },
+  { id: "panasonic", name: "Panasonic", features: ["My Home Screen", "HCX Pro AI", "Filmmaker Mode"] },
+];
+
+function TVBrandContent({ onClose }: { onClose: () => void }) {
+  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
+  const [connected, setConnected] = useState(false);
+
+  const brand = TV_BRANDS.find((b) => b.id === selectedBrand);
+
+  return (
+    <div style={{ display: "grid", gap: 14 }}>
+      <div style={{ opacity: 0.82, fontWeight: 900, lineHeight: 1.5 }}>
+        Connect AMPERE to your television for CEC control, deep-link launching, and casting.
+      </div>
+
+      <div style={{ fontWeight: 950 }}>Select your TV brand</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 8 }}>
+        {TV_BRANDS.map((b) => (
+          <button
+            key={b.id}
+            type="button"
+            className="ampere-focus"
+            onClick={() => { setSelectedBrand(b.id); setConnected(false); }}
+            style={{
+              padding: "14px 10px",
+              borderRadius: 16,
+              border: selectedBrand === b.id ? "2px solid rgba(58,167,255,0.7)" : "1px solid rgba(255,255,255,0.12)",
+              background: selectedBrand === b.id ? "rgba(58,167,255,0.28)" : "rgba(255,255,255,0.04)",
+              color: "white",
+              fontWeight: 950,
+              cursor: "pointer",
+              textAlign: "center",
+              fontSize: 13,
+            }}
+          >
+            {b.name}
+          </button>
+        ))}
+      </div>
+
+      {brand ? (
+        <div style={{ borderRadius: 18, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)", padding: 16, display: "grid", gap: 10 }}>
+          <div style={{ fontWeight: 950, fontSize: 16 }}>{brand.name}</div>
+          <div style={{ fontWeight: 900, opacity: 0.8, fontSize: 13 }}>Supported features:</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {brand.features.map((f) => (
+              <span key={f} style={{ padding: "6px 10px", borderRadius: 10, background: "rgba(58,167,255,0.12)", border: "1px solid rgba(58,167,255,0.22)", fontWeight: 900, fontSize: 12 }}>{f}</span>
+            ))}
+          </div>
+
+          {connected ? (
+            <div style={{ padding: "12px 16px", borderRadius: 14, background: "rgba(34,197,94,0.14)", border: "1px solid rgba(34,197,94,0.30)", fontWeight: 950, textAlign: "center" }}>
+              Connected to {brand.name}
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="ampere-focus"
+              onClick={() => setConnected(true)}
+              style={{
+                padding: "12px 16px",
+                borderRadius: 14,
+                border: "1px solid rgba(58,167,255,0.22)",
+                background: "rgba(58,167,255,0.18)",
+                color: "white",
+                fontWeight: 950,
+                cursor: "pointer",
+              }}
+            >
+              Connect to {brand.name}
+            </button>
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 const APP_STORE_EXTRAS: Platform[] = [
   // Local Stations
   { id: "abclocal", label: "ABC Local", kind: "livetv", genres: ["LiveTV", "Free"] },
@@ -3702,6 +3958,10 @@ function AppStoreContent({ isMobile, onInstall }: { isMobile: boolean; onInstall
   const [search, setSearch] = useState("");
   const [installedIds, setInstalledIds] = useState<Set<string>>(new Set());
   const [regionFilter, setRegionFilter] = useState<string>("all");
+  const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set());
+
+  // 2 rows max: mobile=2 cols, desktop=3 cols
+  const defaultVisible = isMobile ? 4 : 6;
 
   const allApps = useMemo(() => [...PLATFORMS, ...APP_STORE_EXTRAS], []);
 
@@ -3781,76 +4041,91 @@ function AppStoreContent({ isMobile, onInstall }: { isMobile: boolean; onInstall
         ))}
       </div>
 
-      <input
+      <QwertyKeyboard
         value={search}
-        onChange={(e) => setSearch(e.target.value)}
+        onChange={setSearch}
+        isMobile={isMobile}
         placeholder="Search apps by name, category, or genre..."
-        className="ampere-focus"
-        style={{
-          padding: "12px 14px",
-          borderRadius: 14,
-          border: "1px solid var(--stroke2)",
-          background: "rgba(0,0,0,0.35)",
-          color: "white",
-          outline: "none",
-          fontWeight: 850,
-        }}
       />
 
       <div style={{ opacity: 0.7, fontWeight: 900, fontSize: 12 }}>
         Showing {filtered.length} app(s){regionFilter !== "all" ? ` for ${GLOBAL_REGIONS.find((r) => r.id === regionFilter)?.name ?? regionFilter}` : ""}
       </div>
 
-      {Object.entries(categories).map(([cat, platforms]) => (
-        <div key={cat} style={{ display: "grid", gap: 10 }}>
-          <div style={{ fontWeight: 950, fontSize: 16 }}>{cat} ({platforms.length})</div>
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(3, 1fr)", gap: 10 }}>
-            {platforms.map((p) => {
-              const justInstalled = installedIds.has(p.id);
-              return (
-                <div
-                  key={`appstore_${p.id}`}
-                  style={{
-                    borderRadius: 18,
-                    border: "1px solid rgba(255,255,255,0.12)",
-                    background: "rgba(255,255,255,0.04)",
-                    padding: 12,
-                    display: "grid",
-                    gap: 8,
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <SmartImg sources={platformIconCandidates(p.id)} size={36} rounded={12} fit="contain" fallbackText={p.label[0]} />
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontWeight: 950, opacity: 0.94, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.label}</div>
-                      <div style={{ fontWeight: 900, opacity: 0.6, fontSize: 11 }}>{p.kind ?? "streaming"} {p.genres?.length ? `• ${p.genres[0]}` : ""}</div>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className="ampere-focus"
-                    onClick={() => {
-                      onInstall(p.id);
-                      setInstalledIds((prev) => new Set([...prev, p.id]));
-                    }}
+      {Object.entries(categories).map(([cat, platforms]) => {
+        const isExpanded = expandedCats.has(cat);
+        const visible = isExpanded ? platforms : platforms.slice(0, defaultVisible);
+        const hasMore = platforms.length > defaultVisible && !isExpanded;
+        return (
+          <div key={cat} style={{ display: "grid", gap: 10 }}>
+            <div style={{ fontWeight: 950, fontSize: 16 }}>{cat} ({platforms.length})</div>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(3, 1fr)", gap: 10 }}>
+              {visible.map((p) => {
+                const justInstalled = installedIds.has(p.id);
+                return (
+                  <div
+                    key={`appstore_${p.id}`}
                     style={{
-                      padding: "10px 12px",
-                      borderRadius: 14,
-                      border: justInstalled ? "1px solid rgba(58,167,255,0.30)" : "1px solid rgba(255,255,255,0.14)",
-                      background: justInstalled ? "rgba(58,167,255,0.12)" : "rgba(255,255,255,0.06)",
-                      color: "white",
-                      fontWeight: 950,
-                      cursor: "pointer",
+                      borderRadius: 18,
+                      border: "1px solid rgba(255,255,255,0.12)",
+                      background: "rgba(255,255,255,0.04)",
+                      padding: 12,
+                      display: "grid",
+                      gap: 8,
                     }}
                   >
-                    {justInstalled ? "Installed" : "Install"}
-                  </button>
-                </div>
-              );
-            })}
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <SmartImg sources={platformIconCandidates(p.id)} size={36} rounded={12} fit="contain" fallbackText={p.label[0]} />
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontWeight: 950, opacity: 0.94, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.label}</div>
+                        <div style={{ fontWeight: 900, opacity: 0.6, fontSize: 11 }}>{p.kind ?? "streaming"} {p.genres?.length ? `• ${p.genres[0]}` : ""}</div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="ampere-focus"
+                      onClick={() => {
+                        onInstall(p.id);
+                        setInstalledIds((prev) => new Set([...prev, p.id]));
+                      }}
+                      style={{
+                        padding: "10px 12px",
+                        borderRadius: 14,
+                        border: justInstalled ? "1px solid rgba(58,167,255,0.30)" : "1px solid rgba(255,255,255,0.14)",
+                        background: justInstalled ? "rgba(58,167,255,0.28)" : "rgba(255,255,255,0.06)",
+                        color: "white",
+                        fontWeight: 950,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {justInstalled ? "Installed" : "Install"}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+            {hasMore ? (
+              <button
+                type="button"
+                className="ampere-focus menu-item-glow"
+                onClick={() => setExpandedCats((prev) => new Set([...prev, cat]))}
+                style={{
+                  padding: "10px 14px",
+                  borderRadius: 14,
+                  border: "1px solid rgba(58,167,255,0.22)",
+                  background: "rgba(58,167,255,0.10)",
+                  color: "white",
+                  fontWeight: 950,
+                  cursor: "pointer",
+                  width: "fit-content",
+                }}
+              >
+                Load More ({visible.length}/{platforms.length})
+              </button>
+            ) : null}
           </div>
-        </div>
-      ))}
+        );
+      })}
 
       {!filtered.length ? (
         <div style={{ opacity: 0.75, fontWeight: 900, padding: 20, textAlign: "center" }}>No apps match your search.</div>
@@ -4656,6 +4931,21 @@ function FavoritesEditor({
   const [favLeagues, setFavLeagues] = useState<string[]>(profile.favoriteLeagues);
   const [favTeams, setFavTeams] = useState<string[]>(profile.favoriteTeams);
 
+  // Track which sections are expanded
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  const toggleExpand = (key: string) => setExpandedSections((prev) => {
+    const next = new Set(prev);
+    if (next.has(key)) next.delete(key); else next.add(key);
+    return next;
+  });
+
+  // 2 rows max: platforms = mobile 2 cols, desktop 4 cols → 2 rows = 4 or 8
+  const platRowLimit = isMobile ? 4 : 8;
+  // Leagues: auto-fit ~160px, assume ~5-6 per row → 2 rows = 10-12
+  const leagueRowLimit = 12;
+  // Teams: auto-fit ~220px → ~3-4 per row → 2 rows = 6-8
+  const teamRowLimit = isMobile ? 6 : 8;
+
   useEffect(() => {
     setFavPlatforms(profile.favoritePlatformIds);
     setFavLeagues(profile.favoriteLeagues);
@@ -4665,11 +4955,19 @@ function FavoritesEditor({
   }, [profile]);
 
   const leaguesSelectable = LEAGUES.filter((l) => l !== "ALL");
-  const platformsFiltered = useMemo(() => {
+
+  // Group platforms by genre/kind for display
+  const platformsByGenre = useMemo(() => {
     const q = pSearch.trim().toLowerCase();
-    const base = [...PLATFORMS].slice().sort((a, b) => a.label.localeCompare(b.label));
-    if (!q) return base;
-    return base.filter((p) => p.label.toLowerCase().includes(q) || p.id.toLowerCase().includes(q));
+    const all = [...PLATFORMS].sort((a, b) => a.label.localeCompare(b.label));
+    const filtered = q ? all.filter((p) => p.label.toLowerCase().includes(q) || p.id.toLowerCase().includes(q)) : all;
+    const groups: Record<string, Platform[]> = {};
+    for (const p of filtered) {
+      const genre = p.kind === "sports" ? "Sports" : p.kind === "kids" ? "Kids & Family" : p.kind === "gaming" ? "Gaming" : p.kind === "livetv" ? "Live TV" : p.kind === "niche" ? "Specialty" : "Streaming";
+      if (!groups[genre]) groups[genre] = [];
+      groups[genre].push(p);
+    }
+    return groups;
   }, [pSearch]);
 
   const teamsBySelectedLeagues = useMemo(() => {
@@ -4698,101 +4996,123 @@ function FavoritesEditor({
         Edit favorites (stored locally). These affect ranking + filters + notifications.
       </div>
 
+      {/* === PLATFORMS (by Genre) === */}
       <div style={{ display: "grid", gap: 10 }}>
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-          <div style={{ fontWeight: 950 }}>Favorite Platforms</div>
-          <input
-            value={pSearch}
-            onChange={(e) => setPSearch(e.target.value)}
-            placeholder="Filter platforms…"
-            className="ampere-focus"
-            style={{
-              padding: "10px 12px",
-              borderRadius: 14,
-              border: "1px solid var(--stroke2)",
-              background: "rgba(0,0,0,0.35)",
-              color: "white",
-              outline: "none",
-              fontWeight: 850,
-              minWidth: 240,
-            }}
-          />
-        </div>
+        <div style={{ fontWeight: 950, fontSize: 16 }}>Favorite Platforms</div>
+        <QwertyKeyboard
+          value={pSearch}
+          onChange={setPSearch}
+          isMobile={isMobile}
+          placeholder="Filter platforms…"
+        />
 
-        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(4, minmax(0, 1fr))", gap: 10 }}>
-          {platformsFiltered.map((p) => (
-            <PillButton
-              key={`favplat_${p.id}`}
-              label={p.label}
-              iconSources={platformIconCandidates(p.id)}
-              active={favPlatforms.includes(p.id)}
-              onClick={() => setFavPlatforms((prev) => uniq(toggleInArray(prev, p.id) as PlatformId[]))}
-              fullWidth
-              multiline
-            />
-          ))}
-        </div>
+        {Object.entries(platformsByGenre).map(([genre, platforms]) => {
+          const key = `plat_${genre}`;
+          const isExpanded = expandedSections.has(key);
+          const visible = isExpanded ? platforms : platforms.slice(0, platRowLimit);
+          const hasMore = platforms.length > platRowLimit && !isExpanded;
+          return (
+            <div key={key} style={{ display: "grid", gap: 8 }}>
+              <div style={{ fontWeight: 950, opacity: 0.85, fontSize: 13 }}>{genre} ({platforms.length})</div>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(4, minmax(0, 1fr))", gap: 8 }}>
+                {visible.map((p) => (
+                  <PillButton
+                    key={`favplat_${p.id}`}
+                    label={p.label}
+                    iconSources={platformIconCandidates(p.id)}
+                    active={favPlatforms.includes(p.id)}
+                    onClick={() => setFavPlatforms((prev) => uniq(toggleInArray(prev, p.id) as PlatformId[]))}
+                    fullWidth
+                    multiline
+                  />
+                ))}
+              </div>
+              {hasMore ? (
+                <button type="button" className="ampere-focus menu-item-glow" onClick={() => toggleExpand(key)}
+                  style={{ padding: "8px 12px", borderRadius: 14, border: "1px solid rgba(58,167,255,0.22)", background: "rgba(58,167,255,0.10)", color: "white", fontWeight: 950, cursor: "pointer", width: "fit-content", fontSize: 12 }}>
+                  Load More ({visible.length}/{platforms.length})
+                </button>
+              ) : null}
+            </div>
+          );
+        })}
       </div>
 
+      {/* === LEAGUES === */}
       <div style={{ display: "grid", gap: 10 }}>
-        <div style={{ fontWeight: 950 }}>Favorite Leagues</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 10 }}>
-          {leaguesSelectable.map((l) => (
-            <PillButton
-              key={`favleague_${l}`}
-              label={l}
-              iconSources={leagueLogoCandidates(l)}
-              active={favLeagues.includes(l)}
-              onClick={() => setFavLeagues((prev) => uniq(toggleInArray(prev, l)))}
-              fullWidth
-            />
-          ))}
-        </div>
+        <div style={{ fontWeight: 950, fontSize: 16 }}>Favorite Leagues</div>
+        {(() => {
+          const isExpanded = expandedSections.has("leagues");
+          const visible = isExpanded ? leaguesSelectable : leaguesSelectable.slice(0, leagueRowLimit);
+          const hasMore = leaguesSelectable.length > leagueRowLimit && !isExpanded;
+          return (
+            <>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 8 }}>
+                {visible.map((l) => (
+                  <PillButton
+                    key={`favleague_${l}`}
+                    label={l}
+                    iconSources={leagueLogoCandidates(l)}
+                    active={favLeagues.includes(l)}
+                    onClick={() => setFavLeagues((prev) => uniq(toggleInArray(prev, l)))}
+                    fullWidth
+                  />
+                ))}
+              </div>
+              {hasMore ? (
+                <button type="button" className="ampere-focus menu-item-glow" onClick={() => toggleExpand("leagues")}
+                  style={{ padding: "8px 12px", borderRadius: 14, border: "1px solid rgba(58,167,255,0.22)", background: "rgba(58,167,255,0.10)", color: "white", fontWeight: 950, cursor: "pointer", width: "fit-content", fontSize: 12 }}>
+                  Load More ({visible.length}/{leaguesSelectable.length})
+                </button>
+              ) : null}
+            </>
+          );
+        })()}
       </div>
 
+      {/* === TEAMS === */}
       <div style={{ display: "grid", gap: 10 }}>
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-          <div style={{ fontWeight: 950 }}>Favorite Teams</div>
-          <input
-            value={tSearch}
-            onChange={(e) => setTSearch(e.target.value)}
-            placeholder="Filter teams…"
-            className="ampere-focus"
-            style={{
-              padding: "10px 12px",
-              borderRadius: 14,
-              border: "1px solid var(--stroke2)",
-              background: "rgba(0,0,0,0.35)",
-              color: "white",
-              outline: "none",
-              fontWeight: 850,
-              minWidth: 240,
-            }}
-          />
-        </div>
+        <div style={{ fontWeight: 950, fontSize: 16 }}>Favorite Teams</div>
+        <QwertyKeyboard
+          value={tSearch}
+          onChange={setTSearch}
+          isMobile={isMobile}
+          placeholder="Filter teams…"
+        />
 
         {!favLeagues.length ? (
           <div style={{ opacity: 0.75, fontWeight: 900 }}>Select a league above to pick teams.</div>
         ) : (
           <div style={{ display: "grid", gap: 12 }}>
-            {filteredTeamSections.map((sec) => (
-              <div key={`teams_${sec.league}`} style={{ borderRadius: 18, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)", padding: 12, display: "grid", gap: 10 }}>
-                <div style={{ fontWeight: 950, opacity: 0.92 }}>{sec.league}</div>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 }}>
-                  {sec.teams.slice(0, 24).map((t) => (
-                    <PillButton
-                      key={`${sec.league}_${t}`}
-                      label={t}
-                      active={favTeams.includes(t)}
-                      onClick={() => setFavTeams((prev) => uniq(toggleInArray(prev, t)))}
-                      fullWidth
-                      multiline
-                    />
-                  ))}
+            {filteredTeamSections.map((sec) => {
+              const key = `teams_${sec.league}`;
+              const isExpanded = expandedSections.has(key);
+              const visible = isExpanded ? sec.teams : sec.teams.slice(0, teamRowLimit);
+              const hasMore = sec.teams.length > teamRowLimit && !isExpanded;
+              return (
+                <div key={key} style={{ borderRadius: 18, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)", padding: 12, display: "grid", gap: 10 }}>
+                  <div style={{ fontWeight: 950, opacity: 0.92 }}>{sec.league} ({sec.teams.length})</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 8 }}>
+                    {visible.map((t) => (
+                      <PillButton
+                        key={`${sec.league}_${t}`}
+                        label={t}
+                        active={favTeams.includes(t)}
+                        onClick={() => setFavTeams((prev) => uniq(toggleInArray(prev, t)))}
+                        fullWidth
+                        multiline
+                      />
+                    ))}
+                  </div>
+                  {hasMore ? (
+                    <button type="button" className="ampere-focus menu-item-glow" onClick={() => toggleExpand(key)}
+                      style={{ padding: "8px 12px", borderRadius: 14, border: "1px solid rgba(58,167,255,0.22)", background: "rgba(58,167,255,0.10)", color: "white", fontWeight: 950, cursor: "pointer", width: "fit-content", fontSize: 12 }}>
+                      Load More ({visible.length}/{sec.teams.length})
+                    </button>
+                  ) : null}
                 </div>
-                {sec.teams.length > 24 ? <div style={{ opacity: 0.72, fontWeight: 900, fontSize: 12 }}>Showing 24 of {sec.teams.length}. Refine with search.</div> : null}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -4845,7 +5165,7 @@ function FavoritesEditor({
             padding: "12px 14px",
             borderRadius: 14,
             border: "1px solid rgba(58,167,255,0.22)",
-            background: "rgba(58,167,255,0.12)",
+            background: "rgba(58,167,255,0.18)",
             color: "white",
             fontWeight: 950,
             cursor: "pointer",
@@ -5143,20 +5463,11 @@ function SetupWizardContent({
             Pick favorite teams (optional). Tip: use search to narrow.
           </div>
 
-          <input
+          <QwertyKeyboard
             value={wizTeamSearch}
-            onChange={(e) => setWizTeamSearch(e.target.value)}
+            onChange={setWizTeamSearch}
+            isMobile={isMobile}
             placeholder="Search teams…"
-            className="ampere-focus"
-            style={{
-              padding: "12px 14px",
-              borderRadius: 14,
-              border: "1px solid var(--stroke2)",
-              background: "rgba(0,0,0,0.35)",
-              color: "white",
-              outline: "none",
-              fontWeight: 850,
-            }}
           />
 
           {!draftLeagues.length ? (
