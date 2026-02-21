@@ -22,6 +22,13 @@ export function getTelemetry(): TelemetryState {
 }
 
 export function addLog(event: string, data?: Record<string, unknown>) {
+  // Private mode: skip telemetry writes (except the private_mode toggle itself)
+  if (event !== "private_mode_toggle") {
+    try {
+      const pm = loadJson<{ enabled: boolean }>("ampere.privateMode.v1");
+      if (pm?.enabled) return;
+    } catch { /* proceed */ }
+  }
   const t = getTelemetry();
   const next: TelemetryState = {
     events: [{ ts: Date.now(), event, data }, ...t.events].slice(0, MAX),
