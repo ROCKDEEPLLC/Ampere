@@ -34,6 +34,17 @@ import {
 import type { PlatformId, GenreKey, Platform } from "../../lib/catalog";
 import { GLOBAL_REGIONS, LANGUAGES } from "../../lib/globalRegions";
 import { parseCommand } from "../../lib/intent";
+import {
+  PremiumHubContent, PricingContent, TasteEngineContent, WhyThisPickContent,
+  UniversalQueueContent, TimeToDelightContent, ModesContent, RemoteScenesContent,
+  ConnectLadderContent, TrustPortabilityContent, FamilyProfilesContent,
+  SocialContent, LivePulseContent, SemanticSearchContent,
+  AddDeviceContent, VirtualEmulatorContent,
+} from "../../components/InnovationSuite";
+import { type PlanTier, getPlanState, setPlanState, canAccessFeature } from "../../lib/premiumPlan";
+import { type ModeId } from "../../lib/modes";
+import { type Scene, executeScene } from "../../lib/scenes";
+import { type DelightBucket } from "../../lib/timeToDelight";
 /* =========================
    Types
    ========================= */
@@ -1840,6 +1851,25 @@ export default function AmpereApp() {
   const [openKidMode, setOpenKidMode] = useState(false);
   const [openTVBrand, setOpenTVBrand] = useState(false);
 
+  // InnovationSuite screens
+  const [openPremiumHub, setOpenPremiumHub] = useState(false);
+  const [openPricing, setOpenPricing] = useState(false);
+  const [openTasteEngine, setOpenTasteEngine] = useState(false);
+  const [openUniversalQueue, setOpenUniversalQueue] = useState(false);
+  const [openTimeToDelight, setOpenTimeToDelight] = useState(false);
+  const [openModes, setOpenModes] = useState(false);
+  const [openRemoteScenes, setOpenRemoteScenes] = useState(false);
+  const [openConnectLadder, setOpenConnectLadder] = useState(false);
+  const [openTrustPortability, setOpenTrustPortability] = useState(false);
+  const [openFamilyProfiles, setOpenFamilyProfiles] = useState(false);
+  const [openSocial, setOpenSocial] = useState(false);
+  const [openLivePulse, setOpenLivePulse] = useState(false);
+  const [openSemanticSearch, setOpenSemanticSearch] = useState(false);
+  const [openAddDevice, setOpenAddDevice] = useState(false);
+  const [openVirtualEmulator, setOpenVirtualEmulator] = useState(false);
+
+  const isPremiumUser = () => canAccessFeature("taste_engine");
+
   const [powerState, setPowerState] = useState<"off" | "booting" | "on">("off");
 
   const [setupStep, setSetupStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
@@ -2070,7 +2100,22 @@ export default function AmpereApp() {
     openAppStore ||
     openSwitchProfile ||
     openKidMode ||
-    openTVBrand;
+    openTVBrand ||
+    openPremiumHub ||
+    openPricing ||
+    openTasteEngine ||
+    openUniversalQueue ||
+    openTimeToDelight ||
+    openModes ||
+    openRemoteScenes ||
+    openConnectLadder ||
+    openTrustPortability ||
+    openFamilyProfiles ||
+    openSocial ||
+    openLivePulse ||
+    openSemanticSearch ||
+    openAddDevice ||
+    openVirtualEmulator;
 
   const onBack = () => {
     if (openCard) return setOpenCard(null);
@@ -2088,6 +2133,21 @@ export default function AmpereApp() {
     if (openSwitchProfile) return setOpenSwitchProfile(false);
     if (openKidMode) return setOpenKidMode(false);
     if (openTVBrand) return setOpenTVBrand(false);
+    if (openPremiumHub) return setOpenPremiumHub(false);
+    if (openPricing) return setOpenPricing(false);
+    if (openTasteEngine) return setOpenTasteEngine(false);
+    if (openUniversalQueue) return setOpenUniversalQueue(false);
+    if (openTimeToDelight) return setOpenTimeToDelight(false);
+    if (openModes) return setOpenModes(false);
+    if (openRemoteScenes) return setOpenRemoteScenes(false);
+    if (openConnectLadder) return setOpenConnectLadder(false);
+    if (openTrustPortability) return setOpenTrustPortability(false);
+    if (openFamilyProfiles) return setOpenFamilyProfiles(false);
+    if (openSocial) return setOpenSocial(false);
+    if (openLivePulse) return setOpenLivePulse(false);
+    if (openSemanticSearch) return setOpenSemanticSearch(false);
+    if (openAddDevice) return setOpenAddDevice(false);
+    if (openVirtualEmulator) return setOpenVirtualEmulator(false);
   };
 
   const resetFilters = () => {
@@ -2130,6 +2190,21 @@ export default function AmpereApp() {
     setOpenProfileSettings(false);
     setOpenArchive(false);
     setOpenAppStore(false);
+    setOpenPremiumHub(false);
+    setOpenPricing(false);
+    setOpenTasteEngine(false);
+    setOpenUniversalQueue(false);
+    setOpenTimeToDelight(false);
+    setOpenModes(false);
+    setOpenRemoteScenes(false);
+    setOpenConnectLadder(false);
+    setOpenTrustPortability(false);
+    setOpenFamilyProfiles(false);
+    setOpenSocial(false);
+    setOpenLivePulse(false);
+    setOpenSemanticSearch(false);
+    setOpenAddDevice(false);
+    setOpenVirtualEmulator(false);
     setPowerState("off");
   };
 
@@ -2408,6 +2483,10 @@ export default function AmpereApp() {
               <MenuItem title="Archive" subtitle="History + attribution log" onClick={() => setOpenArchive(true)} right="›" />
               <MenuItem title="App Store" subtitle="Browse additional apps" onClick={() => setOpenAppStore(true)} right="›" />
               <MenuItem title="TV Connection" subtitle="Connect to your television brand" onClick={() => setOpenTVBrand(true)} right="›" />
+              <MenuItem title="Add Device" subtitle="QR pair, local hub, cloud relay" onClick={() => setOpenAddDevice(true)} right="›" />
+              <MenuItem title="Virtual TV" subtitle="Emulate TV playback controls" onClick={() => setOpenVirtualEmulator(true)} right="›" />
+              <MenuItem title="Premium Hub" subtitle="Plan details & taste packs" onClick={() => setOpenPremiumHub(true)} right="★" />
+              <MenuItem title="Pricing" subtitle="Free vs Premium comparison" onClick={() => setOpenPricing(true)} right="›" />
             </Dropdown>
 
             <Dropdown
@@ -2430,6 +2509,17 @@ export default function AmpereApp() {
                 }}
                 right="i"
               />
+              <MenuItem title="Taste Engine" subtitle="Personalization sliders & mutes" onClick={() => setOpenTasteEngine(true)} right="›" />
+              <MenuItem title="Universal Queue" subtitle="Cross-platform watch list" onClick={() => setOpenUniversalQueue(true)} right="›" />
+              <MenuItem title="Time-to-Delight" subtitle="How much time do you have?" onClick={() => setOpenTimeToDelight(true)} right="›" />
+              <MenuItem title="Context Modes" subtitle="Game Day, Kids, Date Night…" onClick={() => setOpenModes(true)} right="›" />
+              <MenuItem title="Remote Scenes" subtitle="One-tap macro sequences" onClick={() => setOpenRemoteScenes(true)} right="›" />
+              <MenuItem title="Connect Ladder" subtitle="Deep links → entitlements → sync" onClick={() => setOpenConnectLadder(true)} right="›" />
+              <MenuItem title="Trust & Privacy" subtitle="Data portability & private mode" onClick={() => setOpenTrustPortability(true)} right="›" />
+              <MenuItem title="Family Profiles" subtitle="Up to 5 profiles, kid-safe" onClick={() => setOpenFamilyProfiles(true)} right="›" />
+              <MenuItem title="Social" subtitle="Circles, co-watch, decision rooms" onClick={() => setOpenSocial(true)} right="›" />
+              <MenuItem title="Live Pulse" subtitle="Real-time events & alerts" onClick={() => setOpenLivePulse(true)} right="›" />
+              <MenuItem title="Semantic Search" subtitle="On-device TF-IDF search" onClick={() => setOpenSemanticSearch(true)} right="›" />
             </Dropdown>
 
             {/* Power Off direct button - right of Profile */}
@@ -3494,6 +3584,67 @@ export default function AmpereApp() {
       {/* TV Brand Connection Modal */}
       <Modal open={openTVBrand} title="TV Connection" onClose={() => setOpenTVBrand(false)} maxWidth={700}>
         <TVBrandContent onClose={() => setOpenTVBrand(false)} />
+      </Modal>
+
+      {/* InnovationSuite Modals */}
+      <Modal open={openPremiumHub} title="Premium Hub" onClose={() => setOpenPremiumHub(false)} maxWidth={800}>
+        <PremiumHubContent onOpenPricing={() => { setOpenPremiumHub(false); setOpenPricing(true); }} />
+      </Modal>
+
+      <Modal open={openPricing} title="Pricing" onClose={() => setOpenPricing(false)} maxWidth={900}>
+        <PricingContent onSelect={(tier: PlanTier) => { setPlanState(tier); }} />
+      </Modal>
+
+      <Modal open={openTasteEngine} title="Taste Engine" onClose={() => setOpenTasteEngine(false)} maxWidth={800}>
+        <TasteEngineContent locked={!isPremiumUser()} onUpgrade={() => { setOpenTasteEngine(false); setOpenPricing(true); }} />
+      </Modal>
+
+      <Modal open={openUniversalQueue} title="Universal Queue" onClose={() => setOpenUniversalQueue(false)} maxWidth={800}>
+        <UniversalQueueContent locked={!isPremiumUser()} onUpgrade={() => { setOpenUniversalQueue(false); setOpenPricing(true); }} />
+      </Modal>
+
+      <Modal open={openTimeToDelight} title="Time-to-Delight" onClose={() => setOpenTimeToDelight(false)} maxWidth={800}>
+        <TimeToDelightContent locked={!isPremiumUser()} onUpgrade={() => { setOpenTimeToDelight(false); setOpenPricing(true); }} onSet={() => {}} />
+      </Modal>
+
+      <Modal open={openModes} title="Context Modes" onClose={() => setOpenModes(false)} maxWidth={800}>
+        <ModesContent locked={!isPremiumUser()} onUpgrade={() => { setOpenModes(false); setOpenPricing(true); }} onSet={() => {}} />
+      </Modal>
+
+      <Modal open={openRemoteScenes} title="Remote Scenes" onClose={() => setOpenRemoteScenes(false)} maxWidth={800}>
+        <RemoteScenesContent locked={!isPremiumUser()} onUpgrade={() => { setOpenRemoteScenes(false); setOpenPricing(true); }} onExecute={(scene: Scene) => { executeScene(scene, async () => {}); }} />
+      </Modal>
+
+      <Modal open={openConnectLadder} title="Connect Ladder" onClose={() => setOpenConnectLadder(false)} maxWidth={800}>
+        <ConnectLadderContent locked={!isPremiumUser()} onUpgrade={() => { setOpenConnectLadder(false); setOpenPricing(true); }} />
+      </Modal>
+
+      <Modal open={openTrustPortability} title="Trust & Privacy" onClose={() => setOpenTrustPortability(false)} maxWidth={800}>
+        <TrustPortabilityContent locked={!isPremiumUser()} onUpgrade={() => { setOpenTrustPortability(false); setOpenPricing(true); }} />
+      </Modal>
+
+      <Modal open={openFamilyProfiles} title="Family Profiles" onClose={() => setOpenFamilyProfiles(false)} maxWidth={800}>
+        <FamilyProfilesContent locked={!isPremiumUser()} onUpgrade={() => { setOpenFamilyProfiles(false); setOpenPricing(true); }} />
+      </Modal>
+
+      <Modal open={openSocial} title="Social" onClose={() => setOpenSocial(false)} maxWidth={800}>
+        <SocialContent locked={!isPremiumUser()} onUpgrade={() => { setOpenSocial(false); setOpenPricing(true); }} />
+      </Modal>
+
+      <Modal open={openLivePulse} title="Live Pulse" onClose={() => setOpenLivePulse(false)} maxWidth={800}>
+        <LivePulseContent locked={!isPremiumUser()} onUpgrade={() => { setOpenLivePulse(false); setOpenPricing(true); }} />
+      </Modal>
+
+      <Modal open={openSemanticSearch} title="Semantic Search" onClose={() => setOpenSemanticSearch(false)} maxWidth={800}>
+        <SemanticSearchContent locked={!isPremiumUser()} onUpgrade={() => { setOpenSemanticSearch(false); setOpenPricing(true); }} />
+      </Modal>
+
+      <Modal open={openAddDevice} title="Add Device" onClose={() => setOpenAddDevice(false)} maxWidth={800}>
+        <AddDeviceContent />
+      </Modal>
+
+      <Modal open={openVirtualEmulator} title="Virtual TV Emulator" onClose={() => setOpenVirtualEmulator(false)} maxWidth={800}>
+        <VirtualEmulatorContent />
       </Modal>
 
       {/* App Store Modal */}
