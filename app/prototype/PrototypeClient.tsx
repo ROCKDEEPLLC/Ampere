@@ -1180,6 +1180,9 @@ function Dropdown({
               boxShadow: "var(--shadow-md)",
               overflow: "hidden",
               zIndex: 89,
+              maxHeight: "min(80vh, 640px)",
+              overflowY: "auto",
+              WebkitOverflowScrolling: "touch" as any,
             }}
           >
             <DropdownCtx.Provider value={{ close: () => setOpen(false) }}>
@@ -2333,7 +2336,7 @@ export default function AmpereApp() {
                       borderRadius: 999,
                       background: "rgba(58,167,255,0.55)",
                       boxShadow: "0 0 0 1px rgba(58,167,255,0.12) inset",
-                      animation: "bootProgress 2s ease-in-out forwards",
+                      animation: "bootProgress 10s ease-in-out forwards",
                     }}
                   />
                 </div>
@@ -2482,11 +2485,28 @@ export default function AmpereApp() {
               <MenuItem title="Connect Platforms" subtitle="Open / Subscribe to streaming services" onClick={() => setOpenConnect(true)} right="›" />
               <MenuItem title="Archive" subtitle="History + attribution log" onClick={() => setOpenArchive(true)} right="›" />
               <MenuItem title="App Store" subtitle="Browse additional apps" onClick={() => setOpenAppStore(true)} right="›" />
-              <MenuItem title="TV Connection" subtitle="Connect to your television brand" onClick={() => setOpenTVBrand(true)} right="›" />
-              <MenuItem title="Add Device" subtitle="QR pair, local hub, cloud relay" onClick={() => setOpenAddDevice(true)} right="›" />
+              <MenuItem title="Add Device" subtitle="QR pair, local hub, cloud relay, TV connection" onClick={() => setOpenAddDevice(true)} right="›" />
               <MenuItem title="Virtual TV" subtitle="Emulate TV playback controls" onClick={() => setOpenVirtualEmulator(true)} right="›" />
-              <MenuItem title="Premium Hub" subtitle="Plan details & taste packs" onClick={() => setOpenPremiumHub(true)} right="★" />
+              <MenuItem title="Trust & Privacy" subtitle="Data portability & private mode" onClick={() => setOpenTrustPortability(true)} right="›" />
               <MenuItem title="Pricing" subtitle="Free vs Premium comparison" onClick={() => setOpenPricing(true)} right="›" />
+
+              {/* ── Premium grouped section ── */}
+              <div style={{ marginTop: 4, marginBottom: 2 }}>
+                <div style={{ padding: "6px 12px 4px", fontSize: 11, fontWeight: 950, textTransform: "uppercase", letterSpacing: 1.2, color: "#ffcc44", opacity: 0.85 }}>★ Premium</div>
+                <div style={{ display: "grid", gap: 6 }}>
+                  <MenuItem title="Premium Hub" subtitle="Plan details & taste packs" onClick={() => setOpenPremiumHub(true)} right="★" />
+                  <MenuItem title="Taste Engine" subtitle="Personalization sliders & mutes" onClick={() => setOpenTasteEngine(true)} right="›" />
+                  <MenuItem title="Universal Queue" subtitle="Cross-platform watch list" onClick={() => setOpenUniversalQueue(true)} right="›" />
+                  <MenuItem title="Time-to-Delight" subtitle="How much time do you have?" onClick={() => setOpenTimeToDelight(true)} right="›" />
+                  <MenuItem title="Context Modes" subtitle="Game Day, Kids, Date Night…" onClick={() => setOpenModes(true)} right="›" />
+                  <MenuItem title="Remote Scenes" subtitle="One-tap macro sequences" onClick={() => setOpenRemoteScenes(true)} right="›" />
+                  <MenuItem title="Connect Ladder" subtitle="Deep links → entitlements → sync" onClick={() => setOpenConnectLadder(true)} right="›" />
+                  <MenuItem title="Family Profiles" subtitle="Up to 5 profiles, kid-safe" onClick={() => setOpenFamilyProfiles(true)} right="›" />
+                  <MenuItem title="Social" subtitle="Circles, co-watch, decision rooms" onClick={() => setOpenSocial(true)} right="›" />
+                  <MenuItem title="Live Pulse" subtitle="Real-time events & alerts" onClick={() => setOpenLivePulse(true)} right="›" />
+                  <MenuItem title="Privacy Mode" subtitle="Disable telemetry & history logging" onClick={() => setOpenTrustPortability(true)} right="›" />
+                </div>
+              </div>
             </Dropdown>
 
             <Dropdown
@@ -2497,9 +2517,9 @@ export default function AmpereApp() {
                 </span>
               }
             >
+              <MenuItem title="Profile Settings" subtitle="Name, avatar, header image" onClick={() => setOpenProfileSettings(true)} right="›" />
               <MenuItem title="Switch Profile" subtitle="PIN-protected profile switching" onClick={() => setOpenSwitchProfile(true)} right="›" />
               <MenuItem title="Kid Mode" subtitle="Simplified UI for children" onClick={() => setOpenKidMode(true)} right="›" />
-              <MenuItem title="Profile Settings" subtitle="Name, avatar, header image" onClick={() => setOpenProfileSettings(true)} right="›" />
               <MenuItem title="Set-Up Wizard" subtitle="Resume onboarding" onClick={() => setOpenSetup(true)} right="›" />
               <MenuItem
                 title={"About AMPÈRE"}
@@ -2509,16 +2529,6 @@ export default function AmpereApp() {
                 }}
                 right="i"
               />
-              <MenuItem title="Taste Engine" subtitle="Personalization sliders & mutes" onClick={() => setOpenTasteEngine(true)} right="›" />
-              <MenuItem title="Universal Queue" subtitle="Cross-platform watch list" onClick={() => setOpenUniversalQueue(true)} right="›" />
-              <MenuItem title="Time-to-Delight" subtitle="How much time do you have?" onClick={() => setOpenTimeToDelight(true)} right="›" />
-              <MenuItem title="Context Modes" subtitle="Game Day, Kids, Date Night…" onClick={() => setOpenModes(true)} right="›" />
-              <MenuItem title="Remote Scenes" subtitle="One-tap macro sequences" onClick={() => setOpenRemoteScenes(true)} right="›" />
-              <MenuItem title="Connect Ladder" subtitle="Deep links → entitlements → sync" onClick={() => setOpenConnectLadder(true)} right="›" />
-              <MenuItem title="Trust & Privacy" subtitle="Data portability & private mode" onClick={() => setOpenTrustPortability(true)} right="›" />
-              <MenuItem title="Family Profiles" subtitle="Up to 5 profiles, kid-safe" onClick={() => setOpenFamilyProfiles(true)} right="›" />
-              <MenuItem title="Social" subtitle="Circles, co-watch, decision rooms" onClick={() => setOpenSocial(true)} right="›" />
-              <MenuItem title="Live Pulse" subtitle="Real-time events & alerts" onClick={() => setOpenLivePulse(true)} right="›" />
               <MenuItem title="Semantic Search" subtitle="On-device TF-IDF search" onClick={() => setOpenSemanticSearch(true)} right="›" />
             </Dropdown>
 
