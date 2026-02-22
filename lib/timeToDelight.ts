@@ -69,12 +69,12 @@ export interface ContextPreset {
 }
 
 export const CONTEXT_PRESETS: ContextPreset[] = [
-  { id: "cooking", label: "I'm cooking", bucket: 22, description: "Background-friendly picks while you cook", genreBoosts: ["Documentaries", "Free", "Kids"], backgroundFriendly: true },
-  { id: "commute", label: "Quick commute", bucket: 12, description: "Short content for your ride", genreBoosts: ["Free", "Gaming"], backgroundFriendly: false },
-  { id: "lunch", label: "Lunch break", bucket: 22, description: "Something fun while you eat", genreBoosts: ["Basic", "Free", "Gaming"], backgroundFriendly: false },
+  { id: "commute", label: "Quick Commute", bucket: 12, description: "Short content for your ride — 20m", genreBoosts: ["Free", "Gaming"], backgroundFriendly: false },
+  { id: "lunch", label: "Lunch Break", bucket: 22, description: "Something fun while you eat — 30m", genreBoosts: ["Basic", "Free", "Gaming"], backgroundFriendly: false },
   { id: "winding_down", label: "Winding down", bucket: 45, description: "Relaxing picks for the evening", genreBoosts: ["Basic", "Documentaries", "Arthouse"], backgroundFriendly: false },
+  { id: "cooking", label: "I'm Cooking", bucket: 45, description: "Background-friendly picks while you cook — 60m", genreBoosts: ["Documentaries", "Free", "Kids"], backgroundFriendly: true },
+  { id: "background", label: "Background Noise", bucket: 90, description: "Low-attention content while you work — 80m", genreBoosts: ["Free", "LiveTV", "Documentaries"], backgroundFriendly: true },
   { id: "movie_night", label: "Movie night", bucket: 90, description: "Settle in for something great", genreBoosts: ["Movies", "Premium", "Arthouse"], backgroundFriendly: false },
-  { id: "background", label: "Background noise", bucket: 45, description: "Low-attention content while you work", genreBoosts: ["Free", "LiveTV", "Documentaries"], backgroundFriendly: true },
 ];
 
 // ============================================================================
