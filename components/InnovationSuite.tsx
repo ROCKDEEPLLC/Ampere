@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import {
   type PlanTier, getPlanState, setPlanState, isPremium, canAccessFeature,
-  getAllPlanDefinitions, getPlanDefinition, getTastePacks,
+  getAllPlanDefinitions, getPlanDefinition, getTastePacks, getAllAddOnDefinitions,
 } from "../lib/premiumPlan";
 import {
   type TasteProfile, type DiscoveryContract, type WhyThisPickData,
@@ -40,6 +40,7 @@ import { getLivePulseState, markAlertRead, type LiveEvent, type LiveAlert } from
 import { addLog } from "../lib/telemetry";
 import { isPrivateMode, setPrivateMode, exportAllData, importAllData } from "../lib/storage";
 import { getFamilyProfiles, saveFamilyProfiles, type FamilyProfile } from "../lib/storage";
+import * as betsLib from "../lib/bets";
 
 /* ============================================================
    SHARED STYLES
@@ -100,6 +101,7 @@ export function PricingContent({ onSelect }: { onSelect: (tier: PlanTier) => voi
   const [current, setCurrent] = useState(getPlanState().plan);
   useEffect(() => { addLog("screen_open_pricing"); }, []);
   const plans = getAllPlanDefinitions();
+  const addons = getAllAddOnDefinitions();
   return (
     <div style={{ display: "grid", gap: 14 }}>
       <div style={heroTitle}>Choose Your Plan</div>
@@ -116,6 +118,25 @@ export function PricingContent({ onSelect }: { onSelect: (tier: PlanTier) => voi
               {p.features.map((f, i) => <div key={i} style={{ fontSize: 12, opacity: 0.8, marginBottom: 3 }}>• {f}</div>)}
               <button type="button" style={{ ...(isPremiumCard ? btnGold : btnPrimary), width: "100%", marginTop: 12 }} onClick={() => { onSelect(p.id); setCurrent(p.id); }}>
                 {active ? "Current Plan" : `Select ${p.name}`}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+      {/* À la carte & Add-ons */}
+      <div style={sectionTitle}>À La Carte & Add-Ons</div>
+      <div style={{ opacity: 0.7, fontSize: 12, marginBottom: 4 }}>Mix and match — add these to any plan above.</div>
+      <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
+        {addons.map((a) => {
+          const isGameDay = a.id === "gameday";
+          return (
+            <div key={a.id} style={{ ...panelStyle, borderColor: isGameDay ? "rgba(0,200,80,0.35)" : "rgba(255,255,255,0.12)", background: a.color, position: "relative" }}>
+              {a.badge && <div style={{ position: "absolute", top: -8, right: 12, ...chipStyle, background: "rgba(0,200,80,0.15)", borderColor: "rgba(0,200,80,0.3)", color: "#44dd88", fontSize: 10 }}>{a.badge}</div>}
+              <div style={{ fontWeight: 950, fontSize: 16, marginBottom: 2 }}>{a.name}</div>
+              <div style={{ fontWeight: 900, fontSize: 18, color: isGameDay ? "#44dd88" : "rgba(58,167,255,1)", marginBottom: 8 }}>{a.price}</div>
+              {a.features.map((f, i) => <div key={i} style={{ fontSize: 12, opacity: 0.8, marginBottom: 3 }}>• {f}</div>)}
+              <button type="button" style={{ ...(isGameDay ? { ...btnPrimary, borderColor: "rgba(0,200,80,0.35)", background: "rgba(0,200,80,0.15)", color: "#44dd88" } : btnSecondary), width: "100%", marginTop: 12 }} onClick={() => { onSelect(a.id as PlanTier); }}>
+                Add {a.name}
               </button>
             </div>
           );
@@ -172,9 +193,10 @@ export function TasteEngineContent({ locked, onUpgrade }: { locked: boolean; onU
         })}
       </div>
       <div style={sectionTitle}>Export / Import Taste</div>
+      <div style={{ opacity: 0.7, fontSize: 12, marginBottom: 6 }}>Download your taste profile as a JSON file, or import one from another device.</div>
       <div style={{ display: "flex", gap: 8 }}>
-        <button type="button" style={btnSecondary} onClick={() => { const d = exportTaste(); navigator.clipboard?.writeText(d); }}>Export Taste</button>
-        <button type="button" style={btnSecondary} onClick={() => { const j = prompt("Paste taste JSON:"); if (j) importTaste(j); }}>Import Taste</button>
+        <button type="button" style={btnSecondary} onClick={() => { const d = exportTaste(); const blob = new Blob([d], { type: "application/json" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `ampere-taste-${Date.now()}.json`; a.click(); URL.revokeObjectURL(url); }}>Download Taste</button>
+        <button type="button" style={btnSecondary} onClick={() => { const input = document.createElement("input"); input.type = "file"; input.accept = ".json"; input.onchange = (e) => { const f = (e.target as HTMLInputElement).files?.[0]; if (f) f.text().then((t) => { importTaste(t); setTaste(getTasteProfile()); }); }; input.click(); }}>Import Taste File</button>
       </div>
     </div>
   );
@@ -249,11 +271,12 @@ export function UniversalQueueContent({ locked, onUpgrade }: { locked: boolean; 
           <span style={{ fontWeight: 900, fontSize: 13 }}>{item.title}</span> <span style={{ fontSize: 11 }}>• {item.preferredPlatform}</span>
         </div>
       ))}
-      <div style={sectionTitle}>Export Vault</div>
+      <div style={sectionTitle}>Export / Import Vault</div>
+      <div style={{ opacity: 0.7, fontSize: 12, marginBottom: 6 }}>Download your queue + watch history as a portable file, or import a vault backup.</div>
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         <input value={vaultTag} onChange={(e) => setVaultTag(e.target.value)} placeholder="Version tag" style={{ padding: "8px 12px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.14)", background: "rgba(0,0,0,0.35)", color: "white", flex: 1, fontSize: 13, fontWeight: 900, outline: "none" }} />
-        <button type="button" style={btnSecondary} onClick={() => { const d = exportVault(vaultTag || "v1"); navigator.clipboard?.writeText(d); }}>Export</button>
-        <button type="button" style={btnSecondary} onClick={() => { const j = prompt("Paste vault JSON:"); if (j) { importVault(j); refresh(); } }}>Import</button>
+        <button type="button" style={btnSecondary} onClick={() => { const d = exportVault(vaultTag || "v1"); const blob = new Blob([d], { type: "application/json" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `ampere-vault-${vaultTag || "v1"}-${Date.now()}.json`; a.click(); URL.revokeObjectURL(url); }}>Download</button>
+        <button type="button" style={btnSecondary} onClick={() => { const input = document.createElement("input"); input.type = "file"; input.accept = ".json"; input.onchange = (e) => { const f = (e.target as HTMLInputElement).files?.[0]; if (f) f.text().then((t) => { importVault(t); refresh(); }); }; input.click(); }}>Import File</button>
       </div>
     </div>
   );
@@ -276,7 +299,7 @@ export function TimeToDelightContent({ locked, onUpgrade, onSet }: { locked: boo
           return (
             <button key={b.bucket} type="button" style={{ ...panelStyle, cursor: "pointer", textAlign: "center", borderColor: active ? "rgba(58,167,255,0.5)" : "rgba(255,255,255,0.12)", background: active ? "rgba(58,167,255,0.12)" : "rgba(255,255,255,0.04)" }}
               onClick={() => { const next = setDelightState(active ? null : b.bucket); setState(next); onSet(active ? null : b.bucket); }}>
-              <div style={{ fontSize: 28 }}>{b.icon}</div>
+              <div style={{ width: 48, height: 48, borderRadius: 10, background: active ? "rgba(58,167,255,0.18)" : "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", margin: "0 auto 6px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 950, opacity: 0.5 }}>{b.bucket}m</div>
               <div style={{ fontWeight: 950, fontSize: 16 }}>{b.label}</div>
               <div style={{ opacity: 0.6, fontSize: 11 }}>{b.description}</div>
             </button>
@@ -703,7 +726,7 @@ export function VirtualEmulatorContent() {
             {emu.currentMode && <div style={{ ...chipStyle, marginTop: 8 }}>Mode: {emu.currentMode}</div>}
           </div>
         )}
-        <div style={{ marginTop: 8, opacity: 0.5, fontSize: 11 }}>Vol: {emu.volume} | CC: {emu.captionsEnabled ? "ON" : "OFF"}</div>
+        <div style={{ marginTop: 8, opacity: 0.5, fontSize: 11 }}>Vol: {emu.volume} | Closed Captions: {emu.captionsEnabled ? "ON" : "OFF"}</div>
       </div>
       {/* Controls */}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
@@ -711,7 +734,7 @@ export function VirtualEmulatorContent() {
         <button type="button" style={btnSecondary} onClick={() => { emulatorPause(); refresh(); }}>⏸ Pause</button>
         <button type="button" style={btnSecondary} onClick={() => { emulatorResume(); refresh(); }}>▶ Resume</button>
         <button type="button" style={btnSecondary} onClick={() => { emulatorStop(); refresh(); }}>⏹ Stop</button>
-        <button type="button" style={btnSecondary} onClick={() => { emulatorToggleCaptions(); refresh(); }}>CC</button>
+        <button type="button" style={btnSecondary} onClick={() => { emulatorToggleCaptions(); refresh(); }}>{emu.captionsEnabled ? "CC ✓" : "CC"}</button>
       </div>
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         <span style={{ fontSize: 12, opacity: 0.6, minWidth: 28 }}>Vol</span>
@@ -740,6 +763,185 @@ export function VirtualEmulatorContent() {
     </div>
   );
 }
+
+/* ============================================================
+   17. BETTING COMPANION (Game Day Add-On)
+   ============================================================ */
+export function BettingCompanionContent({ locked, onUpgrade }: { locked: boolean; onUpgrade: () => void }) {
+  const [bets, setBets] = useState(betsLib.getAllBets);
+  const [stats, setStats] = useState(() => betsLib.computeStats());
+  const [tab, setTab] = useState<"slip" | "open" | "settled" | "stats">("slip");
+  const [title, setTitle] = useState(""); const [pick, setPick] = useState("");
+  const [odds, setOdds] = useState(-110); const [stake, setStake] = useState(0);
+  const [tags, setTags] = useState<betsLib.BetTag[]>(["Straight"]);
+  const [notes, setNotes] = useState(""); const [pasteText, setPasteText] = useState("");
+  useEffect(() => { addLog("screen_open_bettingCompanion"); }, []);
+  if (locked) return <LockedScreen name="Betting Companion" desc="Track bets, compute P&L, quick-stake buttons, and export for taxes. Game Day add-on required." onUpgrade={onUpgrade} />;
+  const refresh = () => { setBets(betsLib.getAllBets()); setStats(betsLib.computeStats()); };
+  const placeBet = () => {
+    if (!pick || stake <= 0) return;
+    betsLib.addBet({ title, pick, odds, stake, tags, notes });
+    setTitle(""); setPick(""); setOdds(-110); setStake(0); setNotes(""); setTags(["Straight"]);
+    refresh();
+  };
+  const plColor = (v: number) => v > 0 ? "#44dd88" : v < 0 ? "#ff5555" : "rgba(255,255,255,0.6)";
+  const statusColors: Record<string, string> = { open: "rgba(58,167,255,1)", won: "#44dd88", lost: "#ff5555", push: "#ffaa44", void: "rgba(255,255,255,0.4)" };
+  return (
+    <div style={{ display: "grid", gap: 14 }}>
+      <div style={heroTitle}>Betting Companion</div>
+      <div style={heroSub}>Track bets, compute odds, settle, and export. Game Day add-on.</div>
+      {/* Stats Strip */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))", gap: 8 }}>
+        <div style={{ ...panelStyle, textAlign: "center", padding: 10 }}>
+          <div style={{ fontSize: 18, fontWeight: 950, color: plColor(stats.todayPL) }}>{stats.todayPL >= 0 ? "+" : ""}{stats.todayPL.toFixed(2)}</div>
+          <div style={{ opacity: 0.5, fontSize: 10 }}>Today P&L</div>
+        </div>
+        <div style={{ ...panelStyle, textAlign: "center", padding: 10 }}>
+          <div style={{ fontSize: 18, fontWeight: 950, color: plColor(stats.weekPL) }}>{stats.weekPL >= 0 ? "+" : ""}{stats.weekPL.toFixed(2)}</div>
+          <div style={{ opacity: 0.5, fontSize: 10 }}>Week P&L</div>
+        </div>
+        <div style={{ ...panelStyle, textAlign: "center", padding: 10 }}>
+          <div style={{ fontSize: 18, fontWeight: 950 }}>{stats.winRate.toFixed(0)}%</div>
+          <div style={{ opacity: 0.5, fontSize: 10 }}>Win Rate</div>
+        </div>
+        <div style={{ ...panelStyle, textAlign: "center", padding: 10 }}>
+          <div style={{ fontSize: 18, fontWeight: 950, color: plColor(stats.roi) }}>{stats.roi.toFixed(1)}%</div>
+          <div style={{ opacity: 0.5, fontSize: 10 }}>ROI</div>
+        </div>
+      </div>
+      {/* Tabs */}
+      <div style={{ display: "flex", gap: 6 }}>
+        {(["slip", "open", "settled", "stats"] as const).map((t) => (
+          <button key={t} type="button" style={tab === t ? btnPrimary : btnSecondary} onClick={() => setTab(t)}>
+            {t === "slip" ? "Add Bet" : t === "open" ? `Open (${stats.openBets})` : t === "settled" ? "Settled" : "Stats"}
+          </button>
+        ))}
+      </div>
+      {/* Add Bet Slip */}
+      {tab === "slip" && (
+        <div style={{ display: "grid", gap: 10 }}>
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Event / Matchup (e.g. Lakers vs Celtics)" style={inputStyle} />
+          <input value={pick} onChange={(e) => setPick(e.target.value)} placeholder="Pick line (e.g. Lakers -3.5)" style={inputStyle} />
+          <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 11, opacity: 0.5, marginBottom: 4 }}>American Odds</div>
+              <input type="number" value={odds} onChange={(e) => setOdds(+e.target.value)} style={inputStyle} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 11, opacity: 0.5, marginBottom: 4 }}>Payout</div>
+              <div style={{ ...panelStyle, padding: "10px 12px", fontSize: 16, fontWeight: 950, color: "#44dd88" }}>${stake > 0 ? betsLib.computePayout(stake, odds).toFixed(2) : "0.00"}</div>
+            </div>
+          </div>
+          {/* Quick Stakes */}
+          <div style={{ fontSize: 11, opacity: 0.5 }}>Quick Stake</div>
+          <div style={{ display: "flex", gap: 6 }}>
+            {betsLib.QUICK_STAKES.map((q) => (
+              <button key={q} type="button" style={{ ...(stake === q ? btnPrimary : btnSecondary), flex: 1, textAlign: "center" }} onClick={() => setStake(q)}>${q}</button>
+            ))}
+          </div>
+          {/* Tags */}
+          <div style={{ fontSize: 11, opacity: 0.5 }}>Tags</div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {(["Straight", "Parlay", "Props", "Live", "Futures", "Teaser"] as betsLib.BetTag[]).map((t) => {
+              const active = tags.includes(t);
+              return <button key={t} type="button" style={{ ...chipStyle, background: active ? "rgba(0,200,80,0.15)" : "rgba(255,255,255,0.06)", borderColor: active ? "rgba(0,200,80,0.3)" : "rgba(255,255,255,0.14)", color: active ? "#44dd88" : "rgba(255,255,255,0.6)" }} onClick={() => setTags(active ? tags.filter((x) => x !== t) : [...tags, t])}>{t}</button>;
+            })}
+          </div>
+          <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Notes (optional)" style={inputStyle} />
+          <button type="button" style={{ ...btnPrimary, borderColor: "rgba(0,200,80,0.35)", background: "rgba(0,200,80,0.15)", color: "#44dd88" }} onClick={placeBet}>Place Bet — ${stake > 0 ? stake.toFixed(2) : "0.00"} at {betsLib.formatOdds(odds)}</button>
+          {/* Paste-to-add */}
+          <div style={sectionTitle}>Paste-to-Add</div>
+          <div style={{ opacity: 0.6, fontSize: 11, marginBottom: 4 }}>Paste lines like: "Lakers -3.5 -110 $25 #Props"</div>
+          <textarea value={pasteText} onChange={(e) => setPasteText(e.target.value)} placeholder="Paste bet lines here..." rows={3} style={{ ...inputStyle, resize: "vertical", fontFamily: "monospace" }} />
+          <button type="button" style={btnSecondary} onClick={() => {
+            const parsed = betsLib.parseBetSlipText(pasteText);
+            for (const p of parsed) betsLib.addBet({ ...p, title: p.title || "Pasted Bet" });
+            if (parsed.length > 0) { setPasteText(""); refresh(); }
+          }}>Parse & Add ({betsLib.parseBetSlipText(pasteText).length} bets detected)</button>
+        </div>
+      )}
+      {/* Open Bets */}
+      {tab === "open" && (
+        <div style={{ display: "grid", gap: 8 }}>
+          {bets.filter((b) => b.status === "open").length === 0 && <div style={{ ...panelStyle, opacity: 0.6 }}>No open bets. Add one from the bet slip tab.</div>}
+          {bets.filter((b) => b.status === "open").map((b) => (
+            <div key={b.id} style={{ ...panelStyle, padding: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div>
+                  <div style={{ fontWeight: 950, fontSize: 14 }}>{b.title || b.pick}</div>
+                  {b.title && <div style={{ opacity: 0.7, fontSize: 12 }}>{b.pick}</div>}
+                  <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+                    <span style={{ ...chipStyle, fontSize: 10 }}>{betsLib.formatOdds(b.odds)}</span>
+                    <span style={{ ...chipStyle, fontSize: 10 }}>${b.stake}</span>
+                    <span style={{ ...chipStyle, fontSize: 10, color: "#44dd88", borderColor: "rgba(0,200,80,0.3)", background: "rgba(0,200,80,0.1)" }}>→ ${b.payout.toFixed(2)}</span>
+                    {b.tags.map((t) => <span key={t} style={{ ...chipStyle, fontSize: 10 }}>{t}</span>)}
+                  </div>
+                  {b.notes && <div style={{ opacity: 0.5, fontSize: 11, marginTop: 4 }}>{b.notes}</div>}
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+                <button type="button" style={{ ...btnSecondary, padding: "4px 10px", fontSize: 11, color: "#44dd88" }} onClick={() => { betsLib.settleBet(b.id, "won"); refresh(); }}>Win</button>
+                <button type="button" style={{ ...btnSecondary, padding: "4px 10px", fontSize: 11, color: "#ff5555" }} onClick={() => { betsLib.settleBet(b.id, "lost"); refresh(); }}>Loss</button>
+                <button type="button" style={{ ...btnSecondary, padding: "4px 10px", fontSize: 11, color: "#ffaa44" }} onClick={() => { betsLib.settleBet(b.id, "push"); refresh(); }}>Push</button>
+                <button type="button" style={{ ...btnSecondary, padding: "4px 10px", fontSize: 11 }} onClick={() => { betsLib.cloneBet(b.id); refresh(); }}>Clone</button>
+                <button type="button" style={{ ...btnSecondary, padding: "4px 10px", fontSize: 11, color: "#ff8888" }} onClick={() => { betsLib.removeBet(b.id); refresh(); }}>✕</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {/* Settled Bets */}
+      {tab === "settled" && (
+        <div style={{ display: "grid", gap: 8 }}>
+          {bets.filter((b) => b.status !== "open").length === 0 && <div style={{ ...panelStyle, opacity: 0.6 }}>No settled bets yet.</div>}
+          {bets.filter((b) => b.status !== "open").map((b) => (
+            <div key={b.id} style={{ ...panelStyle, padding: 10, opacity: 0.8 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <div style={{ fontWeight: 900, fontSize: 13 }}>{b.title || b.pick}</div>
+                  {b.title && <div style={{ opacity: 0.6, fontSize: 11 }}>{b.pick}</div>}
+                </div>
+                <span style={{ ...chipStyle, fontSize: 10, background: `${statusColors[b.status]}22`, borderColor: `${statusColors[b.status]}44`, color: statusColors[b.status], textTransform: "uppercase" }}>{b.status}</span>
+              </div>
+              <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+                <span style={{ fontSize: 11, opacity: 0.6 }}>${b.stake} at {betsLib.formatOdds(b.odds)}</span>
+                {b.status === "won" && <span style={{ fontSize: 11, color: "#44dd88" }}>+${(b.payout - b.stake).toFixed(2)}</span>}
+                {b.status === "lost" && <span style={{ fontSize: 11, color: "#ff5555" }}>-${b.stake.toFixed(2)}</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {/* Full Stats */}
+      {tab === "stats" && (
+        <div style={{ display: "grid", gap: 10 }}>
+          <div style={{ ...panelStyle, padding: 14 }}>
+            <div style={{ fontWeight: 950, fontSize: 14, marginBottom: 8 }}>Bankroll & Session Stats</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <div><div style={{ opacity: 0.5, fontSize: 11 }}>Total Bets</div><div style={{ fontWeight: 950 }}>{stats.totalBets}</div></div>
+              <div><div style={{ opacity: 0.5, fontSize: 11 }}>Open Bets</div><div style={{ fontWeight: 950 }}>{stats.openBets}</div></div>
+              <div><div style={{ opacity: 0.5, fontSize: 11 }}>Won / Lost / Push</div><div style={{ fontWeight: 950 }}>{stats.wonBets} / {stats.lostBets} / {stats.pushBets}</div></div>
+              <div><div style={{ opacity: 0.5, fontSize: 11 }}>Win Rate</div><div style={{ fontWeight: 950 }}>{stats.winRate.toFixed(1)}%</div></div>
+              <div><div style={{ opacity: 0.5, fontSize: 11 }}>Total Staked</div><div style={{ fontWeight: 950 }}>${stats.totalStaked.toFixed(2)}</div></div>
+              <div><div style={{ opacity: 0.5, fontSize: 11 }}>Total Payout</div><div style={{ fontWeight: 950 }}>${stats.totalPayout.toFixed(2)}</div></div>
+              <div><div style={{ opacity: 0.5, fontSize: 11 }}>Net P&L</div><div style={{ fontWeight: 950, color: plColor(stats.netPL) }}>{stats.netPL >= 0 ? "+" : ""}${stats.netPL.toFixed(2)}</div></div>
+              <div><div style={{ opacity: 0.5, fontSize: 11 }}>ROI</div><div style={{ fontWeight: 950, color: plColor(stats.roi) }}>{stats.roi.toFixed(1)}%</div></div>
+            </div>
+          </div>
+          {/* Export */}
+          <div style={sectionTitle}>Export for Taxes</div>
+          <div style={{ opacity: 0.6, fontSize: 12, marginBottom: 4 }}>Download your full bet history as JSON or CSV.</div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button type="button" style={btnSecondary} onClick={() => { const d = betsLib.exportBetsJSON(); const blob = new Blob([d], { type: "application/json" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `ampere-bets-${Date.now()}.json`; a.click(); URL.revokeObjectURL(url); }}>Export JSON</button>
+            <button type="button" style={btnSecondary} onClick={() => { const d = betsLib.exportBetsCSV(); const blob = new Blob([d], { type: "text/csv" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `ampere-bets-${Date.now()}.csv`; a.click(); URL.revokeObjectURL(url); }}>Export CSV</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const inputStyle: React.CSSProperties = { padding: "10px 12px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.14)", background: "rgba(0,0,0,0.35)", color: "white", fontSize: 13, fontWeight: 900, outline: "none", width: "100%" };
 
 /* ============================================================
    LOCKED SCREEN HELPER

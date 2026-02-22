@@ -10,7 +10,7 @@ import { addLog } from "./telemetry";
 // TYPES
 // ============================================================================
 
-export type PlanTier = "basic" | "pro" | "family" | "premium";
+export type PlanTier = "basic" | "pro" | "family" | "premium" | "solo" | "family_addon" | "gameday";
 
 export interface PlanState {
   plan: PlanTier;
@@ -78,7 +78,7 @@ export const PLAN_DEFINITIONS: PlanDefinition[] = [
       "Voice & gesture control",
       "Unlimited platforms",
       "Sports Hub + Game Day Mode",
-      "Multi-profile support (3)",
+      "Up to 3 user profiles",
     ],
     maxProfiles: 3,
     maxTVs: 3,
@@ -95,8 +95,10 @@ export const PLAN_DEFINITIONS: PlanDefinition[] = [
     color: "rgba(138,43,226,0.10)",
     features: [
       "Everything in Pro",
-      "Up to 5 profiles",
+      "Multi-profile support",
+      "Two Regional Streaming Platform / Channel Options",
       "Parental controls + Kid Mode",
+      "$.99/mo per additional user profile",
       "Offline cached schedules",
       "Priority support",
     ],
@@ -117,15 +119,14 @@ export const PLAN_DEFINITIONS: PlanDefinition[] = [
     features: [
       "Everything in Pro + Family",
       "Up to 6 profiles",
+      "Unlimited Regional Streaming Platform / Channel Options",
+      "Additional Ampère Features Free for a year",
       "Taste Engine + Why This Pick",
       "Universal Queue + Availability",
       "Time-to-Delight ranking",
       "Context Modes + Remote Scenes",
       "Connect Platforms Level 2 & 3",
       "Trust/Privacy/Portability vault",
-      "Early access to betas",
-      "Premium scene packs & presets",
-      "Priority support lane",
       "Monthly Taste Packs",
       "One-click Export Vault",
       "Social features (coming soon)",
@@ -142,14 +143,86 @@ export const PLAN_DEFINITIONS: PlanDefinition[] = [
 ];
 
 // ============================================================================
+// À LA CARTE / ADD-ON PLAN DEFINITIONS
+// ============================================================================
+
+export interface AddOnPlanDefinition {
+  id: string;
+  name: string;
+  price: string;
+  priceNum: number;
+  badge?: string;
+  color: string;
+  features: string[];
+  category: "ala_carte" | "addon";
+}
+
+export const ADDON_PLAN_DEFINITIONS: AddOnPlanDefinition[] = [
+  {
+    id: "solo",
+    name: "Solo Plan",
+    price: "$2.99/mo",
+    priceNum: 2.99,
+    color: "rgba(58,167,255,0.08)",
+    category: "ala_carte",
+    features: [
+      "1 user profile",
+      "Everything in Pro Plan",
+    ],
+  },
+  {
+    id: "family_addon",
+    name: "Family Add-On",
+    price: "$0.99/mo per profile",
+    priceNum: 0.99,
+    color: "rgba(138,43,226,0.08)",
+    category: "ala_carte",
+    features: [
+      "$.99/mo per additional user profile",
+      "Add profiles to any existing plan",
+    ],
+  },
+  {
+    id: "gameday",
+    name: "Game Day Sports Betting",
+    price: "$4.99/mo",
+    priceNum: 4.99,
+    badge: "NEW",
+    color: "rgba(0,200,80,0.10)",
+    category: "addon",
+    features: [
+      "Includes everything in all other plans",
+      'One-tap "Add Bet" from any game card',
+      "Bets Drawer always available while watching",
+      "Quick stake buttons ($5/$10/$25/$50/$100) + American odds",
+      "Paste-to-add bet slip (multi-line parsing)",
+      "Game-linked bet overlay on matchups",
+      "Smart reminders: game start / halftime / settle alerts",
+      "Quick settle + P/L tracking (Win/Loss/Push)",
+      "Bankroll + session stats (Today/Week P&L, win rate, ROI)",
+      "Tags & notes per bet (Props, Live, Parlays)",
+      'Clone bet (one-tap "add similar bet")',
+      "Export tools: JSON + CSV for taxes",
+    ],
+  },
+];
+
+export function getAllAddOnDefinitions(): AddOnPlanDefinition[] {
+  return ADDON_PLAN_DEFINITIONS;
+}
+
+// ============================================================================
 // PLAN TIER ORDERING (for comparisons)
 // ============================================================================
 
 const TIER_ORDER: Record<PlanTier, number> = {
   basic: 0,
+  solo: 1,
   pro: 1,
   family: 2,
+  family_addon: 2,
   premium: 3,
+  gameday: 4,
 };
 
 // ============================================================================

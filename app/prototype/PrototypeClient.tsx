@@ -39,7 +39,7 @@ import {
   UniversalQueueContent, TimeToDelightContent, ModesContent, RemoteScenesContent,
   ConnectLadderContent, TrustPortabilityContent, FamilyProfilesContent,
   SocialContent, LivePulseContent, SemanticSearchContent,
-  AddDeviceContent, VirtualEmulatorContent,
+  AddDeviceContent, VirtualEmulatorContent, BettingCompanionContent,
 } from "../../components/InnovationSuite";
 import { type PlanTier, getPlanState, setPlanState, canAccessFeature } from "../../lib/premiumPlan";
 import { type ModeId } from "../../lib/modes";
@@ -546,6 +546,16 @@ button, a, input { -webkit-tap-highlight-color: transparent; }
   0% { width: 0%; }
   100% { width: 100%; }
 }
+/* ── Mobile-specific fixes ── */
+@media (max-width: 480px) {
+  .ampere-header-actions .pill-label-text { display: none; }
+  .ampere-header-actions button { padding: 6px 8px !important; gap: 4px !important; }
+}
+@media (max-width: 860px) {
+  .ampere-dropdown-panel { min-width: min(280px, calc(100vw - 32px)) !important; right: -8px !important; max-width: calc(100vw - 24px) !important; }
+  .ampere-modal-body { padding: 10px !important; max-height: 80vh !important; }
+  .ampere-modal-outer { padding: 8px !important; }
+}
 `;
 
 /* =========================
@@ -778,6 +788,7 @@ function Modal({
   return (
     <div
       role="presentation"
+      className="ampere-modal-outer"
       style={{
         position: "fixed",
         inset: 0,
@@ -842,7 +853,7 @@ function Modal({
             ✕
           </button>
         </div>
-        <div style={{ padding: 14, maxHeight: "72vh", overflowY: "auto" }}>{children}</div>
+        <div className="ampere-modal-body" style={{ padding: 14, maxHeight: "72vh", overflowY: "auto" }}>{children}</div>
       </div>
     </div>
   );
@@ -936,6 +947,7 @@ function PillButton({
       )}
 
       <span
+        className="pill-label-text"
         style={{
           flex: "1 1 auto",
           opacity: 0.95,
@@ -1149,7 +1161,7 @@ function Dropdown({
         aria-expanded={open}
       >
         {iconLeft ? <span style={{ display: "inline-flex" }}>{iconLeft}</span> : null}
-        <span style={{ opacity: 0.95 }}>{label}</span>
+        <span className="pill-label-text" style={{ opacity: 0.95 }}>{label}</span>
         <IconChevronDown />
       </button>
 
@@ -1168,6 +1180,7 @@ function Dropdown({
           />
           <div
             role="menu"
+            className="ampere-dropdown-panel"
             style={{
               position: "absolute",
               right: 0,
@@ -1870,6 +1883,7 @@ export default function AmpereApp() {
   const [openSemanticSearch, setOpenSemanticSearch] = useState(false);
   const [openAddDevice, setOpenAddDevice] = useState(false);
   const [openVirtualEmulator, setOpenVirtualEmulator] = useState(false);
+  const [openBettingCompanion, setOpenBettingCompanion] = useState(false);
 
   const isPremiumUser = () => canAccessFeature("taste_engine");
 
@@ -2118,7 +2132,8 @@ export default function AmpereApp() {
     openLivePulse ||
     openSemanticSearch ||
     openAddDevice ||
-    openVirtualEmulator;
+    openVirtualEmulator ||
+    openBettingCompanion;
 
   const onBack = () => {
     if (openCard) return setOpenCard(null);
@@ -2151,6 +2166,7 @@ export default function AmpereApp() {
     if (openSemanticSearch) return setOpenSemanticSearch(false);
     if (openAddDevice) return setOpenAddDevice(false);
     if (openVirtualEmulator) return setOpenVirtualEmulator(false);
+    if (openBettingCompanion) return setOpenBettingCompanion(false);
   };
 
   const resetFilters = () => {
@@ -2208,6 +2224,7 @@ export default function AmpereApp() {
     setOpenSemanticSearch(false);
     setOpenAddDevice(false);
     setOpenVirtualEmulator(false);
+    setOpenBettingCompanion(false);
     setPowerState("off");
   };
 
@@ -2418,7 +2435,7 @@ export default function AmpereApp() {
             minWidth: 0,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 8 : 12, minWidth: 0, flex: "0 1 auto", overflow: "hidden" }}>
             {showBack ? (
               <button
                 type="button"
@@ -2455,8 +2472,8 @@ export default function AmpereApp() {
               <SmartImg sources={brandMarkCandidates()} size={isMobile ? 44 : 52} rounded={999} border={false} fit="contain" fallbackText="A" />
             </div>
 
-            <div style={{ minWidth: 0, display: "grid", gap: 6 }}>
-              <div style={{ width: isMobile ? 200 : 280, height: isMobile ? 28 : 36 }}>
+            <div style={{ minWidth: 0, display: "grid", gap: 4, flex: "1 1 auto", overflow: "hidden" }}>
+              <div style={{ width: "100%", maxWidth: isMobile ? 160 : 280, height: isMobile ? 24 : 36 }}>
                 <SmartImg sources={brandWideCandidates()} size={900} rounded={0} border={false} fit="contain" fill fallbackText="AMPÈRE" />
               </div>
 
@@ -2475,7 +2492,7 @@ export default function AmpereApp() {
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <div className="ampere-header-actions" style={{ display: "flex", gap: isMobile ? 6 : 10, flexWrap: "wrap", justifyContent: "flex-end", alignItems: "center" }}>
             <PillButton label="Voice" iconNode={<SmartImg sources={voiceIconCandidates()} size={18} rounded={0} border={false} fit="contain" fallbackText="" />} onClick={() => setOpenVoice(true)} ariaLabel="Voice" />
             <PillButton label="Remote" iconNode={<IconRemote />} onClick={() => setOpenRemote(true)} ariaLabel="Remote" />
 
@@ -2504,6 +2521,7 @@ export default function AmpereApp() {
                   <MenuItem title="Family Profiles" subtitle="Up to 5 profiles, kid-safe" onClick={() => setOpenFamilyProfiles(true)} right="›" />
                   <MenuItem title="Social" subtitle="Circles, co-watch, decision rooms" onClick={() => setOpenSocial(true)} right="›" />
                   <MenuItem title="Live Pulse" subtitle="Real-time events & alerts" onClick={() => setOpenLivePulse(true)} right="›" />
+                  <MenuItem title="Betting Companion" subtitle="Track bets, P&L, quick stakes" onClick={() => setOpenBettingCompanion(true)} right="›" />
                   <MenuItem title="Privacy Mode" subtitle="Disable telemetry & history logging" onClick={() => setOpenTrustPortability(true)} right="›" />
                 </div>
               </div>
@@ -3655,6 +3673,10 @@ export default function AmpereApp() {
 
       <Modal open={openVirtualEmulator} title="Virtual TV Emulator" onClose={() => setOpenVirtualEmulator(false)} maxWidth={800}>
         <VirtualEmulatorContent />
+      </Modal>
+
+      <Modal open={openBettingCompanion} title="Betting Companion" onClose={() => setOpenBettingCompanion(false)} maxWidth={800}>
+        <BettingCompanionContent locked={!canAccessFeature("premium_hub")} onUpgrade={() => { setOpenBettingCompanion(false); setOpenPricing(true); }} />
       </Modal>
 
       {/* App Store Modal */}
