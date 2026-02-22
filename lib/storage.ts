@@ -57,6 +57,8 @@ export const STORAGE_KEYS = {
   emulator: "ampere.emulator.v1",
   scenes: "ampere.scenes.v1",
   tastePacks: "ampere.tastePacks.v1",
+  bets: "ampere.bets.v1",
+  bankroll: "ampere.bankroll.v1",
 } as const;
 
 // ============================================================================

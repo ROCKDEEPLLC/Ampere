@@ -49,10 +49,12 @@ export function setDelightState(bucket: DelightBucket | null, context?: string):
 // ============================================================================
 
 export const DELIGHT_BUCKETS: DelightSuggestion[] = [
-  { bucket: 12, label: "12 min", description: "Quick break — shorts, clips, highlights", icon: "⚡" },
-  { bucket: 22, label: "22 min", description: "Single episode — sitcom, anime, news", icon: "📺" },
-  { bucket: 45, label: "45 min", description: "Full episode — drama, docs, sports highlights", icon: "🎬" },
-  { bucket: 90, label: "90 min", description: "Movie night — films, specials, deep dives", icon: "🍿" },
+  // Placeholder icons — drop custom images into public/assets/delight/
+  // Expected filenames: 12.png, 22.png, 45.png, 90.png
+  { bucket: 12, label: "12 min", description: "Quick break — shorts, clips, highlights", icon: "placeholder" },
+  { bucket: 22, label: "22 min", description: "Single episode — sitcom, anime, news", icon: "placeholder" },
+  { bucket: 45, label: "45 min", description: "Full episode — drama, docs, sports highlights", icon: "placeholder" },
+  { bucket: 90, label: "90 min", description: "Movie night — films, specials, deep dives", icon: "placeholder" },
 ];
 
 // ============================================================================

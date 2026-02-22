@@ -39,7 +39,7 @@ import {
   UniversalQueueContent, TimeToDelightContent, ModesContent, RemoteScenesContent,
   ConnectLadderContent, TrustPortabilityContent, FamilyProfilesContent,
   SocialContent, LivePulseContent, SemanticSearchContent,
-  AddDeviceContent, VirtualEmulatorContent,
+  AddDeviceContent, VirtualEmulatorContent, BettingCompanionContent,
 } from "../../components/InnovationSuite";
 import { type PlanTier, getPlanState, setPlanState, canAccessFeature } from "../../lib/premiumPlan";
 import { type ModeId } from "../../lib/modes";
@@ -520,6 +520,7 @@ const AMPERE_GLOBAL_CSS = `
   --focus: rgba(58,167,255,0.90);
 }
 *{ box-sizing:border-box; }
+html, body { overflow-x: hidden; max-width: 100vw; }
 button, a, input { -webkit-tap-highlight-color: transparent; }
 .ampere-focus:focus-visible{
   outline: 2px solid var(--focus);
@@ -545,6 +546,25 @@ button, a, input { -webkit-tap-highlight-color: transparent; }
 @keyframes bootProgress {
   0% { width: 0%; }
   100% { width: 100%; }
+}
+/* ── Mobile-specific fixes ── */
+@media (max-width: 860px) {
+  .ampere-dropdown-panel {
+    position: fixed !important;
+    left: 8px !important;
+    right: 8px !important;
+    top: auto !important;
+    bottom: 60px !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    max-height: 70vh !important;
+  }
+  .ampere-modal-body { padding: 10px !important; max-height: 82vh !important; }
+  .ampere-modal-outer { padding: 6px !important; }
+  .ampere-header-actions .pill-label-text { display: none; }
+  .ampere-header-actions button { padding: 6px 8px !important; gap: 4px !important; font-size: 12px !important; }
+  .ampere-footer-bar .pill-label-text { font-size: 10px !important; }
+  .ampere-footer-bar button { gap: 4px !important; padding: 6px 4px !important; }
 }
 `;
 
@@ -778,6 +798,7 @@ function Modal({
   return (
     <div
       role="presentation"
+      className="ampere-modal-outer"
       style={{
         position: "fixed",
         inset: 0,
@@ -842,7 +863,7 @@ function Modal({
             ✕
           </button>
         </div>
-        <div style={{ padding: 14, maxHeight: "72vh", overflowY: "auto" }}>{children}</div>
+        <div className="ampere-modal-body" style={{ padding: 14, maxHeight: "72vh", overflowY: "auto" }}>{children}</div>
       </div>
     </div>
   );
@@ -936,6 +957,7 @@ function PillButton({
       )}
 
       <span
+        className="pill-label-text"
         style={{
           flex: "1 1 auto",
           opacity: 0.95,
@@ -1149,7 +1171,7 @@ function Dropdown({
         aria-expanded={open}
       >
         {iconLeft ? <span style={{ display: "inline-flex" }}>{iconLeft}</span> : null}
-        <span style={{ opacity: 0.95 }}>{label}</span>
+        <span className="pill-label-text" style={{ opacity: 0.95 }}>{label}</span>
         <IconChevronDown />
       </button>
 
@@ -1168,6 +1190,7 @@ function Dropdown({
           />
           <div
             role="menu"
+            className="ampere-dropdown-panel"
             style={{
               position: "absolute",
               right: 0,
@@ -1517,7 +1540,7 @@ function CardGrid({
 }) {
   if (skeleton) {
     return (
-      <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fit, minmax(${cardMinW}px, 1fr))`, gap: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill, minmax(min(${cardMinW}px, 100%), 1fr))`, gap: 12 }}>
         {Array.from({ length: 6 }).map((_, i) => (
           <div
             key={i}
@@ -1540,7 +1563,7 @@ function CardGrid({
   }
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fit, minmax(${cardMinW}px, 1fr))`, gap: 12 }}>
+    <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill, minmax(min(${cardMinW}px, 100%), 1fr))`, gap: 12 }}>
       {cards.map((c) => (
         <CardThumb key={c.id} card={c} heroH={heroH} onOpen={onOpen} />
       ))}
@@ -1870,6 +1893,7 @@ export default function AmpereApp() {
   const [openSemanticSearch, setOpenSemanticSearch] = useState(false);
   const [openAddDevice, setOpenAddDevice] = useState(false);
   const [openVirtualEmulator, setOpenVirtualEmulator] = useState(false);
+  const [openBettingCompanion, setOpenBettingCompanion] = useState(false);
 
   const isPremiumUser = () => canAccessFeature("taste_engine");
 
@@ -2118,7 +2142,8 @@ export default function AmpereApp() {
     openLivePulse ||
     openSemanticSearch ||
     openAddDevice ||
-    openVirtualEmulator;
+    openVirtualEmulator ||
+    openBettingCompanion;
 
   const onBack = () => {
     if (openCard) return setOpenCard(null);
@@ -2151,6 +2176,7 @@ export default function AmpereApp() {
     if (openSemanticSearch) return setOpenSemanticSearch(false);
     if (openAddDevice) return setOpenAddDevice(false);
     if (openVirtualEmulator) return setOpenVirtualEmulator(false);
+    if (openBettingCompanion) return setOpenBettingCompanion(false);
   };
 
   const resetFilters = () => {
@@ -2208,6 +2234,7 @@ export default function AmpereApp() {
     setOpenSemanticSearch(false);
     setOpenAddDevice(false);
     setOpenVirtualEmulator(false);
+    setOpenBettingCompanion(false);
     setPowerState("off");
   };
 
@@ -2242,6 +2269,7 @@ export default function AmpereApp() {
       style={{
         height: "100vh",
         width: "100%",
+        maxWidth: "100vw",
         overflow: "hidden",
         background: "linear-gradient(135deg, var(--bg0) 0%, #161616 55%, #070707 100%)",
         color: "white",
@@ -2402,6 +2430,8 @@ export default function AmpereApp() {
           borderBottom: "1px solid var(--stroke)",
           position: "relative",
           zIndex: 50,
+          minWidth: 0,
+          overflow: "hidden",
         }}
       >
         <div
@@ -2412,13 +2442,14 @@ export default function AmpereApp() {
             backdropFilter: "blur(10px)",
             padding: density.pad,
             display: "flex",
+            flexWrap: isMobile ? "wrap" : "nowrap",
             alignItems: "center",
             justifyContent: "space-between",
-            gap: 12,
+            gap: isMobile ? 8 : 12,
             minWidth: 0,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 8 : 12, minWidth: 0, flex: "0 1 auto", overflow: "hidden" }}>
             {showBack ? (
               <button
                 type="button"
@@ -2455,8 +2486,8 @@ export default function AmpereApp() {
               <SmartImg sources={brandMarkCandidates()} size={isMobile ? 44 : 52} rounded={999} border={false} fit="contain" fallbackText="A" />
             </div>
 
-            <div style={{ minWidth: 0, display: "grid", gap: 6 }}>
-              <div style={{ width: isMobile ? 200 : 280, height: isMobile ? 28 : 36 }}>
+            <div style={{ minWidth: 0, display: "grid", gap: 4, flex: "1 1 auto", overflow: "hidden" }}>
+              <div style={{ width: "100%", maxWidth: isMobile ? 160 : 280, height: isMobile ? 24 : 36 }}>
                 <SmartImg sources={brandWideCandidates()} size={900} rounded={0} border={false} fit="contain" fill fallbackText="AMPÈRE" />
               </div>
 
@@ -2475,7 +2506,7 @@ export default function AmpereApp() {
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <div className="ampere-header-actions" style={{ display: "flex", gap: isMobile ? 6 : 10, flexWrap: "wrap", justifyContent: isMobile ? "center" : "flex-end", alignItems: "center", flex: isMobile ? "1 1 100%" : "0 1 auto" }}>
             <PillButton label="Voice" iconNode={<SmartImg sources={voiceIconCandidates()} size={18} rounded={0} border={false} fit="contain" fallbackText="" />} onClick={() => setOpenVoice(true)} ariaLabel="Voice" />
             <PillButton label="Remote" iconNode={<IconRemote />} onClick={() => setOpenRemote(true)} ariaLabel="Remote" />
 
@@ -2504,6 +2535,7 @@ export default function AmpereApp() {
                   <MenuItem title="Family Profiles" subtitle="Up to 5 profiles, kid-safe" onClick={() => setOpenFamilyProfiles(true)} right="›" />
                   <MenuItem title="Social" subtitle="Circles, co-watch, decision rooms" onClick={() => setOpenSocial(true)} right="›" />
                   <MenuItem title="Live Pulse" subtitle="Real-time events & alerts" onClick={() => setOpenLivePulse(true)} right="›" />
+                  <MenuItem title="Betting Companion" subtitle="Track bets, P&L, quick stakes" onClick={() => setOpenBettingCompanion(true)} right="›" />
                   <MenuItem title="Privacy Mode" subtitle="Disable telemetry & history logging" onClick={() => setOpenTrustPortability(true)} right="›" />
                 </div>
               </div>
@@ -2563,10 +2595,12 @@ export default function AmpereApp() {
       <main
         style={{
           overflowY: "auto",
+          overflowX: "hidden",
           WebkitOverflowScrolling: "touch",
           padding: density.pad,
           display: "grid",
           gap: density.gap,
+          minWidth: 0,
         }}
       >
         {/* FILTERS (hidden on Favs tab) */}
@@ -2579,6 +2613,8 @@ export default function AmpereApp() {
             padding: density.pad,
             display: "grid",
             gap: 12,
+            minWidth: 0,
+            overflow: "hidden",
           }}
         >
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
@@ -2991,6 +3027,7 @@ export default function AmpereApp() {
         }}
       >
         <div
+          className="ampere-footer-bar"
           style={{
             borderRadius: "var(--r-xl)",
             border: "1px solid var(--stroke)",
@@ -2998,7 +3035,7 @@ export default function AmpereApp() {
             padding: density.pad,
             display: "grid",
             gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-            gap: 10,
+            gap: isMobile ? 6 : 10,
           }}
         >
           <PillButton label="HOME" iconNode={<SmartImg sources={_footerIcon("home")} size={20} rounded={0} border={false} fit="contain" fallbackText="" />} active={activeTab === "home"} onClick={() => setActiveTab("home")} fullWidth ariaLabel="Home tab" />
@@ -3058,7 +3095,7 @@ export default function AmpereApp() {
             </button>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(210px, 100%), 1fr))", gap: 10 }}>
             {GENRES.map((g) => (
               <PillButton
                 key={g.key}
@@ -3657,6 +3694,10 @@ export default function AmpereApp() {
         <VirtualEmulatorContent />
       </Modal>
 
+      <Modal open={openBettingCompanion} title="Betting Companion" onClose={() => setOpenBettingCompanion(false)} maxWidth={800}>
+        <BettingCompanionContent locked={!canAccessFeature("premium_hub")} onUpgrade={() => { setOpenBettingCompanion(false); setOpenPricing(true); }} />
+      </Modal>
+
       {/* App Store Modal */}
       <Modal open={openAppStore} title="App Store" onClose={() => setOpenAppStore(false)} maxWidth={980}>
         <AppStoreContent isMobile={isMobile} onInstall={(pid: string) => {
@@ -4220,7 +4261,7 @@ function AppStoreContent({ isMobile, onInstall }: { isMobile: boolean; onInstall
         return (
           <div key={cat} style={{ display: "grid", gap: 10 }}>
             <div style={{ fontWeight: 950, fontSize: 16 }}>{cat} ({platforms.length})</div>
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, 1fr)" : "repeat(3, 1fr)", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: `repeat(auto-fill, minmax(min(${isMobile ? 140 : 220}px, 100%), 1fr))`, gap: 10 }}>
               {visible.map((p) => {
                 const justInstalled = installedIds.has(p.id);
                 return (
@@ -5664,7 +5705,7 @@ function SetupWizardContent({
                       </div>
                     </div>
 
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(220px, 100%), 1fr))", gap: 10 }}>
                       {slice.map((t) => (
                         <PillButton
                           key={`${canon}_${t}`}
