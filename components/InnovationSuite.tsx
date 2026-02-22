@@ -203,6 +203,44 @@ export function TasteEngineContent({ locked, onUpgrade }: { locked: boolean; onU
 }
 
 /* ============================================================
+   3b. TASTE ENGINE HUB — Unified layout integrating Taste, Modes,
+       Scenes, Connect Ladder, Live Pulse, and Why This Pick
+   ============================================================ */
+type TasteHubTab = "taste" | "modes" | "scenes" | "connect" | "livepulse";
+const TASTE_HUB_TABS: { id: TasteHubTab; label: string; icon: string }[] = [
+  { id: "taste", label: "Preferences", icon: "🎯" },
+  { id: "modes", label: "Context Modes", icon: "🎭" },
+  { id: "scenes", label: "Remote Scenes", icon: "⚡" },
+  { id: "connect", label: "Connect", icon: "🔗" },
+  { id: "livepulse", label: "Live Pulse", icon: "📡" },
+];
+export function TasteEngineHub({ locked, onUpgrade, initialTab = "taste" }: { locked: boolean; onUpgrade: () => void; initialTab?: TasteHubTab }) {
+  const [tab, setTab] = useState<TasteHubTab>(initialTab);
+  useEffect(() => { setTab(initialTab); }, [initialTab]);
+  if (locked) return <LockedScreen name="Taste Engine" desc="Fine-tune recommendations, set context modes, automate scenes, and connect platforms — all in one place." onUpgrade={onUpgrade} />;
+  return (
+    <div style={{ display: "grid", gap: 14 }}>
+      <div style={heroTitle}>Taste Engine</div>
+      <div style={heroSub}>Your personalization command center. Shape what you see, how you see it, and what happens when you press play.</div>
+      {/* Tab bar */}
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", borderBottom: "1px solid rgba(255,255,255,0.08)", paddingBottom: 10 }}>
+        {TASTE_HUB_TABS.map((t) => (
+          <button key={t.id} type="button" onClick={() => setTab(t.id)} style={{ padding: "8px 14px", borderRadius: 999, border: tab === t.id ? "1px solid rgba(58,167,255,0.5)" : "1px solid rgba(255,255,255,0.10)", background: tab === t.id ? "rgba(58,167,255,0.14)" : "rgba(255,255,255,0.04)", color: "white", fontWeight: 950, cursor: "pointer", fontSize: 12 }}>
+            {t.icon} {t.label}
+          </button>
+        ))}
+      </div>
+      {/* Tab content */}
+      {tab === "taste" && <TasteEngineContent locked={false} onUpgrade={onUpgrade} />}
+      {tab === "modes" && <ModesContent locked={false} onUpgrade={onUpgrade} onSet={() => {}} />}
+      {tab === "scenes" && <RemoteScenesContent locked={false} onUpgrade={onUpgrade} onExecute={(scene) => { executeScene(scene, async () => {}); }} />}
+      {tab === "connect" && <ConnectLadderContent locked={false} onUpgrade={onUpgrade} />}
+      {tab === "livepulse" && <LivePulseContent locked={false} onUpgrade={onUpgrade} />}
+    </div>
+  );
+}
+
+/* ============================================================
    4. WHY THIS PICK
    ============================================================ */
 export function WhyThisPickContent({ data, locked, onUpgrade, onAction }: { data: WhyThisPickData | null; locked: boolean; onUpgrade: () => void; onAction: (action: string, contentId: string) => void }) {

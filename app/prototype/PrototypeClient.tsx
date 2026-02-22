@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { createPortal } from "react-dom";
 
 import { AboutSection } from "../../components/AboutSection";
 import {
@@ -35,7 +36,7 @@ import type { PlatformId, GenreKey, Platform } from "../../lib/catalog";
 import { GLOBAL_REGIONS, LANGUAGES } from "../../lib/globalRegions";
 import { parseCommand } from "../../lib/intent";
 import {
-  PremiumHubContent, PricingContent, TasteEngineContent, WhyThisPickContent,
+  PremiumHubContent, PricingContent, TasteEngineContent, TasteEngineHub, WhyThisPickContent,
   UniversalQueueContent, TimeToDelightContent, ModesContent, RemoteScenesContent,
   ConnectLadderContent, TrustPortabilityContent, FamilyProfilesContent,
   SocialContent, LivePulseContent, SemanticSearchContent,
@@ -1041,6 +1042,7 @@ function QwertyKeyboard({
   placeholder?: string;
 }) {
   const [pressedK, setPressedK] = useState<string | null>(null);
+  const [kbVisible, setKbVisible] = useState(false);
 
   const rows = [
     ["Q","W","E","R","T","Y","U","I","O","P"],
@@ -1054,21 +1056,33 @@ function QwertyKeyboard({
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onFocus={() => setKbVisible(true)}
         onKeyDown={(e) => { if (e.key === "Enter" && onSubmit) onSubmit(); }}
-        placeholder={placeholder ?? "Type here…"}
+        placeholder={placeholder ?? "Tap to search…"}
         className="ampere-focus"
         style={{
           padding: "12px 14px",
           borderRadius: 14,
-          border: "1px solid var(--stroke2)",
+          border: kbVisible ? "1px solid rgba(58,167,255,0.5)" : "1px solid var(--stroke2)",
           background: "rgba(0,0,0,0.35)",
           color: "white",
           outline: "none",
           fontWeight: 850,
           width: "100%",
+          transition: "border-color 0.2s ease",
         }}
       />
-      <div style={{ width: "100%", display: "grid", gap: 4 }}>
+      <div
+        style={{
+          width: "100%",
+          display: "grid",
+          gap: 4,
+          overflow: "hidden",
+          maxHeight: kbVisible ? 300 : 0,
+          opacity: kbVisible ? 1 : 0,
+          transition: "max-height 0.25s ease, opacity 0.2s ease",
+        }}
+      >
         {rows.map((row, ri) => (
           <div key={ri} style={{ display: "flex", gap: 4, justifyContent: "center" }}>
             {row.map((k) => (
@@ -1081,8 +1095,8 @@ function QwertyKeyboard({
                   setTimeout(() => setPressedK(null), 200);
                   if (k === "⌫") onChange(value.slice(0, -1));
                   else if (k === "SPACE") onChange(value + " ");
-                  else if (k === "CLEAR") onChange("");
-                  else if (k === "GO" && onSubmit) onSubmit();
+                  else if (k === "CLEAR") { onChange(""); setKbVisible(false); }
+                  else if (k === "GO" && onSubmit) { onSubmit(); setKbVisible(false); }
                   else onChange(value + k.toLowerCase());
                 }}
                 style={{
@@ -1135,14 +1149,19 @@ function Dropdown({
   const [open, setOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
-  const [pos, setPos] = useState<{ top: number; right: number } | null>(null);
+  const [pos, setPos] = useState<{ top: number; right: number; safeMinW: number }>({ top: 60, right: 8, safeMinW: 280 });
 
   // Recalculate position when panel opens
   useEffect(() => {
     if (!open || !btnRef.current) return;
     const rect = btnRef.current.getBoundingClientRect();
-    setPos({ top: rect.bottom + 10, right: Math.max(8, window.innerWidth - rect.right) });
-  }, [open]);
+    const vw = window.innerWidth;
+    setPos({
+      top: rect.bottom + 10,
+      right: Math.max(8, vw - rect.right),
+      safeMinW: Math.min(minWidth, vw - 16),
+    });
+  }, [open, minWidth]);
 
   useEffect(() => {
     if (!open) return;
@@ -1191,7 +1210,7 @@ function Dropdown({
         <IconChevronDown />
       </button>
 
-      {open ? (
+      {open ? createPortal(
         <>
           <div
             aria-hidden="true"
@@ -1210,9 +1229,9 @@ function Dropdown({
             className="ampere-dropdown-panel"
             style={{
               position: "fixed",
-              top: pos?.top ?? 60,
-              right: pos?.right ?? 8,
-              minWidth: Math.min(minWidth, window.innerWidth - 16),
+              top: pos.top,
+              right: pos.right,
+              minWidth: pos.safeMinW,
               maxWidth: "calc(100vw - 16px)",
               borderRadius: 18,
               border: "1px solid rgba(255,255,255,0.14)",
@@ -1230,7 +1249,8 @@ function Dropdown({
               <div style={{ padding: 10, display: "grid", gap: 8 }}>{children}</div>
             </DropdownCtx.Provider>
           </div>
-        </>
+        </>,
+        document.body
       ) : null}
     </div>
   );
@@ -1920,6 +1940,8 @@ export default function AmpereApp() {
   const [setupStep, setSetupStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
   const [draftName, setDraftName] = useState(profile.name);
   const [draftRegion, setDraftRegion] = useState<string>("north_america");
+  const [draftRegions, setDraftRegions] = useState<string[]>(["north_america"]);
+  const [wizPlatShown, setWizPlatShown] = useState(isMobile ? 6 : 12);
   const [draftLanguage, setDraftLanguage] = useState<string>("en");
   const [draftPlatforms, setDraftPlatforms] = useState<PlatformId[]>(profile.favoritePlatformIds);
   const [draftLeagues, setDraftLeagues] = useState<string[]>(profile.favoriteLeagues);
@@ -2275,7 +2297,7 @@ export default function AmpereApp() {
 
   const canNextWizard = () => {
     if (setupStep === 1) return !!draftName.trim();
-    if (setupStep === 2) return !!draftRegion; // region selection
+    if (setupStep === 2) return draftRegions.length > 0; // region selection (multi)
     if (setupStep === 3) return draftPlatforms.length > 0;
     if (setupStep === 4) return true; // leagues optional
     if (setupStep === 5) return true; // teams optional
@@ -2353,15 +2375,17 @@ export default function AmpereApp() {
               </>
             ) : (
               <>
-                {/* Boot splash — animated brand logo + progress */}
-                <div style={{ borderRadius: 18, overflow: "hidden", background: "black", height: 220, display: "grid", placeItems: "center", position: "relative" }}>
-                  <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 50% 40%, rgba(58,167,255,0.18) 0%, transparent 70%)" }} />
-                  <div style={{ display: "grid", placeItems: "center", gap: 16, position: "relative", zIndex: 1 }}>
-                    <div style={{ width: 180, height: 48 }}>
-                      <SmartImg sources={brandWideCandidates()} size={900} rounded={0} border={false} fit="contain" fill fallbackText="AMPÈRE" />
-                    </div>
-                    <div style={{ animation: "pulse 2s ease-in-out infinite", fontSize: 32 }}>⚡</div>
-                  </div>
+                {/* Boot video — 10s power-on sequence */}
+                <div style={{ borderRadius: 18, overflow: "hidden", background: "black", maxHeight: 360 }}>
+                  <video
+                    autoPlay
+                    muted
+                    playsInline
+                    style={{ width: "100%", maxHeight: 360, objectFit: "contain" }}
+                    onEnded={() => { setPowerState("on"); track("power_on_video_ended", {}); }}
+                  >
+                    <source src={assetPath("/assets/boot/power-on.mp4") + "?v=2"} type="video/mp4" />
+                  </video>
                 </div>
                 <div style={{ fontWeight: 950, fontSize: 16, opacity: 0.92 }}>Powering on...</div>
                 <div
@@ -3658,8 +3682,12 @@ export default function AmpereApp() {
         <PricingContent onSelect={(tier: PlanTier) => { setPlanState(tier); }} />
       </Modal>
 
-      <Modal open={openTasteEngine} title="Taste Engine" onClose={() => setOpenTasteEngine(false)} maxWidth={800}>
-        <TasteEngineContent locked={!isPremiumUser()} onUpgrade={() => { setOpenTasteEngine(false); setOpenPricing(true); }} />
+      <Modal open={openTasteEngine || openModes || openRemoteScenes || openConnectLadder || openLivePulse} title="Taste Engine" onClose={() => { setOpenTasteEngine(false); setOpenModes(false); setOpenRemoteScenes(false); setOpenConnectLadder(false); setOpenLivePulse(false); }} maxWidth={900}>
+        <TasteEngineHub
+          locked={!isPremiumUser()}
+          onUpgrade={() => { setOpenTasteEngine(false); setOpenModes(false); setOpenRemoteScenes(false); setOpenConnectLadder(false); setOpenLivePulse(false); setOpenPricing(true); }}
+          initialTab={openModes ? "modes" : openRemoteScenes ? "scenes" : openConnectLadder ? "connect" : openLivePulse ? "livepulse" : "taste"}
+        />
       </Modal>
 
       <Modal open={openUniversalQueue} title="Universal Queue" onClose={() => setOpenUniversalQueue(false)} maxWidth={800}>
@@ -3668,18 +3696,6 @@ export default function AmpereApp() {
 
       <Modal open={openTimeToDelight} title="Time-to-Delight" onClose={() => setOpenTimeToDelight(false)} maxWidth={800}>
         <TimeToDelightContent locked={!isPremiumUser()} onUpgrade={() => { setOpenTimeToDelight(false); setOpenPricing(true); }} onSet={() => {}} />
-      </Modal>
-
-      <Modal open={openModes} title="Context Modes" onClose={() => setOpenModes(false)} maxWidth={800}>
-        <ModesContent locked={!isPremiumUser()} onUpgrade={() => { setOpenModes(false); setOpenPricing(true); }} onSet={() => {}} />
-      </Modal>
-
-      <Modal open={openRemoteScenes} title="Remote Scenes" onClose={() => setOpenRemoteScenes(false)} maxWidth={800}>
-        <RemoteScenesContent locked={!isPremiumUser()} onUpgrade={() => { setOpenRemoteScenes(false); setOpenPricing(true); }} onExecute={(scene: Scene) => { executeScene(scene, async () => {}); }} />
-      </Modal>
-
-      <Modal open={openConnectLadder} title="Connect Ladder" onClose={() => setOpenConnectLadder(false)} maxWidth={800}>
-        <ConnectLadderContent locked={!isPremiumUser()} onUpgrade={() => { setOpenConnectLadder(false); setOpenPricing(true); }} />
       </Modal>
 
       <Modal open={openTrustPortability} title="Trust & Privacy" onClose={() => setOpenTrustPortability(false)} maxWidth={800}>
@@ -3694,9 +3710,7 @@ export default function AmpereApp() {
         <SocialContent locked={!isPremiumUser()} onUpgrade={() => { setOpenSocial(false); setOpenPricing(true); }} />
       </Modal>
 
-      <Modal open={openLivePulse} title="Live Pulse" onClose={() => setOpenLivePulse(false)} maxWidth={800}>
-        <LivePulseContent locked={!isPremiumUser()} onUpgrade={() => { setOpenLivePulse(false); setOpenPricing(true); }} />
-      </Modal>
+      {/* Live Pulse is now integrated into Taste Engine Hub */}
 
       <Modal open={openSemanticSearch} title="Semantic Search" onClose={() => setOpenSemanticSearch(false)} maxWidth={800}>
         <SemanticSearchContent locked={!isPremiumUser()} onUpgrade={() => { setOpenSemanticSearch(false); setOpenPricing(true); }} />
@@ -3746,6 +3760,8 @@ export default function AmpereApp() {
           setDraftName={setDraftName}
           draftRegion={draftRegion}
           setDraftRegion={setDraftRegion}
+          draftRegions={draftRegions}
+          setDraftRegions={setDraftRegions}
           draftLanguage={draftLanguage}
           setDraftLanguage={setDraftLanguage}
           draftPlatforms={draftPlatforms}
@@ -3758,6 +3774,8 @@ export default function AmpereApp() {
           setWizShownByLeague={setWizShownByLeague}
           wizTeamSearch={wizTeamSearch}
           setWizTeamSearch={setWizTeamSearch}
+          wizPlatShown={wizPlatShown}
+          setWizPlatShown={setWizPlatShown}
           canNext={canNextWizard()}
           onFinish={finishWizard}
           onStartOver={() => {
@@ -5346,7 +5364,7 @@ function FavoritesEditor({
         )}
       </div>
 
-      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap", position: "sticky", bottom: 0, background: "rgba(10,10,10,0.95)", backdropFilter: "blur(10px)", padding: "12px 14px", borderRadius: 18, border: "1px solid rgba(255,255,255,0.10)", zIndex: 5, marginTop: 4 }}>
         <button
           type="button"
           className="ampere-focus"
@@ -5404,6 +5422,8 @@ function SetupWizardContent({
   setDraftName,
   draftRegion,
   setDraftRegion,
+  draftRegions,
+  setDraftRegions,
   draftLanguage,
   setDraftLanguage,
   draftPlatforms,
@@ -5416,6 +5436,8 @@ function SetupWizardContent({
   setWizShownByLeague,
   wizTeamSearch,
   setWizTeamSearch,
+  wizPlatShown,
+  setWizPlatShown,
   canNext,
   onFinish,
   onStartOver,
@@ -5425,6 +5447,8 @@ function SetupWizardContent({
   setSetupStep: (s: 1 | 2 | 3 | 4 | 5 | 6) => void;
   draftRegion: string;
   setDraftRegion: (s: string) => void;
+  draftRegions: string[];
+  setDraftRegions: (x: string[] | ((prev: string[]) => string[])) => void;
   draftLanguage: string;
   setDraftLanguage: (s: string) => void;
   draftName: string;
@@ -5439,12 +5463,24 @@ function SetupWizardContent({
   setWizShownByLeague: (x: Record<string, number> | ((prev: Record<string, number>) => Record<string, number>)) => void;
   wizTeamSearch: string;
   setWizTeamSearch: (s: string) => void;
+  wizPlatShown: number;
+  setWizPlatShown: (x: number | ((prev: number) => number)) => void;
   canNext: boolean;
   onFinish: () => void;
   onStartOver: () => void;
 }) {
   const leaguesSelectable = LEAGUES.filter((l) => l !== "ALL");
-  const sortedPlatforms = useMemo(() => [...PLATFORMS].slice().sort((a, b) => a.label.localeCompare(b.label)), []);
+  const sortedPlatforms = useMemo(() => {
+    const all = [...PLATFORMS].sort((a, b) => a.label.localeCompare(b.label));
+    if (!draftRegions.length) return all;
+    // Collect platform IDs from all selected regions
+    const regionIds = new Set<string>();
+    for (const rid of draftRegions) {
+      const reg = GLOBAL_REGIONS.find((r) => r.id === rid);
+      if (reg) { for (const p of [...reg.popularPlatforms, ...reg.localPlatforms]) regionIds.add(p); }
+    }
+    return regionIds.size ? all.filter((p) => regionIds.has(p.id)) : all;
+  }, [draftRegions]);
 
   const stepTitle =
     setupStep === 1 ? "Your Profile" : setupStep === 2 ? "Your Region" : setupStep === 3 ? "Pick Platforms" : setupStep === 4 ? "Pick Leagues" : setupStep === 5 ? "Pick Teams" : "Review";
@@ -5519,28 +5555,34 @@ function SetupWizardContent({
         </div>
       ) : null}
 
-      {/* STEP 2 — Region */}
+      {/* STEP 2 — Region (multi-select) */}
       {setupStep === 2 ? (
         <div style={{ display: "grid", gap: 12 }}>
           <div style={{ opacity: 0.82, fontWeight: 900, lineHeight: 1.5 }}>
-            Select your region to customize platforms, leagues, and language options.
+            Select one or more regions to customize platforms, leagues, and language options.
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(4, minmax(0, 1fr))", gap: 8 }}>
-            {GLOBAL_REGIONS.map((r) => (
+            {GLOBAL_REGIONS.map((r) => {
+              const selected = draftRegions.includes(r.id);
+              return (
               <button
                 key={r.id}
                 type="button"
                 className="ampere-focus"
                 onClick={() => {
+                  setDraftRegions((prev) => {
+                    const next = prev.includes(r.id) ? prev.filter((x) => x !== r.id) : [...prev, r.id];
+                    return next.length ? next : prev; // keep at least one
+                  });
                   setDraftRegion(r.id);
                   setDraftLanguage(r.defaultLanguage);
                 }}
                 style={{
                   padding: "14px 10px",
                   borderRadius: 16,
-                  border: draftRegion === r.id ? "2px solid rgba(58,167,255,0.7)" : "1px solid rgba(255,255,255,0.12)",
-                  background: draftRegion === r.id ? "rgba(58,167,255,0.14)" : "rgba(255,255,255,0.04)",
+                  border: selected ? "2px solid rgba(58,167,255,0.7)" : "1px solid rgba(255,255,255,0.12)",
+                  background: selected ? "rgba(58,167,255,0.14)" : "rgba(255,255,255,0.04)",
                   color: "white",
                   fontWeight: 950,
                   cursor: "pointer",
@@ -5551,8 +5593,10 @@ function SetupWizardContent({
               >
                 <span style={{ fontSize: 24 }}>{r.emoji}</span>
                 <span style={{ fontSize: 13 }}>{r.name}</span>
+                {selected ? <span style={{ fontSize: 10, color: "rgba(58,167,255,0.9)" }}>Selected</span> : null}
               </button>
-            ))}
+              );
+            })}
           </div>
 
           <div style={{ display: "grid", gap: 8 }}>
@@ -5572,8 +5616,9 @@ function SetupWizardContent({
               }}
             >
               {(() => {
-                const region = GLOBAL_REGIONS.find((r) => r.id === draftRegion);
-                const langs = region?.supportedLanguages ?? LANGUAGES.slice(0, 3);
+                const allLangs = new Map<string, typeof LANGUAGES[0]>();
+                for (const rid of draftRegions) { const reg = GLOBAL_REGIONS.find((r) => r.id === rid); if (reg) for (const l of reg.supportedLanguages) allLangs.set(l.code, l); }
+                const langs = allLangs.size ? Array.from(allLangs.values()) : LANGUAGES.slice(0, 3);
                 return langs.map((lang) => (
                   <option key={lang.code} value={lang.code}>{lang.name} — {lang.nativeName}</option>
                 ));
@@ -5614,19 +5659,37 @@ function SetupWizardContent({
             <div style={{ opacity: 0.75, fontWeight: 900 }}>Pick at least one platform.</div>
           )}
 
-          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(4, minmax(0, 1fr))", gap: 6 }}>
-            {sortedPlatforms.map((p) => (
-              <PillButton
-                key={`wiz_plat_${p.id}`}
-                label={p.label}
-                iconSources={platformIconCandidates(p.id)}
-                active={draftPlatforms.includes(p.id)}
-                onClick={() => setDraftPlatforms((prev) => uniq(toggleInArray(prev, p.id) as PlatformId[]))}
-                fullWidth
-                multiline
-              />
-            ))}
-          </div>
+          {(() => {
+            const platSlice = sortedPlatforms.slice(0, wizPlatShown);
+            const hasMore = wizPlatShown < sortedPlatforms.length;
+            return (
+              <>
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "repeat(2, minmax(0, 1fr))" : "repeat(4, minmax(0, 1fr))", gap: 6 }}>
+                  {platSlice.map((p) => (
+                    <PillButton
+                      key={`wiz_plat_${p.id}`}
+                      label={p.label}
+                      iconSources={platformIconCandidates(p.id)}
+                      active={draftPlatforms.includes(p.id)}
+                      onClick={() => setDraftPlatforms((prev) => uniq(toggleInArray(prev, p.id) as PlatformId[]))}
+                      fullWidth
+                      multiline
+                    />
+                  ))}
+                </div>
+                {hasMore ? (
+                  <button
+                    type="button"
+                    className="ampere-focus"
+                    onClick={() => setWizPlatShown((n) => Math.min(sortedPlatforms.length, n + (isMobile ? 6 : 12)))}
+                    style={{ padding: "10px 14px", borderRadius: 14, border: "1px solid rgba(58,167,255,0.22)", background: "rgba(58,167,255,0.10)", color: "white", fontWeight: 950, cursor: "pointer", width: "fit-content" }}
+                  >
+                    Load More ({platSlice.length}/{sortedPlatforms.length})
+                  </button>
+                ) : null}
+              </>
+            );
+          })()}
         </div>
       ) : null}
 
@@ -5842,7 +5905,7 @@ function SetupWizardContent({
       ) : null}
 
       {/* NAV - Sticky footer */}
-      <div style={{ display: "flex", gap: 10, justifyContent: "space-between", flexWrap: "wrap", marginTop: 4, position: "sticky", bottom: 0, background: "var(--panel-strong)", padding: "12px 0", borderTop: "1px solid rgba(255,255,255,0.08)", zIndex: 5 }}>
+      <div style={{ display: "flex", gap: 10, justifyContent: "space-between", flexWrap: "wrap", marginTop: 4, position: "sticky", bottom: 0, background: "rgba(10,10,10,0.95)", backdropFilter: "blur(10px)", padding: "12px 14px", borderRadius: 18, border: "1px solid rgba(255,255,255,0.10)", zIndex: 5 }}>
         <button
           type="button"
           className="ampere-focus"
