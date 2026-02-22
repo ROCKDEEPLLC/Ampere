@@ -547,6 +547,10 @@ button, a, input { -webkit-tap-highlight-color: transparent; }
   0% { width: 0%; }
   100% { width: 100%; }
 }
+@keyframes pulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
 /* ── Mobile-specific fixes ── */
 @media (max-width: 860px) {
   .ampere-dropdown-panel {
@@ -1129,12 +1133,23 @@ function Dropdown({
   minWidth?: number;
 }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement | null>(null);
+  const btnRef = useRef<HTMLButtonElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const [pos, setPos] = useState<{ top: number; right: number } | null>(null);
+
+  // Recalculate position when panel opens
+  useEffect(() => {
+    if (!open || !btnRef.current) return;
+    const rect = btnRef.current.getBoundingClientRect();
+    setPos({ top: rect.bottom + 10, right: Math.max(8, window.innerWidth - rect.right) });
+  }, [open]);
 
   useEffect(() => {
+    if (!open) return;
     const on = (e: MouseEvent) => {
-      if (!ref.current) return;
-      if (!ref.current.contains(e.target as any)) setOpen(false);
+      if (btnRef.current?.contains(e.target as any)) return;
+      if (panelRef.current?.contains(e.target as any)) return;
+      setOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);
@@ -1145,11 +1160,12 @@ function Dropdown({
       document.removeEventListener("mousedown", on);
       document.removeEventListener("keydown", onKey);
     };
-  }, []);
+  }, [open]);
 
   return (
-    <div ref={ref} style={{ position: "relative" }}>
+    <div style={{ position: "relative" }}>
       <button
+        ref={btnRef}
         type="button"
         onClick={() => setOpen((s) => !s)}
         className="ampere-focus"
@@ -1184,26 +1200,28 @@ function Dropdown({
               inset: 0,
               background: "rgba(0,0,0,0.35)",
               backdropFilter: "blur(4px)",
-              zIndex: 88,
+              zIndex: 9998,
             }}
             onMouseDown={() => setOpen(false)}
           />
           <div
+            ref={panelRef}
             role="menu"
             className="ampere-dropdown-panel"
             style={{
-              position: "absolute",
-              right: 0,
-              top: "calc(100% + 10px)",
-              minWidth,
+              position: "fixed",
+              top: pos?.top ?? 60,
+              right: pos?.right ?? 8,
+              minWidth: Math.min(minWidth, window.innerWidth - 16),
+              maxWidth: "calc(100vw - 16px)",
               borderRadius: 18,
               border: "1px solid rgba(255,255,255,0.14)",
               background: "rgba(10,10,10,0.995)",
               backdropFilter: "blur(16px)",
               boxShadow: "var(--shadow-md)",
               overflow: "hidden",
-              zIndex: 89,
-              maxHeight: "min(80vh, 640px)",
+              zIndex: 9999,
+              maxHeight: "min(75vh, 640px)",
               overflowY: "auto",
               WebkitOverflowScrolling: "touch" as any,
             }}
@@ -2335,17 +2353,15 @@ export default function AmpereApp() {
               </>
             ) : (
               <>
-                {/* Boot video - plays full video, min 10s before allowing transition */}
-                <div style={{ borderRadius: 18, overflow: "hidden", background: "black", maxHeight: 360 }}>
-                  <video
-                    autoPlay
-                    muted
-                    playsInline
-                    loop
-                    style={{ width: "100%", maxHeight: 360, objectFit: "contain" }}
-                  >
-                    <source src={assetPath("/assets/boot/power-on.mp4")} type="video/mp4" />
-                  </video>
+                {/* Boot splash — animated brand logo + progress */}
+                <div style={{ borderRadius: 18, overflow: "hidden", background: "black", height: 220, display: "grid", placeItems: "center", position: "relative" }}>
+                  <div style={{ position: "absolute", inset: 0, background: "radial-gradient(circle at 50% 40%, rgba(58,167,255,0.18) 0%, transparent 70%)" }} />
+                  <div style={{ display: "grid", placeItems: "center", gap: 16, position: "relative", zIndex: 1 }}>
+                    <div style={{ width: 180, height: 48 }}>
+                      <SmartImg sources={brandWideCandidates()} size={900} rounded={0} border={false} fit="contain" fill fallbackText="AMPÈRE" />
+                    </div>
+                    <div style={{ animation: "pulse 2s ease-in-out infinite", fontSize: 32 }}>⚡</div>
+                  </div>
                 </div>
                 <div style={{ fontWeight: 950, fontSize: 16, opacity: 0.92 }}>Powering on...</div>
                 <div
