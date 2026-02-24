@@ -10,6 +10,7 @@ import {
   platformIconCandidates as _platIcon,
   genreImageCandidates,
   leagueLogoCandidates as _leagueIcon,
+  conferenceLogoCandidates as _confIcon,
   teamLogoCandidates as _teamIcon,
   headerIconCandidates as _headerIcon,
   footerIconCandidates as _footerIcon,
@@ -31,8 +32,11 @@ import {
   redactUrl,
   normalizeKey as catalogNormalizeKey,
   canonicalLeagueForTeams,
+  conferencesForLeague,
+  teamsForConference,
+  leagueHasConferences,
 } from "../../lib/catalog";
-import type { PlatformId, GenreKey, Platform } from "../../lib/catalog";
+import type { PlatformId, GenreKey, Platform, NCAAConference } from "../../lib/catalog";
 import { GLOBAL_REGIONS, LANGUAGES } from "../../lib/globalRegions";
 import { parseCommand } from "../../lib/intent";
 import {
@@ -1320,9 +1324,9 @@ function FilterAccordion({
   defaultOpen?: boolean;
   isMobile: boolean;
 }) {
-  const [open, setOpen] = useState(!!defaultOpen);
+  const [open, setOpen] = useState(true);
   useEffect(() => {
-    if (!isMobile) setOpen(true);
+    setOpen(true);
   }, [isMobile]);
 
   return (
@@ -1837,7 +1841,8 @@ function buildDemoCatalog(): {
     mk({ title: "MLB: Yankees vs Dodgers", subtitle: "Crosstown classic", platformId: "mlbtv", league: "MLB", genre: "Sports", badge: "LIVE", metaLeft: "MLB", metaRight: "Live", timeRemaining: "5th • 2-1" }),
     mk({ title: "Premier League: Arsenal vs Chelsea", subtitle: "London derby", platformId: "fubotv", league: "Premier League", genre: "Sports", badge: "LIVE", metaLeft: "EPL", metaRight: "Live", timeRemaining: "65'" }),
     mk({ title: "Ligue 1: PSG vs Marseille", subtitle: "Le Classique", platformId: "fubotv", league: "France Ligue 1", genre: "Sports", badge: "LIVE", metaLeft: "Ligue 1", metaRight: "Live", timeRemaining: "38'" }),
-    mk({ title: "NCAAF: Georgia vs Alabama", subtitle: "Top matchup", platformId: "espnplus", league: "NCAA", genre: "Sports", badge: "LIVE", metaLeft: "NCAA", metaRight: "Live", timeRemaining: "Q2 • 05:41" }),
+    mk({ title: "NCAAF: Georgia vs Alabama", subtitle: "SEC showdown", platformId: "espnplus", league: "NCAAF", genre: "Sports", badge: "LIVE", metaLeft: "NCAAF • SEC", metaRight: "Live", timeRemaining: "Q2 • 05:41" }),
+    mk({ title: "NCAAB: Duke vs North Carolina", subtitle: "ACC rivalry", platformId: "espnplus", league: "NCAAB", genre: "Sports", badge: "LIVE", metaLeft: "NCAAB • ACC", metaRight: "Live", timeRemaining: "H2 • 08:22" }),
     mk({ title: "KHL: CSKA vs SKA", subtitle: "Russian hockey", platformId: "espnplus", league: "KHL", genre: "Sports", badge: "LIVE", metaLeft: "KHL", metaRight: "Live", timeRemaining: "2nd • 12:05" }),
     mk({ title: "FS1: Soccer Night", subtitle: "Live match window", platformId: "foxsports1", genre: "LiveTV", badge: "LIVE", metaLeft: "FS1", metaRight: "Live" }),
     mk({ title: "UFC Fight Night", subtitle: "Main card", platformId: "espnplus", league: "UFC", genre: "Sports", badge: "LIVE", metaLeft: "UFC", metaRight: "Live" }),
@@ -1874,7 +1879,7 @@ function buildDemoCatalog(): {
     mk({ title: "Black Star Network: Live", subtitle: "News + culture", platformId: "blackstarnetwork", genre: "Black Media", badge: "LIVE", metaLeft: "Live", metaRight: "Now" }),
     mk({ title: "MANSA Originals", subtitle: "Curated stories", platformId: "mansa", genre: "Black Media", metaLeft: "Originals", metaRight: "New" }),
     mk({ title: "ALLBLK: Drama Picks", subtitle: "Binge-ready", platformId: "allblk", genre: "Black Media", metaLeft: "Drama", metaRight: "HD" }),
-    mk({ title: "HBCU Game of the Week", subtitle: "Showcase", platformId: "hbcugosports", league: "NCAA", genre: "Sports", badge: "UPCOMING", metaLeft: "HBCU", metaRight: "Soon", startTime: "Sat 7:30 PM" }),
+    mk({ title: "HBCU Game of the Week", subtitle: "Showcase", platformId: "hbcugosports", league: "HBCUGoSports", genre: "Sports", badge: "UPCOMING", metaLeft: "HBCU", metaRight: "Soon", startTime: "Sat 7:30 PM" }),
     mk({ title: "Brown Sugar: Classics", subtitle: "70s & 80s cinema", platformId: "brownsugar", genre: "Black Media", metaLeft: "Classic", metaRight: "HD" }),
     mk({ title: "BET+ Original Series", subtitle: "Exclusive premiere", platformId: "betplus", genre: "Black Media", metaLeft: "Original", metaRight: "New" }),
     mk({ title: "Kweli TV: Pan-African", subtitle: "World cinema", platformId: "kwelitv", genre: "Black Media", metaLeft: "World", metaRight: "HD" }),
@@ -3537,7 +3542,7 @@ export default function AmpereApp() {
               {[
                 { name: "Solo Plan", price: "$2.99/mo", features: ["1 user profile", "Everything in Pro Plan"], color: "rgba(58,167,255,0.08)" },
                 { name: "Family Add-On", price: "$0.99/mo per profile", features: ["$0.99/mo per additional user profile", "Add profiles to any existing plan"], color: "rgba(138,43,226,0.08)" },
-                { name: "Game Day Sports Betting", price: "$4.99/mo", features: ["Includes everything in all other plans", "One-tap Add Bet from any game card", "Bets Drawer + P&L tracking", "Quick stake buttons + American odds", "Bankroll + session stats", "Export tools: JSON + CSV"], color: "rgba(0,200,80,0.10)" },
+                { name: "Game Day Sports Betting", price: "$4.99/mo", features: ["Includes everything in all other plans", "One-tap \"Add Bet\" from any game card", "Bets Drawer — slide-up panel for all active & settled bets", "Quick stake buttons: $5 / $10 / $25 / $50 / $100", "Paste-to-add bet slip (copy from sportsbook)", "Game-linked bet overlay on Live cards", "Smart reminders: tip-off, first pitch, kickoff alerts", "Quick settle + P/L tracking per bet", "Bankroll + session stats dashboard", "Tags & notes per bet (e.g. \"parlay\", \"lock\")", "Clone bet — one-tap re-bet with same or adjusted stake", "Export tools: JSON, CSV, and clipboard"], color: "rgba(0,200,80,0.10)" },
               ].map((addon) => (
                 <div key={addon.name} style={{ borderRadius: 18, border: "1px solid rgba(255,255,255,0.12)", background: addon.color, padding: 14 }}>
                   <div style={{ fontWeight: 950, fontSize: 15, marginBottom: 2 }}>{addon.name}</div>
@@ -5857,12 +5862,8 @@ function SetupWizardContent({
                 const canon = canonicalLeagueForTeams(l) ?? l;
                 const all = TEAMS_BY_LEAGUE[canon] ?? [];
                 const q = normalizeKey(wizTeamSearch);
-                const filtered = q ? all.filter((t) => normalizeKey(t).includes(q)) : all;
-
-                const defaultRows = isMobile ? 6 : 9; // 3 rows of teams
-                const shown = wizShownByLeague[canon] ?? defaultRows;
-                const slice = filtered.slice(0, shown);
-                const more = shown < filtered.length;
+                const hasConfs = leagueHasConferences(canon);
+                const confs = conferencesForLeague(canon);
                 const leagueTeamCount = draftTeams.filter((t) => all.includes(t)).length;
 
                 return (
@@ -5884,44 +5885,105 @@ function SetupWizardContent({
                       </div>
                     </div>
 
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(220px, 100%), 1fr))", gap: 10 }}>
-                      {slice.map((t) => (
-                        <PillButton
-                          key={`${canon}_${t}`}
-                          label={t}
-                          iconSources={_teamIcon(canon, t)}
-                          active={draftTeams.includes(t)}
-                          onClick={() => setDraftTeams((prev) => uniq(toggleInArray(prev, t)))}
-                          fullWidth
-                          multiline
-                        />
-                      ))}
-                    </div>
+                    {hasConfs ? (
+                      /* ---- NCAA Conference-grouped teams ---- */
+                      <div style={{ display: "grid", gap: 10 }}>
+                        {confs.map((conf) => {
+                          const confTeams = teamsForConference(canon, conf.id);
+                          const confFiltered = q ? confTeams.filter((t) => normalizeKey(t).includes(q)) : confTeams;
+                          if (confFiltered.length === 0) return null;
+                          const confKey = `${canon}_${conf.id}`;
+                          const confShown = wizShownByLeague[confKey] ?? (isMobile ? 4 : 6);
+                          const confSlice = confFiltered.slice(0, confShown);
+                          const confMore = confShown < confFiltered.length;
+                          const confSelected = draftTeams.filter((t) => confTeams.includes(t)).length;
 
-                    {more ? (
-                      <button
-                        type="button"
-                        className="ampere-focus"
-                        onClick={() =>
-                          setWizShownByLeague((prev) => ({
-                            ...prev,
-                            [canon]: Math.min(filtered.length, (prev[canon] ?? shown) + 12),
-                          }))
-                        }
-                        style={{
-                          padding: "10px 12px",
-                          borderRadius: 14,
-                          border: "1px solid rgba(58,167,255,0.22)",
-                          background: "rgba(58,167,255,0.10)",
-                          color: "white",
-                          fontWeight: 950,
-                          cursor: "pointer",
-                          width: "fit-content",
-                        }}
-                      >
-                        Load more ({slice.length}/{filtered.length})
-                      </button>
-                    ) : null}
+                          return (
+                            <div key={confKey} style={{ borderRadius: 14, border: "1px solid rgba(58,167,255,0.12)", background: "rgba(58,167,255,0.04)", padding: 10, display: "grid", gap: 8 }}>
+                              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+                                <div style={{ fontWeight: 950, fontSize: 14, color: "rgba(58,167,255,0.95)" }}>{conf.shortName}</div>
+                                <div style={{ opacity: 0.7, fontWeight: 900, fontSize: 11 }}>{confSelected}/{confTeams.length} selected</div>
+                              </div>
+                              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(200px, 100%), 1fr))", gap: 6 }}>
+                                {confSlice.map((t) => (
+                                  <PillButton
+                                    key={`${confKey}_${t}`}
+                                    label={t}
+                                    iconSources={_teamIcon(canon, t)}
+                                    active={draftTeams.includes(t)}
+                                    onClick={() => setDraftTeams((prev) => uniq(toggleInArray(prev, t)))}
+                                    fullWidth
+                                    multiline
+                                  />
+                                ))}
+                              </div>
+                              {confMore ? (
+                                <button
+                                  type="button"
+                                  className="ampere-focus"
+                                  onClick={() => setWizShownByLeague((prev) => ({ ...prev, [confKey]: Math.min(confFiltered.length, (prev[confKey] ?? confShown) + 8) }))}
+                                  style={{ padding: "6px 10px", borderRadius: 12, border: "1px solid rgba(58,167,255,0.22)", background: "rgba(58,167,255,0.08)", color: "white", fontWeight: 950, cursor: "pointer", width: "fit-content", fontSize: 12 }}
+                                >
+                                  More ({confSlice.length}/{confFiltered.length})
+                                </button>
+                              ) : null}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      /* ---- Standard flat team list ---- */
+                      (() => {
+                        const filtered = q ? all.filter((t) => normalizeKey(t).includes(q)) : all;
+                        const defaultRows = isMobile ? 6 : 9;
+                        const shown = wizShownByLeague[canon] ?? defaultRows;
+                        const slice = filtered.slice(0, shown);
+                        const more = shown < filtered.length;
+
+                        return (
+                          <>
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(220px, 100%), 1fr))", gap: 10 }}>
+                              {slice.map((t) => (
+                                <PillButton
+                                  key={`${canon}_${t}`}
+                                  label={t}
+                                  iconSources={_teamIcon(canon, t)}
+                                  active={draftTeams.includes(t)}
+                                  onClick={() => setDraftTeams((prev) => uniq(toggleInArray(prev, t)))}
+                                  fullWidth
+                                  multiline
+                                />
+                              ))}
+                            </div>
+
+                            {more ? (
+                              <button
+                                type="button"
+                                className="ampere-focus"
+                                onClick={() =>
+                                  setWizShownByLeague((prev) => ({
+                                    ...prev,
+                                    [canon]: Math.min(filtered.length, (prev[canon] ?? shown) + 12),
+                                  }))
+                                }
+                                style={{
+                                  padding: "10px 12px",
+                                  borderRadius: 14,
+                                  border: "1px solid rgba(58,167,255,0.22)",
+                                  background: "rgba(58,167,255,0.10)",
+                                  color: "white",
+                                  fontWeight: 950,
+                                  cursor: "pointer",
+                                  width: "fit-content",
+                                }}
+                              >
+                                Load more ({slice.length}/{filtered.length})
+                              </button>
+                            ) : null}
+                          </>
+                        );
+                      })()
+                    )}
                   </div>
                 );
               })}
