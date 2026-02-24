@@ -206,7 +206,7 @@ export function TasteEngineContent({ locked, onUpgrade, hideHero }: { locked: bo
    3b. TASTE ENGINE HUB — Unified layout integrating Taste, Modes,
        Scenes, Connect Ladder, Live Pulse, and Why This Pick
    ============================================================ */
-type TasteHubTab = "taste" | "modes" | "scenes" | "connect" | "livepulse" | "delight" | "whypick";
+type TasteHubTab = "taste" | "modes" | "scenes" | "connect" | "livepulse" | "delight" | "whypick" | "queue" | "trust" | "family";
 const TASTE_HUB_TABS: { id: TasteHubTab; label: string; icon: string }[] = [
   { id: "taste", label: "Preferences", icon: "🎯" },
   { id: "delight", label: "Time-to-Delight", icon: "⏱" },
@@ -215,6 +215,9 @@ const TASTE_HUB_TABS: { id: TasteHubTab; label: string; icon: string }[] = [
   { id: "connect", label: "Connect", icon: "🔗" },
   { id: "livepulse", label: "Live Pulse", icon: "📡" },
   { id: "whypick", label: "Why This Pick?", icon: "💡" },
+  { id: "queue", label: "Queue", icon: "📋" },
+  { id: "trust", label: "Trust & Privacy", icon: "🛡️" },
+  { id: "family", label: "Family", icon: "👨‍👩‍👧‍👦" },
 ];
 export function TasteEngineHub({ locked, onUpgrade, initialTab = "taste" }: { locked: boolean; onUpgrade: () => void; initialTab?: TasteHubTab }) {
   const [tab, setTab] = useState<TasteHubTab>(initialTab);
@@ -240,6 +243,9 @@ export function TasteEngineHub({ locked, onUpgrade, initialTab = "taste" }: { lo
       {tab === "connect" && <ConnectLadderContent locked={false} onUpgrade={onUpgrade} hideHero />}
       {tab === "livepulse" && <LivePulseContent locked={false} onUpgrade={onUpgrade} hideHero />}
       {tab === "whypick" && <WhyThisPickContent data={null} locked={false} onUpgrade={onUpgrade} onAction={() => {}} hideHero />}
+      {tab === "queue" && <UniversalQueueContent locked={false} onUpgrade={onUpgrade} hideHero />}
+      {tab === "trust" && <TrustPortabilityContent locked={false} onUpgrade={onUpgrade} hideHero />}
+      {tab === "family" && <FamilyProfilesContent locked={false} onUpgrade={onUpgrade} hideHero />}
     </div>
   );
 }
@@ -281,7 +287,7 @@ export function WhyThisPickContent({ data, locked, onUpgrade, onAction, hideHero
 /* ============================================================
    5. UNIVERSAL QUEUE
    ============================================================ */
-export function UniversalQueueContent({ locked, onUpgrade }: { locked: boolean; onUpgrade: () => void }) {
+export function UniversalQueueContent({ locked, onUpgrade, hideHero }: { locked: boolean; onUpgrade: () => void; hideHero?: boolean }) {
   const [queued, setQueued] = useState(getQueuedItems);
   const [watched, setWatched] = useState(getWatchedItems);
   const [vaultTag, setVaultTag] = useState("");
@@ -290,8 +296,12 @@ export function UniversalQueueContent({ locked, onUpgrade }: { locked: boolean; 
   const refresh = () => { setQueued(getQueuedItems()); setWatched(getWatchedItems()); };
   return (
     <div style={{ display: "grid", gap: 14 }}>
-      <div style={heroTitle}>Universal Queue</div>
-      <div style={heroSub}>Your watch list with cross-platform availability tracking.</div>
+      {!hideHero && <><div style={heroTitle}>Universal Queue</div>
+      <div style={heroSub}>Your watch list with cross-platform availability tracking.</div></>}
+      <div style={{ ...panelStyle, borderColor: "rgba(58,167,255,0.2)", background: "rgba(58,167,255,0.04)" }}>
+        <div style={{ fontWeight: 950, fontSize: 13, marginBottom: 4 }}>How it works</div>
+        <div style={{ opacity: 0.7, fontSize: 12, lineHeight: 1.6 }}>Add any content to your Universal Queue from a card or via voice command. AMPERE checks which of your connected platforms carry that title, picks the best one, and lists alternates. Mark items "Done" when watched. Export your queue and watch history as a portable vault file to back up or transfer between devices.</div>
+      </div>
       <div style={sectionTitle}>Queued ({queued.length})</div>
       {queued.length === 0 && <div style={{ ...panelStyle, opacity: 0.6 }}>No items in queue. Add content from cards or via voice.</div>}
       {queued.map((item) => (
@@ -486,14 +496,14 @@ export function ConnectLadderContent({ locked, onUpgrade, hideHero }: { locked: 
 /* ============================================================
    10. TRUST / PORTABILITY
    ============================================================ */
-export function TrustPortabilityContent({ locked, onUpgrade }: { locked: boolean; onUpgrade: () => void }) {
+export function TrustPortabilityContent({ locked, onUpgrade, hideHero }: { locked: boolean; onUpgrade: () => void; hideHero?: boolean }) {
   const [priv, setPriv] = useState(isPrivateMode);
   useEffect(() => { addLog("screen_open_trustPortability"); }, []);
   if (locked) return <LockedScreen name="Trust & Portability" desc="Your profile lives on your device. Export everything. Private mode. Full control." onUpgrade={onUpgrade} />;
   return (
     <div style={{ display: "grid", gap: 14 }}>
-      <div style={heroTitle}>Trust, Privacy & Portability</div>
-      <div style={heroSub}>Your profile lives on your device. You own your data.</div>
+      {!hideHero && <><div style={heroTitle}>Trust, Privacy & Portability</div>
+      <div style={heroSub}>Your profile lives on your device. You own your data.</div></>}
       <div style={panelStyle}>
         <div style={{ fontWeight: 950, fontSize: 14 }}>🛡️ Device-Local Storage</div>
         <div style={{ opacity: 0.7, fontSize: 12, marginTop: 4 }}>All preferences, viewing history, taste data, and queue are stored in your browser's localStorage. Nothing leaves your device unless you export it.</div>
@@ -523,7 +533,7 @@ export function TrustPortabilityContent({ locked, onUpgrade }: { locked: boolean
 /* ============================================================
    11. FAMILY PROFILES
    ============================================================ */
-export function FamilyProfilesContent({ locked, onUpgrade }: { locked: boolean; onUpgrade: () => void }) {
+export function FamilyProfilesContent({ locked, onUpgrade, hideHero }: { locked: boolean; onUpgrade: () => void; hideHero?: boolean }) {
   const [profiles, setProfiles] = useState(getFamilyProfiles);
   const [newName, setNewName] = useState("");
   const [isKid, setIsKid] = useState(false);
