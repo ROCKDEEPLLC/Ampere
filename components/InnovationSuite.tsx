@@ -173,6 +173,10 @@ export function TasteEngineContent({ locked, onUpgrade, hideHero }: { locked: bo
         </div>
       ))}
       <div style={sectionTitle}>Discovery Contract</div>
+      <div style={{ ...panelStyle, borderColor: "rgba(58,167,255,0.2)", background: "rgba(58,167,255,0.04)", marginBottom: 8 }}>
+        <div style={{ fontWeight: 950, fontSize: 13, marginBottom: 4 }}>What is a Discovery Contract?</div>
+        <div style={{ opacity: 0.7, fontSize: 12, lineHeight: 1.6 }}>A Discovery Contract sets boundaries on how aggressively AMPERE recommends content outside your comfort zone. "Safe" means only familiar genres and titles. Wildcard slots allow AMPERE to inject surprise picks — the more wildcards you allow, the more diverse your feed becomes. This directly affects how the ranking algorithm scores new content in your For You rail.</div>
+      </div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         {(["safe", "one_wildcard", "three_wildcards"] as const).map((c) => (
           <button key={c} type="button" style={{ ...(contract === c ? btnPrimary : btnSecondary) }} onClick={() => { setContract(c); update({ discoveryContract: c }); }}>
@@ -193,7 +197,10 @@ export function TasteEngineContent({ locked, onUpgrade, hideHero }: { locked: bo
         })}
       </div>
       <div style={sectionTitle}>Export / Import Taste</div>
-      <div style={{ opacity: 0.7, fontSize: 12, marginBottom: 6 }}>Download your taste profile as a JSON file, or import one from another device.</div>
+      <div style={{ ...panelStyle, borderColor: "rgba(58,167,255,0.2)", background: "rgba(58,167,255,0.04)", marginBottom: 8 }}>
+        <div style={{ fontWeight: 950, fontSize: 13, marginBottom: 4 }}>How Export & Import works</div>
+        <div style={{ opacity: 0.7, fontSize: 12, lineHeight: 1.6 }}><b>Export:</b> Downloads your complete taste profile (sliders, muted genres, discovery contract, feedback history) as a JSON file to your device. Use this to back up your preferences or transfer them to another browser/device.<br/><b>Import:</b> Upload a previously exported taste file to restore or apply another profile's preferences. This overwrites your current taste settings with the imported data. Useful when setting up a new device or sharing taste settings between family members.</div>
+      </div>
       <div style={{ display: "flex", gap: 8 }}>
         <button type="button" style={btnSecondary} onClick={() => { const d = exportTaste(); const blob = new Blob([d], { type: "application/json" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `ampere-taste-${Date.now()}.json`; a.click(); URL.revokeObjectURL(url); }}>Download Taste</button>
         <button type="button" style={btnSecondary} onClick={() => { const input = document.createElement("input"); input.type = "file"; input.accept = ".json"; input.onchange = (e) => { const f = (e.target as HTMLInputElement).files?.[0]; if (f) f.text().then((t) => { importTaste(t); setTaste(getTasteProfile()); }); }; input.click(); }}>Import Taste File</button>
@@ -555,8 +562,8 @@ export function FamilyProfilesContent({ locked, onUpgrade, hideHero }: { locked:
   };
   return (
     <div style={{ display: "grid", gap: 14 }}>
-      <div style={heroTitle}>Family Profiles</div>
-      <div style={heroSub}>Up to 5 profiles. Each gets their own taste, history, and queue.</div>
+      {!hideHero && <><div style={heroTitle}>Family Profiles</div>
+      <div style={heroSub}>Up to 5 profiles. Each gets their own taste, history, and queue.</div></>}
       <div style={{ display: "grid", gap: 8, gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))" }}>
         {profiles.map((p) => (
           <div key={p.id} style={{ ...panelStyle, textAlign: "center" }}>
@@ -669,17 +676,17 @@ export function SemanticSearchContent({ locked, onUpgrade }: { locked: boolean; 
    ============================================================ */
 export function AddDeviceContent() {
   const [dev, setDev] = useState(getDeviceState);
-  const [tab, setTab] = useState<"qr" | "hub" | "cloud">("qr");
+  const [tab, setTab] = useState<"qr" | "hub" | "cloud" | "other">("qr");
   const [simConfirm, setSimConfirm] = useState(false);
   useEffect(() => { addLog("screen_open_addDevice"); }, []);
   return (
     <div style={{ display: "grid", gap: 14 }}>
       <div style={heroTitle}>Add Device</div>
       <div style={heroSub}>Connect your TV using any of these methods. Free for all plans.</div>
-      <div style={{ display: "flex", gap: 8 }}>
-        {(["qr", "hub", "cloud"] as const).map((t) => (
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        {(["qr", "hub", "cloud", "other"] as const).map((t) => (
           <button key={t} type="button" style={tab === t ? btnPrimary : btnSecondary} onClick={() => setTab(t)}>
-            {t === "qr" ? "QR Pairing" : t === "hub" ? "Local Hub" : "Cloud Relay"}
+            {t === "qr" ? "QR Pairing" : t === "hub" ? "Local Hub" : t === "cloud" ? "Cloud Relay" : "Other Methods"}
           </button>
         ))}
       </div>
@@ -750,6 +757,27 @@ export function AddDeviceContent() {
           )}
         </div>
       )}
+      {/* Other Connection Methods */}
+      {tab === "other" && (
+        <div style={{ display: "grid", gap: 10 }}>
+          {[
+            { name: "HDMI-CEC", icon: "🔌", desc: "Control your TV through HDMI-CEC commands. Works with most modern TVs. No additional hardware needed — uses your existing HDMI connection.", status: "Available" },
+            { name: "AirPlay", icon: "📱", desc: "Stream and control via Apple AirPlay 2. Works with AirPlay-compatible smart TVs and Apple TV devices.", status: "Available" },
+            { name: "Miracast", icon: "📡", desc: "Wireless display mirroring using Wi-Fi Direct. Native support on Windows, Android, and many smart TVs.", status: "Available" },
+            { name: "DLNA / UPnP", icon: "🌐", desc: "Discover and stream to any DLNA-compatible device on your local network. Works with most smart TVs, game consoles, and media players.", status: "Available" },
+            { name: "Google Cast", icon: "📺", desc: "Cast content to Chromecast devices and Cast-enabled smart TVs using Google's Cast protocol.", status: "Available" },
+            { name: "Bluetooth", icon: "🔵", desc: "Connect to Bluetooth-enabled displays and audio devices for local streaming and control.", status: "Beta" },
+          ].map((m) => (
+            <div key={m.name} style={{ ...panelStyle, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <div style={{ fontWeight: 950, fontSize: 14 }}>{m.icon} {m.name} {m.status === "Beta" ? <span style={{ ...chipStyle, fontSize: 9, background: "rgba(255,179,0,0.12)", borderColor: "rgba(255,179,0,0.3)", color: "#ffcc44" }}>BETA</span> : null}</div>
+                <div style={{ opacity: 0.6, fontSize: 12, marginTop: 4, maxWidth: 400 }}>{m.desc}</div>
+              </div>
+              <button type="button" style={btnSecondary} onClick={() => addLog("device_connect_method", { method: m.name })}>Connect</button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -760,8 +788,16 @@ export function AddDeviceContent() {
 export function VirtualEmulatorContent() {
   const [emu, setEmu] = useState(getEmulatorState);
   const [demoTitle, setDemoTitle] = useState("Stranger Things");
+  const [ccLang, setCcLang] = useState("en");
+  const [translatorOn, setTranslatorOn] = useState(false);
   useEffect(() => { addLog("screen_open_virtualEmulator"); }, []);
   const refresh = () => setEmu(getEmulatorState());
+  const CC_LANGUAGES = [
+    { code: "en", label: "English" }, { code: "es", label: "Spanish" }, { code: "fr", label: "French" },
+    { code: "de", label: "German" }, { code: "pt", label: "Portuguese" }, { code: "ja", label: "Japanese" },
+    { code: "ko", label: "Korean" }, { code: "zh", label: "Chinese" }, { code: "ar", label: "Arabic" },
+    { code: "hi", label: "Hindi" }, { code: "it", label: "Italian" }, { code: "ru", label: "Russian" },
+  ];
   return (
     <div style={{ display: "grid", gap: 14 }}>
       <div style={heroTitle}>Virtual TV Emulator</div>
@@ -778,7 +814,7 @@ export function VirtualEmulatorContent() {
             {emu.currentMode && <div style={{ ...chipStyle, marginTop: 8 }}>Mode: {emu.currentMode}</div>}
           </div>
         )}
-        <div style={{ marginTop: 8, opacity: 0.5, fontSize: 11 }}>Vol: {emu.volume} | Closed Captions: {emu.captionsEnabled ? "ON" : "OFF"}</div>
+        <div style={{ marginTop: 8, opacity: 0.5, fontSize: 11 }}>Vol: {emu.volume} | CC: {emu.captionsEnabled ? `ON (${ccLang.toUpperCase()})` : "OFF"}{translatorOn ? " | Translator: ON" : ""}</div>
       </div>
       {/* Controls */}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
@@ -786,7 +822,29 @@ export function VirtualEmulatorContent() {
         <button type="button" style={btnSecondary} onClick={() => { emulatorPause(); refresh(); }}>⏸ Pause</button>
         <button type="button" style={btnSecondary} onClick={() => { emulatorResume(); refresh(); }}>▶ Resume</button>
         <button type="button" style={btnSecondary} onClick={() => { emulatorStop(); refresh(); }}>⏹ Stop</button>
-        <button type="button" style={btnSecondary} onClick={() => { emulatorToggleCaptions(); refresh(); }}>{emu.captionsEnabled ? "CC ✓" : "CC"}</button>
+        <button type="button" style={emu.captionsEnabled ? { ...btnPrimary, background: "rgba(58,167,255,0.25)", borderColor: "rgba(58,167,255,0.6)", boxShadow: "0 0 8px rgba(58,167,255,0.3)" } : btnSecondary} onClick={() => { emulatorToggleCaptions(); refresh(); }}>
+          {emu.captionsEnabled ? "CC ✓" : "CC"}
+        </button>
+      </div>
+      {/* CC Language & Translator */}
+      <div style={{ ...panelStyle, display: "grid", gap: 10 }}>
+        <div style={{ fontWeight: 950, fontSize: 13 }}>Closed Captions & Language</div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {CC_LANGUAGES.map((l) => (
+            <button key={l.code} type="button" style={{ ...chipStyle, cursor: "pointer", background: ccLang === l.code ? "rgba(58,167,255,0.18)" : "rgba(255,255,255,0.06)", borderColor: ccLang === l.code ? "rgba(58,167,255,0.5)" : "rgba(255,255,255,0.12)", color: ccLang === l.code ? "rgba(58,167,255,1)" : "rgba(255,255,255,0.6)" }}
+              onClick={() => setCcLang(l.code)}>{l.label}</button>
+          ))}
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
+          <div>
+            <div style={{ fontWeight: 950, fontSize: 13 }}>Language Translator</div>
+            <div style={{ opacity: 0.6, fontSize: 11 }}>Auto-translate captions when CC not available in your language</div>
+          </div>
+          <button type="button" style={translatorOn ? { ...btnPrimary, background: "rgba(0,200,0,0.15)", borderColor: "rgba(0,200,0,0.3)", padding: "8px 14px" } : { ...btnSecondary, padding: "8px 14px" }}
+            onClick={() => { setTranslatorOn(!translatorOn); addLog("translator_toggle", { enabled: !translatorOn, lang: ccLang }); }}>
+            {translatorOn ? "ON" : "OFF"}
+          </button>
+        </div>
       </div>
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         <span style={{ fontSize: 12, opacity: 0.6, minWidth: 28 }}>Vol</span>
