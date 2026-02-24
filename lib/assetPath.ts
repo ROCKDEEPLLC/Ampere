@@ -376,6 +376,18 @@ export function leagueLogoCandidates(league?: string): string[] {
   ];
 }
 
+export function conferenceLogoCandidates(conferenceId: string, leagueKey?: string): string[] {
+  const k = conferenceId.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const league = (leagueKey ?? "ncaa").toLowerCase().replace(/[^a-z0-9]/g, "");
+  return [
+    assetPath(`/assets/conferences/${k}.png`),
+    assetPath(`/assets/conferences/${k}.svg`),
+    assetPath(`/assets/leagues/${league}/${k}.png`),
+    assetPath(`/assets/teams/${league}/${k}.png`),
+    assetPath(`/logos/conferences/${k}.png`),
+  ];
+}
+
 export function teamLogoCandidates(league: string, team: string): string[] {
   const l = league.toLowerCase().replace(/[^a-z0-9]/g, "");
   const leagueLower = league.toLowerCase();

@@ -235,7 +235,7 @@ export const LEAGUES = [
   "A-League", "AFL", "NRL", "Super Rugby",
   // North America & other
   "HBCUGoSports", "IFL", "KHL",
-  "MLB", "MLS", "NBA", "NCAA", "NFL", "NHL",
+  "MLB", "MLS", "NBA", "NCAAF", "NCAAB", "NFL", "NHL",
   "UCI", "UFC",
 ] as const;
 
@@ -532,8 +532,8 @@ export const TEAMS_BY_LEAGUE: Record<string, string[]> = {
     "San Jose Earthquakes", "Seattle Sounders FC", "Sporting Kansas City", "St. Louis City SC",
     "Toronto FC", "Vancouver Whitecaps FC",
   ],
-  NCAA: [
-    // Power 5 / Power 4 Conference Teams (Division 1 FBS)
+  NCAAF: [
+    // All D1 FBS teams (Power 4 + Group of 5 + Independent)
     "Alabama Crimson Tide", "Arizona State Sun Devils", "Arizona Wildcats", "Arkansas Razorbacks",
     "Auburn Tigers", "Baylor Bears", "BYU Cougars", "Cal Golden Bears",
     "Clemson Tigers", "Colorado Buffaloes", "Duke Blue Devils", "Florida Gators",
@@ -551,6 +551,29 @@ export const TEAMS_BY_LEAGUE: Record<string, string[]> = {
     "Utah Utes", "Vanderbilt Commodores", "Virginia Cavaliers", "Virginia Tech Hokies",
     "Wake Forest Demon Deacons", "Washington Huskies", "Washington State Cougars", "West Virginia Mountaineers",
     "Wisconsin Badgers",
+  ],
+  NCAAB: [
+    // D1 basketball teams (same core schools, conference membership may differ)
+    "Alabama Crimson Tide", "Arizona State Sun Devils", "Arizona Wildcats", "Arkansas Razorbacks",
+    "Auburn Tigers", "Baylor Bears", "BYU Cougars", "Cal Golden Bears",
+    "Clemson Tigers", "Colorado Buffaloes", "Connecticut Huskies", "Creighton Bluejays",
+    "Duke Blue Devils", "Florida Gators", "Florida State Seminoles", "Georgetown Hoyas",
+    "Georgia Bulldogs", "Georgia Tech Yellow Jackets", "Gonzaga Bulldogs",
+    "Houston Cougars", "Illinois Fighting Illini", "Indiana Hoosiers", "Iowa Hawkeyes",
+    "Iowa State Cyclones", "Kansas Jayhawks", "Kansas State Wildcats", "Kentucky Wildcats",
+    "Louisville Cardinals", "LSU Tigers", "Marquette Golden Eagles", "Maryland Terrapins",
+    "Miami Hurricanes", "Michigan State Spartans", "Michigan Wolverines",
+    "Minnesota Golden Gophers", "Mississippi State Bulldogs", "Missouri Tigers", "Nebraska Cornhuskers",
+    "North Carolina Tar Heels", "Northwestern Wildcats", "Notre Dame Fighting Irish", "Ohio State Buckeyes",
+    "Oklahoma Sooners", "Oklahoma State Cowboys", "Ole Miss Rebels", "Oregon Ducks",
+    "Oregon State Beavers", "Penn State Nittany Lions", "Pitt Panthers", "Purdue Boilermakers",
+    "Rutgers Scarlet Knights", "Saint John's Red Storm", "San Diego State Aztecs",
+    "Seton Hall Pirates", "SMU Mustangs", "South Carolina Gamecocks", "Stanford Cardinal",
+    "Syracuse Orange", "TCU Horned Frogs", "Tennessee Volunteers", "Texas A&M Aggies",
+    "Texas Longhorns", "Texas Tech Red Raiders", "UCLA Bruins", "USC Trojans",
+    "Utah Utes", "Vanderbilt Commodores", "Villanova Wildcats", "Virginia Cavaliers",
+    "Virginia Tech Hokies", "Wake Forest Demon Deacons", "Washington Huskies",
+    "West Virginia Mountaineers", "Wisconsin Badgers", "Xavier Musketeers",
   ],
   HBCUGoSports: [
     // HBCU Football & Basketball Schools
@@ -610,6 +633,142 @@ export const TEAMS_BY_LEAGUE: Record<string, string[]> = {
 };
 
 // ============================================================================
+// NCAA CONFERENCE HIERARCHY
+// Conference membership is league-scoped: a school may belong to different
+// conferences in football (NCAAF) vs basketball (NCAAB).
+// ============================================================================
+
+export type NCAAConference = {
+  id: string;
+  name: string;
+  shortName: string;
+};
+
+export const NCAAF_CONFERENCES: NCAAConference[] = [
+  { id: "sec", name: "Southeastern Conference", shortName: "SEC" },
+  { id: "bigten", name: "Big Ten Conference", shortName: "Big Ten" },
+  { id: "big12", name: "Big 12 Conference", shortName: "Big 12" },
+  { id: "acc", name: "Atlantic Coast Conference", shortName: "ACC" },
+  { id: "pac12", name: "Pac-12 Conference", shortName: "Pac-12" },
+  { id: "ind", name: "FBS Independent", shortName: "Independent" },
+];
+
+export const NCAAB_CONFERENCES: NCAAConference[] = [
+  { id: "sec", name: "Southeastern Conference", shortName: "SEC" },
+  { id: "bigten", name: "Big Ten Conference", shortName: "Big Ten" },
+  { id: "big12", name: "Big 12 Conference", shortName: "Big 12" },
+  { id: "acc", name: "Atlantic Coast Conference", shortName: "ACC" },
+  { id: "bigeast", name: "Big East Conference", shortName: "Big East" },
+  { id: "pac12", name: "Pac-12 Conference", shortName: "Pac-12" },
+  { id: "wcc", name: "West Coast Conference", shortName: "WCC" },
+];
+
+/** NCAAF conference → teams (2024-25 realignment) */
+export const NCAAF_TEAMS_BY_CONF: Record<string, string[]> = {
+  sec: [
+    "Alabama Crimson Tide", "Arkansas Razorbacks", "Auburn Tigers", "Florida Gators",
+    "Georgia Bulldogs", "Kentucky Wildcats", "LSU Tigers", "Mississippi State Bulldogs",
+    "Missouri Tigers", "Oklahoma Sooners", "Ole Miss Rebels", "South Carolina Gamecocks",
+    "Tennessee Volunteers", "Texas A&M Aggies", "Texas Longhorns", "Vanderbilt Commodores",
+  ],
+  bigten: [
+    "Illinois Fighting Illini", "Indiana Hoosiers", "Iowa Hawkeyes", "Maryland Terrapins",
+    "Michigan State Spartans", "Michigan Wolverines", "Minnesota Golden Gophers", "Nebraska Cornhuskers",
+    "Northwestern Wildcats", "Ohio State Buckeyes", "Oregon Ducks", "Penn State Nittany Lions",
+    "Purdue Boilermakers", "Rutgers Scarlet Knights", "UCLA Bruins", "USC Trojans",
+    "Washington Huskies", "Wisconsin Badgers",
+  ],
+  big12: [
+    "Arizona State Sun Devils", "Arizona Wildcats", "Baylor Bears", "BYU Cougars",
+    "Colorado Buffaloes", "Iowa State Cyclones", "Kansas Jayhawks", "Kansas State Wildcats",
+    "Oklahoma State Cowboys", "TCU Horned Frogs", "Texas Tech Red Raiders", "Utah Utes",
+    "West Virginia Mountaineers",
+  ],
+  acc: [
+    "Cal Golden Bears", "Clemson Tigers", "Duke Blue Devils", "Florida State Seminoles",
+    "Georgia Tech Yellow Jackets", "Louisville Cardinals", "Miami Hurricanes",
+    "North Carolina Tar Heels", "Pitt Panthers", "SMU Mustangs", "Stanford Cardinal",
+    "Syracuse Orange", "Virginia Cavaliers", "Virginia Tech Hokies", "Wake Forest Demon Deacons",
+  ],
+  pac12: [
+    "Oregon State Beavers", "Washington State Cougars",
+  ],
+  ind: [
+    "Notre Dame Fighting Irish",
+  ],
+};
+
+/** NCAAB conference → teams (basketball conferences differ from football) */
+export const NCAAB_TEAMS_BY_CONF: Record<string, string[]> = {
+  sec: [
+    "Alabama Crimson Tide", "Arkansas Razorbacks", "Auburn Tigers", "Florida Gators",
+    "Georgia Bulldogs", "Kentucky Wildcats", "LSU Tigers", "Mississippi State Bulldogs",
+    "Missouri Tigers", "Oklahoma Sooners", "Ole Miss Rebels", "South Carolina Gamecocks",
+    "Tennessee Volunteers", "Texas A&M Aggies", "Texas Longhorns", "Vanderbilt Commodores",
+  ],
+  bigten: [
+    "Illinois Fighting Illini", "Indiana Hoosiers", "Iowa Hawkeyes", "Maryland Terrapins",
+    "Michigan State Spartans", "Michigan Wolverines", "Minnesota Golden Gophers", "Nebraska Cornhuskers",
+    "Northwestern Wildcats", "Ohio State Buckeyes", "Oregon Ducks", "Penn State Nittany Lions",
+    "Purdue Boilermakers", "Rutgers Scarlet Knights", "UCLA Bruins", "USC Trojans",
+    "Washington Huskies", "Wisconsin Badgers",
+  ],
+  big12: [
+    "Arizona State Sun Devils", "Arizona Wildcats", "Baylor Bears", "BYU Cougars",
+    "Colorado Buffaloes", "Iowa State Cyclones", "Kansas Jayhawks", "Kansas State Wildcats",
+    "Oklahoma State Cowboys", "TCU Horned Frogs", "Texas Tech Red Raiders", "Utah Utes",
+    "West Virginia Mountaineers",
+  ],
+  acc: [
+    "Cal Golden Bears", "Clemson Tigers", "Duke Blue Devils", "Florida State Seminoles",
+    "Georgia Tech Yellow Jackets", "Louisville Cardinals", "Miami Hurricanes",
+    "North Carolina Tar Heels", "Notre Dame Fighting Irish", "Pitt Panthers", "SMU Mustangs",
+    "Stanford Cardinal", "Syracuse Orange", "Virginia Cavaliers", "Virginia Tech Hokies",
+    "Wake Forest Demon Deacons",
+  ],
+  bigeast: [
+    "Connecticut Huskies", "Creighton Bluejays", "Georgetown Hoyas", "Marquette Golden Eagles",
+    "Saint John's Red Storm", "Seton Hall Pirates", "Villanova Wildcats", "Xavier Musketeers",
+  ],
+  pac12: [
+    "Oregon State Beavers", "San Diego State Aztecs",
+  ],
+  wcc: [
+    "Gonzaga Bulldogs",
+  ],
+};
+
+/** Get conferences for a league (NCAAF or NCAAB). Returns empty for non-NCAA leagues. */
+export function conferencesForLeague(league: string): NCAAConference[] {
+  if (league === "NCAAF") return NCAAF_CONFERENCES;
+  if (league === "NCAAB") return NCAAB_CONFERENCES;
+  return [];
+}
+
+/** Get teams for a specific conference within a league. */
+export function teamsForConference(league: string, conferenceId: string): string[] {
+  if (league === "NCAAF") return NCAAF_TEAMS_BY_CONF[conferenceId] ?? [];
+  if (league === "NCAAB") return NCAAB_TEAMS_BY_CONF[conferenceId] ?? [];
+  return [];
+}
+
+/** Check if a league has conference hierarchy. */
+export function leagueHasConferences(league: string): boolean {
+  return league === "NCAAF" || league === "NCAAB";
+}
+
+/** Get the conference a team belongs to within a league. */
+export function conferenceForTeam(league: string, team: string): NCAAConference | null {
+  const confs = conferencesForLeague(league);
+  const teamsMap = league === "NCAAF" ? NCAAF_TEAMS_BY_CONF : league === "NCAAB" ? NCAAB_TEAMS_BY_CONF : {};
+  for (const conf of confs) {
+    const teams = teamsMap[conf.id] ?? [];
+    if (teams.includes(team)) return conf;
+  }
+  return null;
+}
+
+// ============================================================================
 // LOOKUP HELPERS
 // ============================================================================
 
@@ -649,6 +808,8 @@ export function normalizeKey(s: string): string {
 
 export function canonicalLeagueForTeams(league: string): string | null {
   const key = normalizeKey(league);
+  // Backward compat: "NCAA" maps to "NCAAF" (football is the default)
+  if (key === "ncaa") return "NCAAF";
   for (const [k] of Object.entries(TEAMS_BY_LEAGUE)) {
     if (normalizeKey(k) === key) return k;
   }
