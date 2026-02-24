@@ -149,7 +149,7 @@ export function PricingContent({ onSelect }: { onSelect: (tier: PlanTier) => voi
 /* ============================================================
    3. TASTE ENGINE
    ============================================================ */
-export function TasteEngineContent({ locked, onUpgrade }: { locked: boolean; onUpgrade: () => void }) {
+export function TasteEngineContent({ locked, onUpgrade, hideHero }: { locked: boolean; onUpgrade: () => void; hideHero?: boolean }) {
   const [taste, setTaste] = useState(getTasteProfile);
   const [contract, setContract] = useState<DiscoveryContract>(taste.discoveryContract);
   useEffect(() => { addLog("screen_open_tasteEngine"); }, []);
@@ -157,8 +157,8 @@ export function TasteEngineContent({ locked, onUpgrade }: { locked: boolean; onU
   const update = (patch: Partial<TasteProfile>) => { const next = { ...taste, ...patch }; setTaste(next); saveTasteProfile(next); };
   return (
     <div style={{ display: "grid", gap: 14 }}>
-      <div style={heroTitle}>Taste Engine</div>
-      <div style={heroSub}>Shape your recommendations. Changes apply immediately to For You.</div>
+      {!hideHero && <><div style={heroTitle}>Taste Engine</div>
+      <div style={heroSub}>Shape your recommendations. Changes apply immediately to For You.</div></>}
       <div style={sectionTitle}>Preference Sliders</div>
       {[
         { label: "Comfort", key: "comfort" as const, desc: "Familiar favorites" },
@@ -206,13 +206,15 @@ export function TasteEngineContent({ locked, onUpgrade }: { locked: boolean; onU
    3b. TASTE ENGINE HUB — Unified layout integrating Taste, Modes,
        Scenes, Connect Ladder, Live Pulse, and Why This Pick
    ============================================================ */
-type TasteHubTab = "taste" | "modes" | "scenes" | "connect" | "livepulse";
+type TasteHubTab = "taste" | "modes" | "scenes" | "connect" | "livepulse" | "delight" | "whypick";
 const TASTE_HUB_TABS: { id: TasteHubTab; label: string; icon: string }[] = [
   { id: "taste", label: "Preferences", icon: "🎯" },
-  { id: "modes", label: "Context Modes", icon: "🎭" },
-  { id: "scenes", label: "Remote Scenes", icon: "⚡" },
+  { id: "delight", label: "Time-to-Delight", icon: "⏱" },
+  { id: "modes", label: "Modes", icon: "🎭" },
+  { id: "scenes", label: "Scenes", icon: "⚡" },
   { id: "connect", label: "Connect", icon: "🔗" },
   { id: "livepulse", label: "Live Pulse", icon: "📡" },
+  { id: "whypick", label: "Why This Pick?", icon: "💡" },
 ];
 export function TasteEngineHub({ locked, onUpgrade, initialTab = "taste" }: { locked: boolean; onUpgrade: () => void; initialTab?: TasteHubTab }) {
   const [tab, setTab] = useState<TasteHubTab>(initialTab);
@@ -230,12 +232,14 @@ export function TasteEngineHub({ locked, onUpgrade, initialTab = "taste" }: { lo
           </button>
         ))}
       </div>
-      {/* Tab content */}
-      {tab === "taste" && <TasteEngineContent locked={false} onUpgrade={onUpgrade} />}
-      {tab === "modes" && <ModesContent locked={false} onUpgrade={onUpgrade} onSet={() => {}} />}
-      {tab === "scenes" && <RemoteScenesContent locked={false} onUpgrade={onUpgrade} onExecute={(scene) => { executeScene(scene, async () => {}); }} />}
-      {tab === "connect" && <ConnectLadderContent locked={false} onUpgrade={onUpgrade} />}
-      {tab === "livepulse" && <LivePulseContent locked={false} onUpgrade={onUpgrade} />}
+      {/* Tab content — hideHero prevents redundant titles */}
+      {tab === "taste" && <TasteEngineContent locked={false} onUpgrade={onUpgrade} hideHero />}
+      {tab === "delight" && <TimeToDelightContent locked={false} onUpgrade={onUpgrade} onSet={() => {}} hideHero />}
+      {tab === "modes" && <ModesContent locked={false} onUpgrade={onUpgrade} onSet={() => {}} hideHero />}
+      {tab === "scenes" && <RemoteScenesContent locked={false} onUpgrade={onUpgrade} onExecute={(scene) => { executeScene(scene, async () => {}); }} hideHero />}
+      {tab === "connect" && <ConnectLadderContent locked={false} onUpgrade={onUpgrade} hideHero />}
+      {tab === "livepulse" && <LivePulseContent locked={false} onUpgrade={onUpgrade} hideHero />}
+      {tab === "whypick" && <WhyThisPickContent data={null} locked={false} onUpgrade={onUpgrade} onAction={() => {}} hideHero />}
     </div>
   );
 }
@@ -243,14 +247,14 @@ export function TasteEngineHub({ locked, onUpgrade, initialTab = "taste" }: { lo
 /* ============================================================
    4. WHY THIS PICK
    ============================================================ */
-export function WhyThisPickContent({ data, locked, onUpgrade, onAction }: { data: WhyThisPickData | null; locked: boolean; onUpgrade: () => void; onAction: (action: string, contentId: string) => void }) {
+export function WhyThisPickContent({ data, locked, onUpgrade, onAction, hideHero }: { data: WhyThisPickData | null; locked: boolean; onUpgrade: () => void; onAction: (action: string, contentId: string) => void; hideHero?: boolean }) {
   useEffect(() => { addLog("screen_open_whyThisPick"); }, []);
   if (locked) return <LockedScreen name="Why This Pick?" desc="See exactly why content was recommended, with score breakdowns and tune actions." onUpgrade={onUpgrade} />;
   if (!data) return <div style={panelStyle}><div style={{ opacity: 0.6 }}>Select a card first, then tap "Why This Pick?" to see the breakdown.</div></div>;
   return (
     <div style={{ display: "grid", gap: 14 }}>
-      <div style={heroTitle}>Why This Pick?</div>
-      <div style={heroSub}>{data.contentTitle}</div>
+      {!hideHero && <><div style={heroTitle}>Why This Pick?</div>
+      <div style={heroSub}>{data.contentTitle}</div></>}
       <div style={{ ...panelStyle, textAlign: "center" }}>
         <div style={{ fontSize: 36, fontWeight: 950, color: "rgba(58,167,255,1)" }}>{data.totalScore.toFixed(1)}</div>
         <div style={{ opacity: 0.6, fontSize: 12 }}>Relevance Score</div>
@@ -323,14 +327,14 @@ export function UniversalQueueContent({ locked, onUpgrade }: { locked: boolean; 
 /* ============================================================
    6. TIME-TO-DELIGHT
    ============================================================ */
-export function TimeToDelightContent({ locked, onUpgrade, onSet }: { locked: boolean; onUpgrade: () => void; onSet: (bucket: DelightBucket | null, ctx?: string) => void }) {
+export function TimeToDelightContent({ locked, onUpgrade, onSet, hideHero }: { locked: boolean; onUpgrade: () => void; onSet: (bucket: DelightBucket | null, ctx?: string) => void; hideHero?: boolean }) {
   const [state, setState] = useState(getDelightState);
   useEffect(() => { addLog("screen_open_timeToDelight"); }, []);
   if (locked) return <LockedScreen name="Time-to-Delight" desc="Tell us how much time you have and we'll find the perfect content." onUpgrade={onUpgrade} />;
   return (
     <div style={{ display: "grid", gap: 14 }}>
-      <div style={heroTitle}>Time-to-Delight</div>
-      <div style={heroSub}>How much time do you have? We'll rank content accordingly.</div>
+      {!hideHero && <><div style={heroTitle}>Time-to-Delight</div>
+      <div style={heroSub}>How much time do you have? We'll rank content accordingly.</div></>}
       <div style={{ display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))" }}>
         {DELIGHT_BUCKETS.map((b) => {
           const active = state.activeBucket === b.bucket;
@@ -362,14 +366,14 @@ export function TimeToDelightContent({ locked, onUpgrade, onSet }: { locked: boo
 /* ============================================================
    7. MODES
    ============================================================ */
-export function ModesContent({ locked, onUpgrade, onSet }: { locked: boolean; onUpgrade: () => void; onSet: (mode: ModeId) => void }) {
+export function ModesContent({ locked, onUpgrade, onSet, hideHero }: { locked: boolean; onUpgrade: () => void; onSet: (mode: ModeId) => void; hideHero?: boolean }) {
   const [current, setCurrent] = useState(getModeState().activeMode);
   useEffect(() => { addLog("screen_open_modes"); }, []);
   if (locked) return <LockedScreen name="Context Modes" desc="Reshape your rails and prioritization with one tap." onUpgrade={onUpgrade} />;
   return (
     <div style={{ display: "grid", gap: 14 }}>
-      <div style={heroTitle}>Context Modes</div>
-      <div style={heroSub}>One tap reshapes everything — rails, ranking, volume, captions.</div>
+      {!hideHero && <><div style={heroTitle}>Context Modes</div>
+      <div style={heroSub}>One tap reshapes everything — rails, ranking, volume, captions.</div></>}
       <div style={{ display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}>
         {MODE_DEFINITIONS.map((m) => {
           const active = current === m.id;
@@ -393,15 +397,15 @@ export function ModesContent({ locked, onUpgrade, onSet }: { locked: boolean; on
 /* ============================================================
    8. REMOTE SCENES
    ============================================================ */
-export function RemoteScenesContent({ locked, onUpgrade, onExecute }: { locked: boolean; onUpgrade: () => void; onExecute: (scene: Scene) => void }) {
+export function RemoteScenesContent({ locked, onUpgrade, onExecute, hideHero }: { locked: boolean; onUpgrade: () => void; onExecute: (scene: Scene) => void; hideHero?: boolean }) {
   const [scenes] = useState(getAllScenes);
   const [lastExec, setLastExec] = useState<string | null>(null);
   useEffect(() => { addLog("screen_open_remoteScenes"); }, []);
   if (locked) return <LockedScreen name="Remote Scenes" desc="One-tap macros that set mode, volume, captions, and navigation." onUpgrade={onUpgrade} />;
   return (
     <div style={{ display: "grid", gap: 14 }}>
-      <div style={heroTitle}>Remote Scenes</div>
-      <div style={heroSub}>Execute multi-step sequences with one tap.</div>
+      {!hideHero && <><div style={heroTitle}>Remote Scenes</div>
+      <div style={heroSub}>Execute multi-step sequences with one tap.</div></>}
       {scenes.map((s) => (
         <div key={s.id} style={{ ...panelStyle, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
@@ -422,7 +426,7 @@ export function RemoteScenesContent({ locked, onUpgrade, onExecute }: { locked: 
 /* ============================================================
    9. CONNECT LADDER
    ============================================================ */
-export function ConnectLadderContent({ locked, onUpgrade }: { locked: boolean; onUpgrade: () => void }) {
+export function ConnectLadderContent({ locked, onUpgrade, hideHero }: { locked: boolean; onUpgrade: () => void; hideHero?: boolean }) {
   const [connected] = useState(getConnectedPlatforms);
   const [fetching, setFetching] = useState<string | null>(null);
   const [ingesting, setIngesting] = useState<string | null>(null);
@@ -430,8 +434,8 @@ export function ConnectLadderContent({ locked, onUpgrade }: { locked: boolean; o
   useEffect(() => { addLog("screen_open_connectLadder"); }, []);
   return (
     <div style={{ display: "grid", gap: 14 }}>
-      <div style={heroTitle}>Connect Platforms Ladder</div>
-      <div style={heroSub}>Three levels of integration — from deep links to full watch-state sync.</div>
+      {!hideHero && <><div style={heroTitle}>Connect Platforms Ladder</div>
+      <div style={heroSub}>Three levels of integration — from deep links to full watch-state sync.</div></>}
       {/* Level 1 */}
       <div style={{ ...panelStyle, borderColor: "rgba(58,167,255,0.3)" }}>
         <div style={{ fontWeight: 950, fontSize: 14, color: "rgba(58,167,255,1)" }}>Level 1 — Deep Link (Free)</div>
@@ -598,15 +602,15 @@ export function SocialContent({ locked, onUpgrade }: { locked: boolean; onUpgrad
 /* ============================================================
    13. LIVE PULSE
    ============================================================ */
-export function LivePulseContent({ locked, onUpgrade }: { locked: boolean; onUpgrade: () => void }) {
+export function LivePulseContent({ locked, onUpgrade, hideHero }: { locked: boolean; onUpgrade: () => void; hideHero?: boolean }) {
   const [state, setState] = useState(getLivePulseState);
   useEffect(() => { addLog("screen_open_livePulse"); }, []);
   if (locked) return <LockedScreen name="Live Pulse" desc="Real-time event feed, score alerts, and game-start notifications." onUpgrade={onUpgrade} />;
   const statusColors: Record<string, string> = { live: "#ff4444", upcoming: "rgba(58,167,255,1)", halftime: "#ffaa00", final: "rgba(255,255,255,0.4)" };
   return (
     <div style={{ display: "grid", gap: 14 }}>
-      <div style={heroTitle}>Live Pulse</div>
-      <div style={heroSub}>Real-time events and alerts for your teams.</div>
+      {!hideHero && <><div style={heroTitle}>Live Pulse</div>
+      <div style={heroSub}>Real-time events and alerts for your teams.</div></>}
       <span style={goldChip}>Phase 4 — Coming Soon</span>
       <div style={sectionTitle}>Live Events</div>
       {state.events.map((ev) => (
