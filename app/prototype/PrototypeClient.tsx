@@ -2384,7 +2384,7 @@ export default function AmpereApp() {
                     style={{ width: "100%", maxHeight: 360, objectFit: "contain" }}
                     onEnded={() => { setPowerState("on"); track("power_on_video_ended", {}); }}
                   >
-                    <source src={assetPath("/assets/boot/power-on.mp4") + "?v=2"} type="video/mp4" />
+                    <source src={assetPath("/assets/boot/power_on.mp4") + "?v=3"} type="video/mp4" />
                   </video>
                 </div>
                 <div style={{ fontWeight: 950, fontSize: 16, opacity: 0.92 }}>Powering on...</div>
@@ -2556,27 +2556,18 @@ export default function AmpereApp() {
               <MenuItem title="Connect Platforms" subtitle="Open / Subscribe to streaming services" onClick={() => setOpenConnect(true)} right="›" />
               <MenuItem title="Archive" subtitle="History + attribution log" onClick={() => setOpenArchive(true)} right="›" />
               <MenuItem title="App Store" subtitle="Browse additional apps" onClick={() => setOpenAppStore(true)} right="›" />
-              <MenuItem title="Add Device" subtitle="QR pair, local hub, cloud relay, TV connection" onClick={() => setOpenAddDevice(true)} right="›" />
-              <MenuItem title="Virtual TV" subtitle="Emulate TV playback controls" onClick={() => setOpenVirtualEmulator(true)} right="›" />
               <MenuItem title="Trust & Privacy" subtitle="Data portability & private mode" onClick={() => setOpenTrustPortability(true)} right="›" />
-              <MenuItem title="Pricing" subtitle="Free vs Premium comparison" onClick={() => setOpenPricing(true)} right="›" />
+              <MenuItem title="Betting Companion" subtitle="Track bets, P&L, quick stakes" onClick={() => setOpenBettingCompanion(true)} right="›" />
 
               {/* ── Premium grouped section ── */}
               <div style={{ marginTop: 4, marginBottom: 2 }}>
                 <div style={{ padding: "6px 12px 4px", fontSize: 11, fontWeight: 950, textTransform: "uppercase", letterSpacing: 1.2, color: "#ffcc44", opacity: 0.85 }}>★ Premium</div>
                 <div style={{ display: "grid", gap: 6 }}>
                   <MenuItem title="Premium Hub" subtitle="Plan details & taste packs" onClick={() => setOpenPremiumHub(true)} right="★" />
-                  <MenuItem title="Taste Engine" subtitle="Personalization sliders & mutes" onClick={() => setOpenTasteEngine(true)} right="›" />
-                  <MenuItem title="Universal Queue" subtitle="Cross-platform watch list" onClick={() => setOpenUniversalQueue(true)} right="›" />
-                  <MenuItem title="Time-to-Delight" subtitle="How much time do you have?" onClick={() => setOpenTimeToDelight(true)} right="›" />
-                  <MenuItem title="Context Modes" subtitle="Game Day, Kids, Date Night…" onClick={() => setOpenModes(true)} right="›" />
-                  <MenuItem title="Remote Scenes" subtitle="One-tap macro sequences" onClick={() => setOpenRemoteScenes(true)} right="›" />
-                  <MenuItem title="Connect Ladder" subtitle="Deep links → entitlements → sync" onClick={() => setOpenConnectLadder(true)} right="›" />
-                  <MenuItem title="Family Profiles" subtitle="Up to 5 profiles, kid-safe" onClick={() => setOpenFamilyProfiles(true)} right="›" />
-                  <MenuItem title="Social" subtitle="Circles, co-watch, decision rooms" onClick={() => setOpenSocial(true)} right="›" />
-                  <MenuItem title="Live Pulse" subtitle="Real-time events & alerts" onClick={() => setOpenLivePulse(true)} right="›" />
-                  <MenuItem title="Betting Companion" subtitle="Track bets, P&L, quick stakes" onClick={() => setOpenBettingCompanion(true)} right="›" />
-                  <MenuItem title="Privacy Mode" subtitle="Disable telemetry & history logging" onClick={() => setOpenTrustPortability(true)} right="›" />
+                  <MenuItem title="Taste Engine" subtitle="Preferences, modes, scenes & more" onClick={() => setOpenTasteEngine(true)} right="›" />
+                  <MenuItem title="Pricing" subtitle="Compare plans & add-ons" onClick={() => setOpenPricing(true)} right="›" />
+                  <MenuItem title="Add Device" subtitle="QR pair, local hub, cloud relay" onClick={() => setOpenAddDevice(true)} right="›" />
+                  <MenuItem title="Virtual TV Emulator" subtitle="CC, translator & playback controls" onClick={() => setOpenVirtualEmulator(true)} right="›" />
                 </div>
               </div>
             </Dropdown>
@@ -2593,15 +2584,7 @@ export default function AmpereApp() {
               <MenuItem title="Switch Profile" subtitle="PIN-protected profile switching" onClick={() => setOpenSwitchProfile(true)} right="›" />
               <MenuItem title="Kid Mode" subtitle="Simplified UI for children" onClick={() => setOpenKidMode(true)} right="›" />
               <MenuItem title="Set-Up Wizard" subtitle="Resume onboarding" onClick={() => setOpenSetup(true)} right="›" />
-              <MenuItem
-                title={"About AMPÈRE"}
-                subtitle="Backstory, inventors, and architecture"
-                onClick={() => {
-                  setOpenAbout(true);
-                }}
-                right="i"
-              />
-              <MenuItem title="Semantic Search" subtitle="On-device TF-IDF search" onClick={() => setOpenSemanticSearch(true)} right="›" />
+              <MenuItem title="About AMPÈRE" subtitle="Backstory, inventors, and architecture" onClick={() => setOpenAbout(true)} right="i" />
             </Dropdown>
 
             {/* Power Off direct button - right of Profile */}
@@ -3500,11 +3483,12 @@ export default function AmpereApp() {
             <div style={{ opacity: 0.85, fontWeight: 900, lineHeight: 1.5, fontSize: 13 }}>
               Connect your smart TV for real-time control. Choose the plan that fits your setup.
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(min(220px,100%), 1fr))", gap: 10 }}>
               {[
-                { name: "Basic", price: "Free", features: ["Web remote control", "Manual platform switching", "Viewing history", "Up to 3 platforms"], color: "rgba(255,255,255,0.08)" },
-                { name: "Pro", price: "$4.99/mo", features: ["InstantSwitch (< 300ms)", "Voice & gesture control", "Unlimited platforms", "Sports Hub + Game Day Mode", "Multi-profile support"], color: "rgba(58,167,255,0.10)" },
-                { name: "Family", price: "$7.99/mo", features: ["Everything in Pro", "Up to 5 profiles", "Parental controls + Kid Mode", "Offline cached schedules", "Priority support"], color: "rgba(138,43,226,0.10)" },
+                { name: "Basic", price: "Free", features: ["Web remote control", "Manual platform switching", "Viewing history", "Up to 3 platforms", "Device connection (QR, Hub, Cloud)", "Virtual TV Emulator"], color: "rgba(255,255,255,0.08)" },
+                { name: "Pro", price: "$4.99/mo", features: ["InstantSwitch (< 300ms)", "Voice & gesture control", "Unlimited platforms", "Sports Hub + Game Day Mode", "Up to 3 user profiles"], color: "rgba(58,167,255,0.10)" },
+                { name: "Family", price: "$7.99/mo", features: ["Everything in Pro", "Multi-profile support", "Two Regional Streaming Platform / Channel Options", "Parental controls + Kid Mode", "$0.99/mo per additional user profile", "Offline cached schedules", "Priority support"], color: "rgba(138,43,226,0.10)" },
+                { name: "Premium", price: "$9.99/mo", features: ["Everything in Pro + Family", "Unlimited Regional Streaming Platform / Channel Options", "Additional Ampère Features Free for a year", "Taste Engine + Why This Pick", "Universal Queue + Time-to-Delight", "Context Modes + Remote Scenes", "Trust/Privacy vault + Export"], color: "rgba(255,179,0,0.12)" },
               ].map((plan) => (
                 <div
                   key={plan.name}
@@ -3543,6 +3527,22 @@ export default function AmpereApp() {
                   >
                     {plan.price === "Free" ? "Current Plan" : "Select Plan"}
                   </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Ala-Carte Add-Ons */}
+            <div style={{ fontWeight: 950, fontSize: 15, marginTop: 8 }}>À La Carte & Add-Ons</div>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(min(220px,100%), 1fr))", gap: 10 }}>
+              {[
+                { name: "Solo Plan", price: "$2.99/mo", features: ["1 user profile", "Everything in Pro Plan"], color: "rgba(58,167,255,0.08)" },
+                { name: "Family Add-On", price: "$0.99/mo per profile", features: ["$0.99/mo per additional user profile", "Add profiles to any existing plan"], color: "rgba(138,43,226,0.08)" },
+                { name: "Game Day Sports Betting", price: "$4.99/mo", features: ["Includes everything in all other plans", "One-tap Add Bet from any game card", "Bets Drawer + P&L tracking", "Quick stake buttons + American odds", "Bankroll + session stats", "Export tools: JSON + CSV"], color: "rgba(0,200,80,0.10)" },
+              ].map((addon) => (
+                <div key={addon.name} style={{ borderRadius: 18, border: "1px solid rgba(255,255,255,0.12)", background: addon.color, padding: 14 }}>
+                  <div style={{ fontWeight: 950, fontSize: 15, marginBottom: 2 }}>{addon.name}</div>
+                  <div style={{ fontWeight: 900, fontSize: 16, color: "rgba(58,167,255,1)", marginBottom: 6 }}>{addon.price}</div>
+                  {addon.features.map((f, i) => <div key={i} style={{ fontSize: 11, opacity: 0.8, marginBottom: 2 }}>• {f}</div>)}
                 </div>
               ))}
             </div>
@@ -3652,8 +3652,13 @@ export default function AmpereApp() {
             saveProfile(next);
             track("profile_switch", { name });
             setOpenSwitchProfile(false);
+            // If switching to Kids profile, activate Kid Mode genre filtering
+            if (name.toLowerCase() === "kids") {
+              setActiveGenre("Kids");
+            }
           }}
           onClose={() => setOpenSwitchProfile(false)}
+          onCreateNew={() => { setOpenSwitchProfile(false); setOpenSetup(true); }}
         />
       </Modal>
 
@@ -3682,35 +3687,23 @@ export default function AmpereApp() {
         <PricingContent onSelect={(tier: PlanTier) => { setPlanState(tier); }} />
       </Modal>
 
-      <Modal open={openTasteEngine || openModes || openRemoteScenes || openConnectLadder || openLivePulse} title="Taste Engine" onClose={() => { setOpenTasteEngine(false); setOpenModes(false); setOpenRemoteScenes(false); setOpenConnectLadder(false); setOpenLivePulse(false); }} maxWidth={900}>
+      {/* Taste Engine Hub — all premium features route through this */}
+      <Modal open={openTasteEngine || openModes || openRemoteScenes || openConnectLadder || openLivePulse || openUniversalQueue || openTimeToDelight || openFamilyProfiles} title="Taste Engine" onClose={() => { setOpenTasteEngine(false); setOpenModes(false); setOpenRemoteScenes(false); setOpenConnectLadder(false); setOpenLivePulse(false); setOpenUniversalQueue(false); setOpenTimeToDelight(false); setOpenFamilyProfiles(false); }} maxWidth={900}>
         <TasteEngineHub
           locked={!isPremiumUser()}
-          onUpgrade={() => { setOpenTasteEngine(false); setOpenModes(false); setOpenRemoteScenes(false); setOpenConnectLadder(false); setOpenLivePulse(false); setOpenPricing(true); }}
-          initialTab={openModes ? "modes" : openRemoteScenes ? "scenes" : openConnectLadder ? "connect" : openLivePulse ? "livepulse" : "taste"}
+          onUpgrade={() => { setOpenTasteEngine(false); setOpenModes(false); setOpenRemoteScenes(false); setOpenConnectLadder(false); setOpenLivePulse(false); setOpenUniversalQueue(false); setOpenTimeToDelight(false); setOpenFamilyProfiles(false); setOpenPricing(true); }}
+          initialTab={openModes ? "modes" : openRemoteScenes ? "scenes" : openConnectLadder ? "connect" : openLivePulse ? "livepulse" : openUniversalQueue ? "queue" : openTimeToDelight ? "delight" : openFamilyProfiles ? "family" : "taste"}
         />
       </Modal>
 
-      <Modal open={openUniversalQueue} title="Universal Queue" onClose={() => setOpenUniversalQueue(false)} maxWidth={800}>
-        <UniversalQueueContent locked={!isPremiumUser()} onUpgrade={() => { setOpenUniversalQueue(false); setOpenPricing(true); }} />
-      </Modal>
-
-      <Modal open={openTimeToDelight} title="Time-to-Delight" onClose={() => setOpenTimeToDelight(false)} maxWidth={800}>
-        <TimeToDelightContent locked={!isPremiumUser()} onUpgrade={() => { setOpenTimeToDelight(false); setOpenPricing(true); }} onSet={() => {}} />
-      </Modal>
-
+      {/* Trust & Privacy — also accessible from Settings dropdown directly */}
       <Modal open={openTrustPortability} title="Trust & Privacy" onClose={() => setOpenTrustPortability(false)} maxWidth={800}>
         <TrustPortabilityContent locked={!isPremiumUser()} onUpgrade={() => { setOpenTrustPortability(false); setOpenPricing(true); }} />
-      </Modal>
-
-      <Modal open={openFamilyProfiles} title="Family Profiles" onClose={() => setOpenFamilyProfiles(false)} maxWidth={800}>
-        <FamilyProfilesContent locked={!isPremiumUser()} onUpgrade={() => { setOpenFamilyProfiles(false); setOpenPricing(true); }} />
       </Modal>
 
       <Modal open={openSocial} title="Social" onClose={() => setOpenSocial(false)} maxWidth={800}>
         <SocialContent locked={!isPremiumUser()} onUpgrade={() => { setOpenSocial(false); setOpenPricing(true); }} />
       </Modal>
-
-      {/* Live Pulse is now integrated into Taste Engine Hub */}
 
       <Modal open={openSemanticSearch} title="Semantic Search" onClose={() => setOpenSemanticSearch(false)} maxWidth={800}>
         <SemanticSearchContent locked={!isPremiumUser()} onUpgrade={() => { setOpenSemanticSearch(false); setOpenPricing(true); }} />
@@ -3730,7 +3723,7 @@ export default function AmpereApp() {
 
       {/* App Store Modal */}
       <Modal open={openAppStore} title="App Store" onClose={() => setOpenAppStore(false)} maxWidth={980}>
-        <AppStoreContent isMobile={isMobile} onInstall={(pid: string) => {
+        <AppStoreContent isMobile={isMobile} connectedPlatformIds={profile.connectedPlatformIds} onInstall={(pid: string) => {
           toggleConnected(pid, true);
           track("appstore_install", { platformId: pid });
         }} />
@@ -4190,16 +4183,24 @@ const APP_STORE_EXTRAS: Platform[] = [
   { id: "curiouscast", label: "CuriosityStream", kind: "niche", genres: ["Documentaries"] },
 ];
 
-function AppStoreContent({ isMobile, onInstall }: { isMobile: boolean; onInstall: (pid: string) => void }) {
+function AppStoreContent({ isMobile, onInstall, connectedPlatformIds }: { isMobile: boolean; onInstall: (pid: string) => void; connectedPlatformIds?: Partial<Record<string, boolean>> }) {
   const [search, setSearch] = useState("");
   const [installedIds, setInstalledIds] = useState<Set<string>>(new Set());
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set());
+  const [showInstalled, setShowInstalled] = useState(false);
 
   // 2 rows max: mobile=2 cols, desktop=3 cols
   const defaultVisible = isMobile ? 4 : 6;
 
   const allApps = useMemo(() => [...PLATFORMS, ...APP_STORE_EXTRAS], []);
+
+  // Build set of already-connected/installed platform IDs
+  const alreadyConnected = useMemo(() => {
+    const s = new Set<string>();
+    if (connectedPlatformIds) { for (const [k, v] of Object.entries(connectedPlatformIds)) { if (v) s.add(k); } }
+    return s;
+  }, [connectedPlatformIds]);
 
   // Build set of local platform ids for the selected region
   const regionLocalIds = useMemo(() => {
@@ -4211,6 +4212,10 @@ function AppStoreContent({ isMobile, onInstall }: { isMobile: boolean; onInstall
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     let list = [...allApps].sort((a, b) => a.label.localeCompare(b.label));
+    // Filter out already-installed apps unless user toggles "show installed"
+    if (!showInstalled) {
+      list = list.filter((p) => !alreadyConnected.has(p.id) && !installedIds.has(p.id));
+    }
     if (regionLocalIds) {
       list = list.filter((p) => regionLocalIds.has(p.id));
     }
@@ -4218,7 +4223,7 @@ function AppStoreContent({ isMobile, onInstall }: { isMobile: boolean; onInstall
     return list.filter(
       (p) => p.label.toLowerCase().includes(q) || (p.kind ?? "").includes(q) || (p.genres ?? []).some((g) => g.toLowerCase().includes(q))
     );
-  }, [search, allApps, regionLocalIds]);
+  }, [search, allApps, regionLocalIds, alreadyConnected, installedIds, showInstalled]);
 
   const categories = useMemo(() => {
     const cats: Record<string, Platform[]> = {};
@@ -4232,8 +4237,13 @@ function AppStoreContent({ isMobile, onInstall }: { isMobile: boolean; onInstall
 
   return (
     <div style={{ display: "grid", gap: 14 }}>
-      <div style={{ opacity: 0.82, fontWeight: 900, lineHeight: 1.5 }}>
-        Browse and install additional streaming apps. Filter by region to discover local platforms.
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+        <div style={{ opacity: 0.82, fontWeight: 900, lineHeight: 1.5 }}>
+          Browse and install streaming apps not yet on your home screen.{alreadyConnected.size > 0 ? ` (${alreadyConnected.size} already installed)` : ""}
+        </div>
+        <button type="button" onClick={() => setShowInstalled(!showInstalled)} style={{ padding: "6px 12px", borderRadius: 14, border: "1px solid rgba(255,255,255,0.14)", background: showInstalled ? "rgba(58,167,255,0.15)" : "rgba(255,255,255,0.06)", color: "white", fontWeight: 950, cursor: "pointer", fontSize: 11 }}>
+          {showInstalled ? "Hide Installed" : "Show Installed"}
+        </button>
       </div>
 
       {/* Region filter tabs */}
@@ -4385,10 +4395,12 @@ function SwitchProfileContent({
   currentName,
   onSwitch,
   onClose,
+  onCreateNew,
 }: {
   currentName: string;
   onSwitch: (name: string) => void;
   onClose: () => void;
+  onCreateNew?: () => void;
 }) {
   const [selectedProfile, setSelectedProfile] = useState<string | null>(null);
   const [pinInput, setPinInput] = useState("");
@@ -4414,7 +4426,7 @@ function SwitchProfileContent({
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))", gap: 12 }}>
-        {DEMO_PROFILES.map((p) => {
+        {DEMO_PROFILES.map((p, _idx) => {
           const isCurrent = p.name.toLowerCase() === currentName.toLowerCase();
           const isSelected = selectedProfile === p.id;
           return (
@@ -4451,6 +4463,14 @@ function SwitchProfileContent({
             </button>
           );
         })}
+        {/* Create New Profile */}
+        {onCreateNew && (
+          <button type="button" className="ampere-focus" onClick={onCreateNew} style={{ padding: 16, borderRadius: 18, border: "1px dashed rgba(255,255,255,0.25)", background: "rgba(255,255,255,0.02)", color: "white", fontWeight: 950, cursor: "pointer", textAlign: "center", display: "grid", gap: 8 }}>
+            <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(58,167,255,0.12)", display: "grid", placeItems: "center", margin: "0 auto", fontWeight: 950, fontSize: 24 }}>+</div>
+            <div style={{ fontSize: 14 }}>New Profile</div>
+            <div style={{ fontSize: 11, opacity: 0.6 }}>Set-Up Wizard</div>
+          </button>
+        )}
       </div>
 
       {selectedProfile && needsPin ? (
@@ -4795,9 +4815,12 @@ function AboutContent() {
       </div>
 
       <div style={{ borderRadius: 18, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)", padding: 14, display: "grid", gap: 10 }}>
-        <div style={{ fontWeight: 950 }}>Build: 2026.02.13</div>
+        <div style={{ fontWeight: 950 }}>Build: 2026.02.24</div>
         <div style={{ opacity: 0.72, fontWeight: 900, fontSize: 12 }}>
-          AMPERE Demo v0.1.0. All platform connections are simulated for demo purposes.
+          AMPERE Demo v0.2.0. All platform connections are simulated for demo purposes.
+        </div>
+        <div style={{ opacity: 0.5, fontWeight: 900, fontSize: 11, fontFamily: "monospace" }}>
+          Branch: claude/implement-all-changes-eM92h
         </div>
       </div>
     </div>
@@ -4809,7 +4832,28 @@ function VoiceCenter({ onCommand }: { onCommand: (cmd: string) => void }) {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [speechSupported, setSpeechSupported] = useState(false);
+  const [voiceResponseEnabled, setVoiceResponseEnabled] = useState(true);
+  const [selectedVoice, setSelectedVoice] = useState<"female" | "male" | "neutral">("female");
+  const [conversationHistory, setConversationHistory] = useState<Array<{ role: "user" | "assistant"; text: string }>>([]);
   const recognitionRef = useRef<any>(null);
+  const speakResponse = useCallback((text: string) => {
+    if (!voiceResponseEnabled || typeof window === "undefined") return;
+    const synth = window.speechSynthesis;
+    if (!synth) return;
+    const utterance = new SpeechSynthesisUtterance(text);
+    const voices = synth.getVoices();
+    const voiceMap: Record<string, (v: SpeechSynthesisVoice) => boolean> = {
+      female: (v) => /female|samantha|victoria|karen|fiona/i.test(v.name),
+      male: (v) => /male|daniel|david|james|alex/i.test(v.name) && !/female/i.test(v.name),
+      neutral: (v) => /google.*us|en-us/i.test(v.name),
+    };
+    const match = voices.find(voiceMap[selectedVoice]) ?? voices.find((v) => v.lang.startsWith("en")) ?? voices[0];
+    if (match) utterance.voice = match;
+    utterance.rate = 1.0;
+    utterance.pitch = selectedVoice === "female" ? 1.1 : selectedVoice === "male" ? 0.9 : 1.0;
+    synth.cancel();
+    synth.speak(utterance);
+  }, [voiceResponseEnabled, selectedVoice]);
 
   useEffect(() => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -4832,9 +4876,24 @@ function VoiceCenter({ onCommand }: { onCommand: (cmd: string) => void }) {
           }
         }
         if (final) {
-          setCmd(final.trim());
-          setTranscript(final.trim());
-          onCommand(final.trim());
+          const trimmed = final.trim();
+          setCmd(trimmed);
+          setTranscript(trimmed);
+          setConversationHistory((prev) => [...prev.slice(-8), { role: "user", text: trimmed }]);
+          onCommand(trimmed);
+          // Generate conversational voice response
+          const lower = trimmed.toLowerCase();
+          let response = `Got it. "${trimmed}" executed.`;
+          if (/search|find|look/i.test(lower)) response = `Searching for ${trimmed.replace(/search|find|look for/i, "").trim()}. Here are your results.`;
+          else if (/home|go home/i.test(lower)) response = "Taking you home.";
+          else if (/live|go live/i.test(lower)) response = "Switching to live content.";
+          else if (/fav|favorites/i.test(lower)) response = "Here are your favorites.";
+          else if (/switch to|open/i.test(lower)) response = `Opening ${trimmed.replace(/switch to|open/i, "").trim()}.`;
+          else if (/power off|shut down/i.test(lower)) response = "Powering off. Goodbye!";
+          else if (/hello|hi|hey/i.test(lower)) response = "Hey there! What can I help you with?";
+          else if (/what can you do|help/i.test(lower)) response = "I can search for content, switch platforms, navigate tabs, and control playback. Just say what you need!";
+          setConversationHistory((prev) => [...prev.slice(-8), { role: "assistant", text: response }]);
+          speakResponse(response);
           setIsListening(false);
         } else {
           setTranscript(interim);
@@ -4979,6 +5038,9 @@ function VoiceCenter({ onCommand }: { onCommand: (cmd: string) => void }) {
             onClick={() => {
               setCmd(x);
               onCommand(x);
+              const response = `Got it. "${x}" executed.`;
+              setConversationHistory((prev) => [...prev.slice(-8), { role: "user" as const, text: x }, { role: "assistant" as const, text: response }]);
+              speakResponse(response);
             }}
             style={{
               marginLeft: 8,
@@ -4996,6 +5058,42 @@ function VoiceCenter({ onCommand }: { onCommand: (cmd: string) => void }) {
           </button>
         ))}
       </div>
+
+      {/* Voice Response Settings */}
+      <div style={{ borderRadius: 18, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)", padding: 14, display: "grid", gap: 10 }}>
+        <div style={{ fontWeight: 950, fontSize: 14 }}>Voice Response</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ opacity: 0.7, fontSize: 12 }}>Enable voice responses to commands</div>
+          <button type="button" onClick={() => setVoiceResponseEnabled(!voiceResponseEnabled)} style={{ padding: "6px 14px", borderRadius: 14, border: voiceResponseEnabled ? "1px solid rgba(0,200,0,0.3)" : "1px solid rgba(255,255,255,0.14)", background: voiceResponseEnabled ? "rgba(0,200,0,0.15)" : "rgba(255,255,255,0.06)", color: "white", fontWeight: 950, cursor: "pointer", fontSize: 12 }}>
+            {voiceResponseEnabled ? "ON" : "OFF"}
+          </button>
+        </div>
+        {voiceResponseEnabled && (
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 950, marginBottom: 6 }}>Voice Selection</div>
+            <div style={{ display: "flex", gap: 8 }}>
+              {(["female", "male", "neutral"] as const).map((v) => (
+                <button key={v} type="button" onClick={() => setSelectedVoice(v)} style={{ padding: "8px 14px", borderRadius: 14, border: selectedVoice === v ? "1px solid rgba(58,167,255,0.5)" : "1px solid rgba(255,255,255,0.14)", background: selectedVoice === v ? "rgba(58,167,255,0.15)" : "rgba(255,255,255,0.06)", color: "white", fontWeight: 950, cursor: "pointer", fontSize: 12, textTransform: "capitalize" }}>
+                  {v}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Conversation History */}
+      {conversationHistory.length > 0 && (
+        <div style={{ borderRadius: 18, border: "1px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.04)", padding: 14, display: "grid", gap: 8 }}>
+          <div style={{ fontWeight: 950, fontSize: 14 }}>Conversation</div>
+          {conversationHistory.slice(-6).map((msg, i) => (
+            <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+              <div style={{ fontWeight: 950, fontSize: 11, minWidth: 20, color: msg.role === "user" ? "rgba(58,167,255,1)" : "#44dd88" }}>{msg.role === "user" ? "You" : "AI"}</div>
+              <div style={{ fontSize: 12, opacity: 0.85, fontWeight: 900 }}>{msg.text}</div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -5761,9 +5859,11 @@ function SetupWizardContent({
                 const q = normalizeKey(wizTeamSearch);
                 const filtered = q ? all.filter((t) => normalizeKey(t).includes(q)) : all;
 
-                const shown = wizShownByLeague[canon] ?? 4;
+                const defaultRows = isMobile ? 6 : 9; // 3 rows of teams
+                const shown = wizShownByLeague[canon] ?? defaultRows;
                 const slice = filtered.slice(0, shown);
                 const more = shown < filtered.length;
+                const leagueTeamCount = draftTeams.filter((t) => all.includes(t)).length;
 
                 return (
                   <div
@@ -5780,7 +5880,7 @@ function SetupWizardContent({
                     <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
                       <div style={{ fontWeight: 950, opacity: 0.92 }}>{canon}</div>
                       <div style={{ opacity: 0.75, fontWeight: 900, fontSize: 12 }}>
-                        {draftTeams.length} team(s) selected
+                        {leagueTeamCount} team(s) selected
                       </div>
                     </div>
 
