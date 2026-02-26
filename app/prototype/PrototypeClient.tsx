@@ -679,10 +679,12 @@ function IconRemote() {
    ========================= */
 
 function useViewport() {
-  const [w, setW] = useState<number>(() => (typeof window === "undefined" ? 1200 : window.innerWidth));
+  // Always start with desktop value to prevent SSR/client hydration mismatch.
+  // The useEffect below immediately corrects to the real viewport width on mount.
+  const [w, setW] = useState<number>(1200);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    setW(window.innerWidth);
     const on = () => setW(window.innerWidth);
     window.addEventListener("resize", on);
     return () => window.removeEventListener("resize", on);
@@ -1324,10 +1326,8 @@ function FilterAccordion({
   defaultOpen?: boolean;
   isMobile: boolean;
 }) {
+  // Always start open to match SSR (isMobile is always false on first render)
   const [open, setOpen] = useState(true);
-  useEffect(() => {
-    setOpen(true);
-  }, [isMobile]);
 
   return (
     <div style={{ display: "grid", gap: 10 }}>
@@ -1351,11 +1351,13 @@ function FilterAccordion({
         <span style={{ fontSize: 18, fontWeight: 950 }}>{title}</span>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 10, opacity: 0.8, fontWeight: 900, fontSize: 13 }}>
           {right}
-          {isMobile ? (
-            <span style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 120ms ease" }}>
-              <IconChevronDown />
-            </span>
-          ) : null}
+          <span style={{
+            transform: open ? "rotate(180deg)" : "rotate(0deg)",
+            transition: "transform 120ms ease",
+            display: isMobile ? "inline-flex" : "none",
+          }}>
+            <IconChevronDown />
+          </span>
         </span>
       </button>
 
@@ -5311,9 +5313,12 @@ function FavoritesEditor({
 
   const teamsBySelectedLeagues = useMemo(() => {
     const selected = favLeagues.length ? favLeagues : [];
+    const seen = new Set<string>();
     const out: { league: string; teams: string[] }[] = [];
     for (const l of selected) {
       const canon = canonicalLeagueForTeams(l) ?? l;
+      if (seen.has(canon)) continue;
+      seen.add(canon);
       const all = TEAMS_BY_LEAGUE[canon] ?? [];
       out.push({ league: canon, teams: all });
     }
