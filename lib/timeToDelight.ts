@@ -49,12 +49,15 @@ export function setDelightState(bucket: DelightBucket | null, context?: string):
 // ============================================================================
 
 export const DELIGHT_BUCKETS: DelightSuggestion[] = [
-  // Placeholder icons — drop custom images into public/assets/delight/
+  // Ordered lowest → highest duration
+  // Icons: blank placeholder rounded squares (no AI-generated icons)
+  // To add custom images, drop files into: public/assets/delight/
   // Expected filenames: 12.png, 22.png, 45.png, 90.png
-  { bucket: 12, label: "12 min", description: "Quick break — shorts, clips, highlights", icon: "placeholder" },
-  { bucket: 22, label: "22 min", description: "Single episode — sitcom, anime, news", icon: "placeholder" },
-  { bucket: 45, label: "45 min", description: "Full episode — drama, docs, sports highlights", icon: "placeholder" },
-  { bucket: 90, label: "90 min", description: "Movie night — films, specials, deep dives", icon: "placeholder" },
+  // Image path pattern: /assets/delight/{bucket}.png
+  { bucket: 12, label: "12 min", description: "Quick break — shorts, clips, highlights", icon: "/assets/delight/12.png" },
+  { bucket: 22, label: "22 min", description: "Single episode — sitcom, anime, news", icon: "/assets/delight/22.png" },
+  { bucket: 45, label: "45 min", description: "Full episode — drama, docs, sports highlights", icon: "/assets/delight/45.png" },
+  { bucket: 90, label: "90 min", description: "Movie night — films, specials, deep dives", icon: "/assets/delight/90.png" },
 ];
 
 // ============================================================================
@@ -72,6 +75,7 @@ export interface ContextPreset {
 
 export const CONTEXT_PRESETS: ContextPreset[] = [
   // Ordered lowest → highest minutes
+  // Quick Commute=20m, Lunch Break=30m, Winding down=45m, Cooking=60m, Background Noise=80m, Movie night=90m
   { id: "commute", label: "Quick Commute", bucket: 20, description: "Short content for your ride — 20m", genreBoosts: ["Free", "Gaming"], backgroundFriendly: false },
   { id: "lunch", label: "Lunch Break", bucket: 30, description: "Something fun while you eat — 30m", genreBoosts: ["Basic", "Free", "Gaming"], backgroundFriendly: false },
   { id: "winding_down", label: "Winding down", bucket: 45, description: "Relaxing picks for the evening — 45m", genreBoosts: ["Basic", "Documentaries", "Arthouse"], backgroundFriendly: false },
