@@ -2705,8 +2705,7 @@ export default function AmpereApp() {
             </div>
           )}
 
-          <FilterAccordion title="Genre" isMobile={isMobile} defaultOpen={!isMobile} right={<span>{activeGenre === "All" ? "Any" : activeGenre}</span>}>
-            <Section title="" rightText="See all" onRightClick={() => setOpenSeeAll("Genre")}>
+          <Section title="Genre" rightText="See all" onRightClick={() => setOpenSeeAll("Genre")}>
               {(() => {
                 const allGenres = GENRES.map((g) => g.key);
                 const total = allGenres.length;
@@ -2739,16 +2738,9 @@ export default function AmpereApp() {
                   </div>
                 );
               })()}
-            </Section>
-          </FilterAccordion>
+          </Section>
 
-          <FilterAccordion
-            title="Platforms"
-            isMobile={isMobile}
-            defaultOpen={!isMobile}
-            right={<span>{activePlatform === "all" ? "Any" : platformById(activePlatform)?.label ?? activePlatform}</span>}
-          >
-            <Section title="" rightText="See all" onRightClick={() => setOpenSeeAll("platforms")}>
+          <Section title="Platforms" rightText="See all" onRightClick={() => setOpenSeeAll("platforms")}>
               {(() => {
                 const total = visiblePlatforms.length;
                 const shown = clamp(platformsShown, 1, Math.max(1, total));
@@ -2788,8 +2780,7 @@ export default function AmpereApp() {
                   </div>
                 );
               })()}
-            </Section>
-          </FilterAccordion>
+          </Section>
 
           {activeTab === "live" ? (
             <FilterAccordion title="League" isMobile={isMobile} defaultOpen={!isMobile} right={<span>{activeLeague === "ALL" ? "Any" : activeLeague}</span>}>
