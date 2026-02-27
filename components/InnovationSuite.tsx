@@ -358,7 +358,8 @@ export function TimeToDelightContent({ locked, onUpgrade, onSet, hideHero }: { l
           return (
             <button key={b.bucket} type="button" style={{ ...panelStyle, cursor: "pointer", textAlign: "center", borderColor: active ? "rgba(58,167,255,0.5)" : "rgba(255,255,255,0.12)", background: active ? "rgba(58,167,255,0.12)" : "rgba(255,255,255,0.04)" }}
               onClick={() => { const next = setDelightState(active ? null : b.bucket); setState(next); onSet(active ? null : b.bucket); }}>
-              <div style={{ width: 48, height: 48, borderRadius: 10, background: active ? "rgba(58,167,255,0.18)" : "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", margin: "0 auto 6px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 950, opacity: 0.5 }}>{b.bucket}m</div>
+              {/* Blank placeholder rounded square — drop custom images into public/assets/delight/{bucket}.png */}
+              <div style={{ width: 48, height: 48, borderRadius: 10, background: active ? "rgba(58,167,255,0.18)" : "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", margin: "0 auto 6px" }} />
               <div style={{ fontWeight: 950, fontSize: 16 }}>{b.label}</div>
               <div style={{ opacity: 0.6, fontSize: 11 }}>{b.description}</div>
             </button>

@@ -1049,6 +1049,7 @@ function QwertyKeyboard({
 }) {
   const [pressedK, setPressedK] = useState<string | null>(null);
   const [kbVisible, setKbVisible] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement | null>(null);
 
   const rows = [
     ["Q","W","E","R","T","Y","U","I","O","P"],
@@ -1057,8 +1058,15 @@ function QwertyKeyboard({
     ["SPACE","CLEAR", ...(onSubmit ? ["GO"] : [])],
   ];
 
+  // Dismiss keyboard when focus leaves the entire keyboard wrapper
+  const handleBlur = (e: React.FocusEvent) => {
+    const related = e.relatedTarget as Node | null;
+    if (wrapperRef.current && related && wrapperRef.current.contains(related)) return;
+    setKbVisible(false);
+  };
+
   return (
-    <div style={{ display: "grid", gap: 6 }}>
+    <div ref={wrapperRef} onBlur={handleBlur} style={{ display: "grid", gap: 6 }}>
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -1086,7 +1094,9 @@ function QwertyKeyboard({
           overflow: "hidden",
           maxHeight: kbVisible ? 300 : 0,
           opacity: kbVisible ? 1 : 0,
-          transition: "max-height 0.25s ease, opacity 0.2s ease",
+          transform: kbVisible ? "translateY(0)" : "translateY(-8px)",
+          transition: "max-height 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease, transform 0.3s cubic-bezier(0.4,0,0.2,1)",
+          pointerEvents: kbVisible ? "auto" : "none",
         }}
       >
         {rows.map((row, ri) => (
@@ -2153,6 +2163,7 @@ export default function AmpereApp() {
 
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
   const headerInputRef = useRef<HTMLInputElement | null>(null);
+  const bootVideoRef = useRef<HTMLVideoElement | null>(null);
 
   const avatarSources = profile.profilePhoto ? [profile.profilePhoto] : [...brandMarkCandidates()];
   const headerBg = profile.headerPhoto
@@ -2244,6 +2255,12 @@ export default function AmpereApp() {
   useEffect(() => {
     if (powerState !== "booting") return;
     track("power_booting", {});
+    // Programmatically trigger video play as fallback for autoplay restrictions
+    const vid = bootVideoRef.current;
+    if (vid) {
+      vid.currentTime = 0;
+      vid.play().catch(() => {/* autoplay blocked — timer handles transition */});
+    }
     // Boot timer: video plays for 10s before auto-transition to the app
     const t = setTimeout(() => {
       setPowerState("on");
@@ -2383,15 +2400,19 @@ export default function AmpereApp() {
             ) : (
               <>
                 {/* Boot video — 10s power-on sequence */}
+                {/* Video source: public/assets/boot/power_on.mp4 */}
                 <div style={{ borderRadius: 18, overflow: "hidden", background: "black", maxHeight: 360 }}>
                   <video
+                    key="boot-video"
+                    ref={bootVideoRef}
                     autoPlay
                     muted
                     playsInline
+                    preload="auto"
                     style={{ width: "100%", maxHeight: 360, objectFit: "contain" }}
                     onEnded={() => { setPowerState("on"); track("power_on_video_ended", {}); }}
                   >
-                    <source src={assetPath("/assets/boot/power_on.mp4") + "?v=3"} type="video/mp4" />
+                    <source src={assetPath("/assets/boot/power_on.mp4") + "?v=4"} type="video/mp4" />
                   </video>
                 </div>
                 <div style={{ fontWeight: 950, fontSize: 16, opacity: 0.92 }}>Powering on...</div>
@@ -2407,7 +2428,7 @@ export default function AmpereApp() {
                   <div
                     style={{
                       height: "100%",
-                      width: "72%",
+                      width: "0%",
                       borderRadius: 999,
                       background: "rgba(58,167,255,0.55)",
                       boxShadow: "0 0 0 1px rgba(58,167,255,0.12) inset",
@@ -2684,8 +2705,7 @@ export default function AmpereApp() {
             </div>
           )}
 
-          <FilterAccordion title="Genre" isMobile={isMobile} defaultOpen={!isMobile} right={<span>{activeGenre === "All" ? "Any" : activeGenre}</span>}>
-            <Section title="" rightText="See all" onRightClick={() => setOpenSeeAll("Genre")}>
+          <Section title="Genre" rightText="See all" onRightClick={() => setOpenSeeAll("Genre")}>
               {(() => {
                 const allGenres = GENRES.map((g) => g.key);
                 const total = allGenres.length;
@@ -2718,16 +2738,9 @@ export default function AmpereApp() {
                   </div>
                 );
               })()}
-            </Section>
-          </FilterAccordion>
+          </Section>
 
-          <FilterAccordion
-            title="Platforms"
-            isMobile={isMobile}
-            defaultOpen={!isMobile}
-            right={<span>{activePlatform === "all" ? "Any" : platformById(activePlatform)?.label ?? activePlatform}</span>}
-          >
-            <Section title="" rightText="See all" onRightClick={() => setOpenSeeAll("platforms")}>
+          <Section title="Platforms" rightText="See all" onRightClick={() => setOpenSeeAll("platforms")}>
               {(() => {
                 const total = visiblePlatforms.length;
                 const shown = clamp(platformsShown, 1, Math.max(1, total));
@@ -2767,8 +2780,7 @@ export default function AmpereApp() {
                   </div>
                 );
               })()}
-            </Section>
-          </FilterAccordion>
+          </Section>
 
           {activeTab === "live" ? (
             <FilterAccordion title="League" isMobile={isMobile} defaultOpen={!isMobile} right={<span>{activeLeague === "ALL" ? "Any" : activeLeague}</span>}>
