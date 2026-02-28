@@ -2665,7 +2665,6 @@ export default function AmpereApp() {
             display: "grid",
             gap: 12,
             minWidth: 0,
-            overflow: "hidden",
           }}
         >
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
