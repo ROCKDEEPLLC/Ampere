@@ -240,34 +240,39 @@ function SmartImg({
       const img = new Image();
       img.onload = () => { if (alive) setResolved(manifestMatch); };
       img.onerror = () => {
-        // Manifest said it exists but load failed — fall through to probe
         rememberFailed(manifestMatch);
-        probeSequentially();
+        // Only probe external (non-local) candidates
+        probeExternal();
       };
       img.src = manifestMatch;
       return () => { alive = false; };
     }
 
-    // Fallback: sequential probe (for external/CDN images not in the manifest)
-    let i = 0;
-    function probeSequentially() {
-      if (!alive) return;
-      if (i >= candidates.length) return;
-
-      const src = candidates[i++];
-      const img = new Image();
-      img.onload = () => {
-        if (!alive) return;
-        setResolved(src);
-      };
-      img.onerror = () => {
-        rememberFailed(src);
-        probeSequentially();
-      };
-      img.src = src;
+    // If ALL candidates are local /assets/* paths and manifest found nothing,
+    // skip probing entirely — no file exists, show fallback (zero 404s).
+    const allLocal = candidates.every((c) => c.startsWith("/assets/") || c.startsWith("/icons/") || c.startsWith("/logos/") || c.startsWith("/brand/") || c.startsWith("/platforms/"));
+    if (allLocal) {
+      // No local file found via manifest — show fallback immediately
+      return () => { alive = false; };
     }
 
-    probeSequentially();
+    // Fallback: sequential probe ONLY for external/CDN candidates
+    function probeExternal() {
+      if (!alive) return;
+      const externalCandidates = candidates.filter((c) => /^https?:\/\//.test(c));
+      let i = 0;
+      function next() {
+        if (!alive || i >= externalCandidates.length) return;
+        const src = externalCandidates[i++];
+        const img = new Image();
+        img.onload = () => { if (alive) setResolved(src); };
+        img.onerror = () => { rememberFailed(src); next(); };
+        img.src = src;
+      }
+      next();
+    }
+
+    probeExternal();
     return () => {
       alive = false;
     };
