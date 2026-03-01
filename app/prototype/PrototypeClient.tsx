@@ -17,6 +17,7 @@ import {
   voiceIconCandidates,
   settingsIconCandidates,
   assetPath,
+  resolveFromManifest,
 } from "../../lib/assetPath";
 import {
   GENRES as CATALOG_GENRES,
@@ -233,8 +234,23 @@ function SmartImg({
     const candidates = (sources ?? []).filter(Boolean).filter((s) => !FAILED_SRC.has(s));
     if (!candidates.length) return;
 
+    // Check build-time manifest first — avoids all 404s for local assets
+    const manifestMatch = resolveFromManifest(candidates);
+    if (manifestMatch) {
+      const img = new Image();
+      img.onload = () => { if (alive) setResolved(manifestMatch); };
+      img.onerror = () => {
+        // Manifest said it exists but load failed — fall through to probe
+        rememberFailed(manifestMatch);
+        probeSequentially();
+      };
+      img.src = manifestMatch;
+      return () => { alive = false; };
+    }
+
+    // Fallback: sequential probe (for external/CDN images not in the manifest)
     let i = 0;
-    const tryNext = () => {
+    function probeSequentially() {
       if (!alive) return;
       if (i >= candidates.length) return;
 
@@ -246,12 +262,12 @@ function SmartImg({
       };
       img.onerror = () => {
         rememberFailed(src);
-        tryNext();
+        probeSequentially();
       };
       img.src = src;
-    };
+    }
 
-    tryNext();
+    probeSequentially();
     return () => {
       alive = false;
     };
@@ -444,27 +460,7 @@ function clearWizardDraft() {
 /* Provider URLs + teams now imported from catalog.ts */
 
 function teamLogoCandidates(league: string, team: string): string[] {
-  const l = normalizeKey(league);
-  // kebab-case for file matching: "Buffalo Bills" → "buffalo-bills"
-  const kebab = String(team ?? "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-  const t = normalizeKey(team);
-  const lk = String(league ?? "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-  return [
-    // Exact kebab patterns matching actual files: "kansas-city-chiefs-logo.png"
-    assetPath(`/assets/teams/${l}/${kebab}-logo.png`),
-    assetPath(`/assets/teams/${lk}/${kebab}-logo.png`),
-    // NBA pattern: "nba-boston-celtics-logo-480x480.png"
-    assetPath(`/assets/teams/${l}/${l}-${kebab}-logo-480x480.png`),
-    assetPath(`/assets/teams/${l}/${l}-${kebab}-logo-300x300.png`),
-    // Plain kebab
-    assetPath(`/assets/teams/${l}/${kebab}.png`),
-    assetPath(`/assets/teams/${lk}/${kebab}.png`),
-    // Fallback: normalized key (no hyphens)
-    assetPath(`/assets/teams/${l}/${t}.png`),
-    assetPath(`/assets/teams/${l}/${t}.svg`),
-    assetPath(`/assets/leagues/teams/${league}/${team}.png`),
-    assetPath(`/logos/teams/${l}/${t}.png`),
-  ];
+  return _teamIcon(league, team);
 }
 
 function findTeamByFragment(leagueCanon: string, frag: string): string | null {
