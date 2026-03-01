@@ -11,7 +11,7 @@ const SCHEDULE_CACHE = "ampere-schedules-v1";
 // Assets to cache for offline use
 const PRECACHE_URLS = [
   "/prototype",
-  "/assets/boot/power-on.mp4",
+  "/assets/boot/power_on.mp4",
 ];
 
 // ============================================

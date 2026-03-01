@@ -4,10 +4,13 @@
 //
 // Robust asset path resolution with support for:
 // - basePath / assetPrefix compatibility
+// - Build-time manifest for zero-404 resolution
 // - Multiple filename variants (hyphens, underscores, plus signs)
 // - Multiple directory roots matching actual file locations
 // - Exact filenames from the public/ directory
 // ============================================================================
+
+import { ASSET_FILES, ASSETS_BY_DIR } from "./generated/assetManifest";
 
 function getAssetPrefix(): string {
   const prefix =
@@ -22,6 +25,56 @@ export function assetPath(p: string): string {
   if (!prefix) return p;
   const cleanPath = p.startsWith("/") ? p : `/${p}`;
   return `${prefix}${cleanPath}`;
+}
+
+// ============================================================================
+// MANIFEST-BASED RESOLUTION (zero 404s)
+// ============================================================================
+
+function stripPrefix(path: string): string {
+  const prefix = getAssetPrefix();
+  return prefix && path.startsWith(prefix) ? path.slice(prefix.length) : path;
+}
+
+/**
+ * Resolve candidates against the build-time asset manifest.
+ * Returns the first candidate that exists on disk, or uses fuzzy directory
+ * matching as a fallback (handles files with unexpected suffixes like
+ * brandlogos.net hashes, year stamps, etc.).
+ * Returns null only if no match is found at all.
+ */
+export function resolveFromManifest(candidates: string[]): string | null {
+  // Pass 1: exact match against manifest
+  for (const c of candidates) {
+    if (ASSET_FILES.has(stripPrefix(c))) return c;
+  }
+
+  // Pass 2: fuzzy directory match — for each candidate, check if any file
+  // in the same directory contains the core slug
+  const tried = new Set<string>();
+  for (const c of candidates) {
+    const clean = stripPrefix(c);
+    const lastSlash = clean.lastIndexOf("/");
+    if (lastSlash < 0) continue;
+    const dir = clean.slice(0, lastSlash);
+    const file = clean.slice(lastSlash + 1).toLowerCase();
+    // Extract a meaningful slug: strip extension, strip -logo and suffixes
+    const slug = file
+      .replace(/\.[^.]+$/, "")        // remove extension
+      .replace(/-logo.*$/, "")         // remove -logo and everything after
+      .replace(/@\d+x$/, "");          // remove @2x, @3x etc
+    const key = `${dir}::${slug}`;
+    if (tried.has(key) || !slug || slug.length < 3) continue;
+    tried.add(key);
+
+    const dirFiles = ASSETS_BY_DIR[dir];
+    if (!dirFiles) continue;
+
+    const match = dirFiles.find((f) => f.toLowerCase().includes(slug));
+    if (match) return assetPath(`${dir}/${match}`);
+  }
+
+  return null;
 }
 
 // ============================================================================
@@ -259,13 +312,12 @@ export function genreImageCandidates(genreKey: string): string[] {
   const known = KNOWN_GENRE_FILES[genreKey];
   if (known) {
     paths.push(assetPath(`/assets/genres/${known}`));
-    paths.push(assetPath(`/assets/genre/${known}`));
     // Also try services folder as fallback for genre images
     paths.push(assetPath(`/assets/services/${known}`));
   }
 
   const variants = generateFilenameVariants(genreKey);
-  const directories = ["/assets/genres", "/assets/genre", "/assets/services", "/images/genres", "/genres"];
+  const directories = ["/assets/genres", "/assets/services"];
   const extensions = [".png", ".jpg", ".webp", ".svg"];
 
   for (const dir of directories) {
@@ -490,6 +542,17 @@ export function preloadImage(src: string): Promise<string> {
 }
 
 export async function preloadFirstAvailable(candidates: string[]): Promise<string | null> {
+  // Check manifest first — avoids HTTP 404s for non-existent paths
+  const manifestMatch = resolveFromManifest(candidates);
+  if (manifestMatch) {
+    try {
+      return await preloadImage(manifestMatch);
+    } catch {
+      // File in manifest but failed to load — fall through to full scan
+    }
+  }
+
+  // Fallback: sequential HTTP probe (for external/dynamic assets)
   for (const candidate of candidates) {
     try {
       const loaded = await preloadImage(candidate);
