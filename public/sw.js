@@ -5,13 +5,12 @@
  * Registered by the client when the user opts in.
  */
 
-const CACHE_NAME = "ampere-v1";
+const CACHE_NAME = "ampere-v2";
 const SCHEDULE_CACHE = "ampere-schedules-v1";
 
-// Assets to cache for offline use
+// Assets to cache for offline use (NO media files — video must always be fresh)
 const PRECACHE_URLS = [
   "/prototype",
-  "/assets/boot/power_on.mp4",
 ];
 
 // ============================================
@@ -72,6 +71,11 @@ self.addEventListener("fetch", (event) => {
       })
     );
     return;
+  }
+
+  // Never intercept media files — always fetch from network so boot video is fresh
+  if (/\.(mp4|webm|ogg|mov)(\?|$)/i.test(url.pathname + url.search)) {
+    return; // Let the browser handle it directly
   }
 
   // For other requests, try network first, fall back to cache

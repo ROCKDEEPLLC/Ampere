@@ -418,91 +418,77 @@ export function powerIconCandidates(): string[] {
 export function leagueLogoCandidates(league?: string): string[] {
   if (!league) return [];
   const k = league.toLowerCase().replace(/[^a-z0-9]/g, "");
-  const original = league.toLowerCase();
+  const leagueSlug = league.toLowerCase().replace(/\s+/g, "-");
   return [
     assetPath(`/assets/leagues/${k}.png`),
     assetPath(`/assets/leagues/${k}.svg`),
-    assetPath(`/assets/leagues/teams/${league}/${k}.png`),
-    assetPath(`/assets/teams/${original}/${k}.png`),
-    assetPath(`/logos/leagues/${k}.png`),
+    assetPath(`/assets/teams/${leagueSlug}/${k}.png`),
   ];
 }
 
 export function conferenceLogoCandidates(conferenceId: string, leagueKey?: string): string[] {
   const k = conferenceId.toLowerCase().replace(/[^a-z0-9]/g, "");
-  const league = (leagueKey ?? "ncaa").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const leagueSlug = (leagueKey ?? "ncaa").toLowerCase().replace(/\s+/g, "-");
   return [
+    assetPath(`/assets/teams/ncaa-conferences/${k}.png`),
+    assetPath(`/assets/teams/${leagueSlug}/${k}.png`),
     assetPath(`/assets/conferences/${k}.png`),
     assetPath(`/assets/conferences/${k}.svg`),
-    assetPath(`/assets/leagues/${league}/${k}.png`),
-    assetPath(`/assets/teams/${league}/${k}.png`),
-    assetPath(`/logos/conferences/${k}.png`),
   ];
 }
 
 export function teamLogoCandidates(league: string, team: string): string[] {
+  // Canonical dir name: lowercase, spaces→hyphens (matches public/assets/teams/)
+  const leagueSlug = league.toLowerCase().replace(/\s+/g, "-");
+  // Stripped alphanumeric (no spaces, no hyphens)
   const l = league.toLowerCase().replace(/[^a-z0-9]/g, "");
-  const leagueLower = league.toLowerCase();
   const t = team.toLowerCase().replace(/[^a-z0-9]/g, "");
   const teamSlug = team.toLowerCase().replace(/\s+/g, "-");
-  const teamWords = team.toLowerCase().replace(/\s+/g, " ");
 
   // Extract just the team name (last word or mascot) for partial matching
   const parts = team.split(" ");
   const lastWord = parts[parts.length - 1].toLowerCase();
   const lastWordSlug = lastWord.replace(/[^a-z0-9]/g, "");
 
-  // For EFL teams, also check "england football league" directory
-  const eflDir = "england football league";
+  const eflDir = "england-football-league";
 
   const paths = [
-    // Exact slug match
-    assetPath(`/assets/teams/${leagueLower}/${teamSlug}.png`),
-    assetPath(`/assets/teams/${l}/${teamSlug}.png`),
-    // Slug with -logo suffix (common pattern in NFL/NBA/etc)
-    assetPath(`/assets/teams/${l}/${teamSlug}-logo.png`),
+    // Canonical hyphenated dir (primary — matches actual filesystem)
+    assetPath(`/assets/teams/${leagueSlug}/${teamSlug}.png`),
+    assetPath(`/assets/teams/${leagueSlug}/${teamSlug}-logo.png`),
     // League-prefixed (common pattern: nba-team-name-logo-480x480.png)
-    assetPath(`/assets/teams/${l}/${l}-${teamSlug}-logo-480x480.png`),
-    assetPath(`/assets/teams/${l}/${l}-${teamSlug}-logo.png`),
-    assetPath(`/assets/teams/${l}/${l}-${teamSlug}-logo-2020-480x480.png`),
-    assetPath(`/assets/teams/${l}/${l}-${teamSlug}-logo-2022-480x480.png`),
-    assetPath(`/assets/teams/${l}/${l}-${teamSlug}-logo-2024-480x480.png`),
-    assetPath(`/assets/teams/${l}/${l}-${teamSlug}-logo-2018-480x480.png`),
-    assetPath(`/assets/teams/${l}/${l}-${teamSlug}-logo-300x300.png`),
+    assetPath(`/assets/teams/${leagueSlug}/${l}-${teamSlug}-logo-480x480.png`),
+    assetPath(`/assets/teams/${leagueSlug}/${l}-${teamSlug}-logo.png`),
+    assetPath(`/assets/teams/${leagueSlug}/${l}-${teamSlug}-logo-2020-480x480.png`),
+    assetPath(`/assets/teams/${leagueSlug}/${l}-${teamSlug}-logo-2022-480x480.png`),
+    assetPath(`/assets/teams/${leagueSlug}/${l}-${teamSlug}-logo-2024-480x480.png`),
+    assetPath(`/assets/teams/${leagueSlug}/${l}-${teamSlug}-logo-2018-480x480.png`),
+    assetPath(`/assets/teams/${leagueSlug}/${l}-${teamSlug}-logo-300x300.png`),
     // Slug with @3x suffix
-    assetPath(`/assets/teams/${l}/${teamSlug}-logo@3x.png`),
-    assetPath(`/assets/teams/${l}/${teamSlug}-logo@2x.png`),
-    assetPath(`/assets/teams/${l}/${teamSlug}-logo@4x.png`),
+    assetPath(`/assets/teams/${leagueSlug}/${teamSlug}-logo@3x.png`),
+    assetPath(`/assets/teams/${leagueSlug}/${teamSlug}-logo@2x.png`),
     // Stripped alphanumeric
-    assetPath(`/assets/teams/${l}/${t}.png`),
-    assetPath(`/assets/teams/${l}/${t}.svg`),
-    assetPath(`/assets/teams/${leagueLower}/${t}.png`),
-    assetPath(`/assets/teams/${leagueLower}/${teamWords}.png`),
+    assetPath(`/assets/teams/${leagueSlug}/${t}.png`),
+    assetPath(`/assets/teams/${leagueSlug}/${t}.svg`),
     // Underscore-separated (brandlogos pattern: team_name_fc-logo...)
-    assetPath(`/assets/teams/${l}/${teamSlug.replace(/-/g, "_")}-logo_brandlogos.net_.png`),
-    // EFL teams in "england football league" directory
+    assetPath(`/assets/teams/${leagueSlug}/${teamSlug.replace(/-/g, "_")}-logo_brandlogos.net_.png`),
+    // EFL teams in "england-football-league" directory
     assetPath(`/assets/teams/${eflDir}/${teamSlug}.png`),
     assetPath(`/assets/teams/${eflDir}/${teamSlug}-logo.png`),
     assetPath(`/assets/teams/${eflDir}/${teamSlug.replace(/-/g, "_")}-logo_brandlogos.net_.png`),
     assetPath(`/assets/teams/${eflDir}/${teamSlug.replace(/-/g, "_")}-logo-brandlogos.net_-768x768.png`),
     assetPath(`/assets/teams/${eflDir}/${teamSlug.replace(/-/g, "_")}_fc-logo_brandlogos.net_.png`),
-    // Premier League teams in "premier league" and "england football league" directories
-    assetPath(`/assets/teams/premier league/${teamSlug}.png`),
-    assetPath(`/assets/teams/premier league/${teamSlug}-logo.png`),
+    // Premier League teams also in england-football-league dir
+    assetPath(`/assets/teams/premier-league/${teamSlug}.png`),
+    assetPath(`/assets/teams/premier-league/${teamSlug}-logo.png`),
     assetPath(`/assets/teams/${eflDir}/${teamSlug}-fc-logo-768x768.png`),
     assetPath(`/assets/teams/${eflDir}/${lastWordSlug}.png`),
     // UEFA teams
-    assetPath(`/assets/teams/uefa champions league/${teamSlug}.png`),
-    // NCAA D1 teams — local assets + GitHub gist source
-    // Source: https://gist.github.com/saiemgilani/c6596f0e1c8b148daabc2b7f1e6f6add
+    assetPath(`/assets/teams/uefa-champions-league/${teamSlug}.png`),
+    // NCAA D1 teams
     assetPath(`/assets/teams/ncaa/${teamSlug}.png`),
     assetPath(`/assets/teams/ncaa/${t}.png`),
     assetPath(`/assets/teams/ncaa/${teamSlug}-logo.png`),
-    assetPath(`/assets/teams/ncaa d1/${teamSlug}.png`),
-    // Legacy paths
-    assetPath(`/assets/leagues/teams/${league}/${team}.png`),
-    assetPath(`/assets/leagues/teams/${l}/${t}.png`),
-    assetPath(`/logos/teams/${l}/${t}.png`),
   ];
 
   return paths;
