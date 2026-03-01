@@ -2164,6 +2164,8 @@ export default function AmpereApp() {
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
   const headerInputRef = useRef<HTMLInputElement | null>(null);
   const bootVideoRef = useRef<HTMLVideoElement | null>(null);
+  const filtersRef = useRef<HTMLDivElement | null>(null);
+  const [filtersInvariantFailed, setFiltersInvariantFailed] = useState(false);
 
   const avatarSources = profile.profilePhoto ? [profile.profilePhoto] : [...brandMarkCandidates()];
   const headerBg = profile.headerPhoto
@@ -2268,6 +2270,33 @@ export default function AmpereApp() {
     }, 10000);
     return () => clearTimeout(t);
   }, [powerState]);
+
+  // Runtime invariant: check Filters/Genre/Platforms visibility after boot
+  useEffect(() => {
+    if (powerState !== "on") return;
+    if (activeTab === "favs") return; // Filters hidden on Favs — expected
+    // Give React one frame to render
+    const raf = requestAnimationFrame(() => {
+      const el = filtersRef.current;
+      if (!el) {
+        console.error("[AMPERE INVARIANT] Filters container ref is null after boot — Genre/Platforms not mounted.");
+        setFiltersInvariantFailed(true);
+        return;
+      }
+      const rect = el.getBoundingClientRect();
+      const hasGenre = !!el.querySelector('[data-testid="genre-section"]');
+      const hasPlatforms = !!el.querySelector('[data-testid="platforms-section"]');
+      if (rect.height < 100 || !hasGenre || !hasPlatforms) {
+        console.error(
+          `[AMPERE INVARIANT] Filters container issue: height=${rect.height}, hasGenre=${hasGenre}, hasPlatforms=${hasPlatforms}`
+        );
+        setFiltersInvariantFailed(true);
+      } else {
+        setFiltersInvariantFailed(false);
+      }
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [powerState, activeTab]);
 
   const powerOff = () => {
     track("power_off", {});
@@ -2490,6 +2519,7 @@ export default function AmpereApp() {
       {/* HEADER */}
       <header
         style={{
+          gridRow: 1,
           paddingLeft: density.pad,
           paddingRight: density.pad,
           paddingBottom: density.pad,
@@ -2644,7 +2674,9 @@ export default function AmpereApp() {
 
       {/* MAIN */}
       <main
+        data-testid="main-content"
         style={{
+          gridRow: 2,
           overflowY: "auto",
           overflowX: "hidden",
           WebkitOverflowScrolling: "touch",
@@ -2654,9 +2686,31 @@ export default function AmpereApp() {
           minWidth: 0,
         }}
       >
-        {/* FILTERS (hidden on Favs tab) */}
+        {/* DEV INVARIANT: Red banner if Genre/Platforms failed to mount */}
+        {filtersInvariantFailed ? (
+          <div
+            data-testid="filters-invariant-banner"
+            style={{
+              background: "rgba(255,0,0,0.85)",
+              color: "white",
+              padding: 16,
+              borderRadius: 12,
+              fontWeight: 950,
+              fontSize: 16,
+              textAlign: "center",
+              border: "2px solid red",
+              zIndex: 999,
+            }}
+          >
+            BUG DETECTED: Genre/Platforms sections failed to mount or are clipped. Check console for details.
+          </div>
+        ) : null}
+
+        {/* FILTERS — always visible on Home, Live, Search (hidden only on Favs) */}
         {activeTab !== "favs" ? (
         <div
+          ref={filtersRef}
+          data-testid="filters-container"
           style={{
             borderRadius: "var(--r-xl)",
             border: "1px solid var(--stroke)",
@@ -2704,6 +2758,7 @@ export default function AmpereApp() {
             </div>
           )}
 
+          <div data-testid="genre-section">
           <Section title="Genre" rightText="See all" onRightClick={() => setOpenSeeAll("Genre")}>
               {(() => {
                 const allGenres = GENRES.map((g) => g.key);
@@ -2738,7 +2793,9 @@ export default function AmpereApp() {
                 );
               })()}
           </Section>
+          </div>
 
+          <div data-testid="platforms-section">
           <Section title="Platforms" rightText="See all" onRightClick={() => setOpenSeeAll("platforms")}>
               {(() => {
                 const total = visiblePlatforms.length;
@@ -2780,6 +2837,7 @@ export default function AmpereApp() {
                 );
               })()}
           </Section>
+          </div>
 
           {activeTab === "live" ? (
             <FilterAccordion title="League" isMobile={isMobile} defaultOpen={!isMobile} right={<span>{activeLeague === "ALL" ? "Any" : activeLeague}</span>}>
@@ -3056,6 +3114,7 @@ export default function AmpereApp() {
       {/* FOOTER */}
       <footer
         style={{
+          gridRow: 3,
           paddingLeft: density.pad,
           paddingRight: density.pad,
           paddingTop: density.pad,

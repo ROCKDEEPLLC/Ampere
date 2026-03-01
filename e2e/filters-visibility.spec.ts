@@ -2,9 +2,8 @@
  * E2E regression tests: Genre & Platforms sections must be visible
  * on Home, Live, and Search tabs (both / and /prototype routes).
  *
- * These tests FAIL on the broken state (commit 19876e3 and earlier where
- * overflow:hidden on the Filters container caused a 34px height clip)
- * and PASS after the fix (overflow:hidden removed).
+ * These tests use data-testid attributes added to the Filters, Genre,
+ * and Platforms sections for reliable element identification.
  *
  * Run:  npx playwright test e2e/filters-visibility.spec.ts
  */
@@ -39,36 +38,39 @@ async function bootApp(page: Page) {
 }
 
 /**
- * Assert that the Filters container (first child of <main>) contains
- * "Genre" and "Platforms" text AND has a rendered height > 200 px
- * (i.e. not clipped to a single header row).
+ * Assert that the Filters container exists, contains Genre and Platforms
+ * sections, and has sufficient rendered height (not clipped).
  */
 async function assertFiltersVisible(page: Page) {
-  const info = await page.evaluate(() => {
-    const main = document.querySelector("main");
-    if (!main) return { error: "no <main>" };
+  // 1. Filters container must exist and have height > 200px
+  const filters = page.locator('[data-testid="filters-container"]');
+  await expect(filters).toBeVisible({ timeout: 5000 });
+  const filtersBox = await filters.boundingBox();
+  expect(filtersBox).not.toBeNull();
+  expect(filtersBox!.height).toBeGreaterThan(200);
 
-    const filters = main.children[0] as HTMLElement | undefined;
-    if (!filters) return { error: "no first child of <main>" };
+  // 2. Genre section must exist and be visible
+  const genre = page.locator('[data-testid="genre-section"]');
+  await expect(genre).toBeVisible();
+  const genreBox = await genre.boundingBox();
+  expect(genreBox).not.toBeNull();
+  expect(genreBox!.height).toBeGreaterThan(20);
 
-    const rect = filters.getBoundingClientRect();
-    const text = filters.textContent ?? "";
+  // 3. Platforms section must exist and be visible
+  const platforms = page.locator('[data-testid="platforms-section"]');
+  await expect(platforms).toBeVisible();
+  const platformsBox = await platforms.boundingBox();
+  expect(platformsBox).not.toBeNull();
+  expect(platformsBox!.height).toBeGreaterThan(20);
 
-    return {
-      height: rect.height,
-      hasFilters: text.includes("Filters"),
-      hasGenre: text.includes("Genre"),
-      hasPlatforms: text.includes("Platforms"),
-    };
-  });
+  // 4. Genre/Platforms text must be in the Filters container
+  await expect(filters).toContainText("Genre");
+  await expect(filters).toContainText("Platforms");
+  await expect(filters).toContainText("Filters");
 
-  expect(info).not.toHaveProperty("error");
-  expect((info as any).hasFilters).toBe(true);
-  expect((info as any).hasGenre).toBe(true);
-  expect((info as any).hasPlatforms).toBe(true);
-  // The container should be tall enough that Genre + Platforms are not
-  // clipped (broken state was 34 px; fixed state is ~410+ px).
-  expect((info as any).height).toBeGreaterThan(200);
+  // 5. Invariant banner must NOT be visible (if it shows, the bug is present)
+  const banner = page.locator('[data-testid="filters-invariant-banner"]');
+  await expect(banner).not.toBeVisible();
 }
 
 for (const route of ["/", "/prototype"]) {
