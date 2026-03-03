@@ -1084,7 +1084,8 @@ function QwertyKeyboard({
           outline: "none",
           fontWeight: 850,
           width: "100%",
-          transition: "border-color 0.2s ease",
+          boxShadow: kbVisible ? "0 0 12px rgba(58,167,255,0.3), 0 0 24px rgba(58,167,255,0.1)" : "none",
+          transition: "border-color 0.2s ease, box-shadow 0.2s ease",
         }}
       />
       <div
@@ -4333,12 +4334,13 @@ function AppStoreContent({ isMobile, onInstall, connectedPlatformIds }: { isMobi
           style={{
             padding: "8px 12px",
             borderRadius: 999,
-            border: regionFilter === "all" ? "2px solid rgba(58,167,255,0.7)" : "1px solid rgba(255,255,255,0.14)",
-            background: regionFilter === "all" ? "rgba(58,167,255,0.14)" : "rgba(255,255,255,0.04)",
+            border: regionFilter === "all" ? "1px solid rgba(58,167,255,0.6)" : "1px solid rgba(255,255,255,0.14)",
+            background: regionFilter === "all" ? "rgba(58,167,255,0.30)" : "rgba(255,255,255,0.04)",
             color: "white",
             fontWeight: 950,
             cursor: "pointer",
             fontSize: 12,
+            boxShadow: regionFilter === "all" ? "0 0 12px rgba(58,167,255,0.35), 0 0 0 1px rgba(58,167,255,0.25) inset" : "none",
           }}
         >
           All Regions
@@ -4352,12 +4354,13 @@ function AppStoreContent({ isMobile, onInstall, connectedPlatformIds }: { isMobi
             style={{
               padding: "8px 12px",
               borderRadius: 999,
-              border: regionFilter === r.id ? "2px solid rgba(58,167,255,0.7)" : "1px solid rgba(255,255,255,0.14)",
-              background: regionFilter === r.id ? "rgba(58,167,255,0.14)" : "rgba(255,255,255,0.04)",
+              border: regionFilter === r.id ? "1px solid rgba(58,167,255,0.6)" : "1px solid rgba(255,255,255,0.14)",
+              background: regionFilter === r.id ? "rgba(58,167,255,0.30)" : "rgba(255,255,255,0.04)",
               color: "white",
               fontWeight: 950,
               cursor: "pointer",
               fontSize: 12,
+              boxShadow: regionFilter === r.id ? "0 0 12px rgba(58,167,255,0.35), 0 0 0 1px rgba(58,167,255,0.25) inset" : "none",
             }}
           >
             {r.emoji} {r.name}
@@ -5212,8 +5215,8 @@ function RemotePad({ onAction }: { onAction: (a: string) => void }) {
       style={{
         padding: "10px 14px",
         borderRadius: 999,
-        border: active ? "1px solid rgba(58,167,255,0.30)" : "1px solid rgba(255,255,255,0.14)",
-        background: active ? "rgba(58,167,255,0.12)" : "rgba(255,255,255,0.06)",
+        border: active ? "1px solid rgba(58,167,255,0.6)" : "1px solid rgba(255,255,255,0.14)",
+        background: active ? "rgba(58,167,255,0.30)" : "rgba(255,255,255,0.06)",
         color: "white",
         fontWeight: 950,
         cursor: "pointer",
@@ -5221,6 +5224,7 @@ function RemotePad({ onAction }: { onAction: (a: string) => void }) {
         display: "flex",
         alignItems: "center",
         gap: 6,
+        boxShadow: active ? "0 0 12px rgba(58,167,255,0.35), 0 0 0 1px rgba(58,167,255,0.25) inset" : "none",
       }}
     >
       {icon ? <span>{icon}</span> : null}
@@ -5821,7 +5825,7 @@ function SetupWizardContent({
                 const allIds = sortedPlatforms.map((p) => p.id);
                 setDraftPlatforms(draftPlatforms.length === allIds.length ? [] : allIds);
               }}
-              style={{ padding: "6px 10px", borderRadius: 999, border: "1px solid rgba(58,167,255,0.22)", background: "rgba(58,167,255,0.10)", color: "white", fontWeight: 950, cursor: "pointer", fontSize: 12, whiteSpace: "nowrap" }}
+              style={{ padding: "6px 10px", borderRadius: 999, border: draftPlatforms.length === sortedPlatforms.length ? "1px solid rgba(58,167,255,0.6)" : "1px solid rgba(58,167,255,0.22)", background: draftPlatforms.length === sortedPlatforms.length ? "rgba(58,167,255,0.30)" : "rgba(58,167,255,0.10)", color: "white", fontWeight: 950, cursor: "pointer", fontSize: 12, whiteSpace: "nowrap", boxShadow: draftPlatforms.length === sortedPlatforms.length ? "0 0 12px rgba(58,167,255,0.35), 0 0 0 1px rgba(58,167,255,0.25) inset" : "none" }}
             >
               {draftPlatforms.length === sortedPlatforms.length ? "Deselect All" : "Select All"}
             </button>
@@ -5885,7 +5889,7 @@ function SetupWizardContent({
               onClick={() => {
                 setDraftLeagues(draftLeagues.length === leaguesSelectable.length ? [] : [...leaguesSelectable]);
               }}
-              style={{ padding: "6px 10px", borderRadius: 999, border: "1px solid rgba(58,167,255,0.22)", background: "rgba(58,167,255,0.10)", color: "white", fontWeight: 950, cursor: "pointer", fontSize: 12, whiteSpace: "nowrap" }}
+              style={{ padding: "6px 10px", borderRadius: 999, border: draftLeagues.length === leaguesSelectable.length ? "1px solid rgba(58,167,255,0.6)" : "1px solid rgba(58,167,255,0.22)", background: draftLeagues.length === leaguesSelectable.length ? "rgba(58,167,255,0.30)" : "rgba(58,167,255,0.10)", color: "white", fontWeight: 950, cursor: "pointer", fontSize: 12, whiteSpace: "nowrap", boxShadow: draftLeagues.length === leaguesSelectable.length ? "0 0 12px rgba(58,167,255,0.35), 0 0 0 1px rgba(58,167,255,0.25) inset" : "none" }}
             >
               {draftLeagues.length === leaguesSelectable.length ? "Deselect All" : "Select All"}
             </button>

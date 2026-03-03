@@ -55,7 +55,7 @@ For every item below:
 13) App Store filtering (only non-installed) + add install/subscription prompt during wizard: ⬜
 14) TV Connection & Add Device combined dropdown labeled “Add Device” + industry connection methods: ⬜
 15) Virtual TV Emulator live; CC button highlights; language translator option for streams without CC languages: ⬜
-16) QWERTY board behavior (appear on focus, subtle animation): ⬜
+16) QWERTY board behavior (appear on focus, subtle animation): ✅ DONE (verified) — QwertyKeyboard component appears on focus with slide/fade animation, text box glows
 17) Voice Command in Header (more conversational + voice response + multiple voices): ⬜
 18) Mobile View – Favorites footer sticky Clear/Save buttons: ⬜
 19) NCAA Conferences setup help + integrate provided logos into wizard options: ⬜
@@ -67,7 +67,7 @@ For every item below:
 23) All Pill Buttons (every screen + dropdown):
    - Electric blue glow when user selects option
    - Allow more than one to glow where multi-select applies
-   - If already implemented anywhere, mark DONE and apply consistently only where missing: ⬜
+   - If already implemented anywhere, mark DONE and apply consistently only where missing: ✅ DONE (verified) — PillButton component has glow; region filters, NavBtn, and Select All buttons now consistent
 
 24) Voice Button (header):
    - Implement AI logical response
@@ -76,7 +76,7 @@ For every item below:
 
 25) ALL QWERTY Boards:
    - Consistent look across screens
-   - Text box glows when user types: ⬜
+   - Text box glows when user types: ✅ DONE (verified) — Single reusable QwertyKeyboard component used in 4 places; text box now glows on focus
 
 26) Settings Dropdown restructuring:
    - Premium Hub section combined into “Pricing” dropdown section, then removed from dropdown
