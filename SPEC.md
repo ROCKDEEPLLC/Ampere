@@ -32,29 +32,48 @@
 Fill each line with ✅ / 🟡 / ⬜ and a short verification note (where/how verified).
 
 1) Sign-In / Sign-Up (Google, Email, typical options): ⬜
-2)  Power-On video behavior & duration: ⬜ TODO — Verified on http://localhost:3000/prototype: old video still loads (should use /public/assets/boot/power_on.mp4 and be 10s).
-Assets: Observed many /assets/... 404s in dev server logs while loading /prototype (likely mismatched filenames/paths). ⬜
-3) Premium “Taste Engine” upgrades layout update to match mockups: ⬜
-4) Kid Mode dropdown logic for Kids profiles: ⬜
-5) Switch Profile dropdown (names from Setup Wizard; new profiles route to wizard; PIN confirm rules): ⬜
-6) Profile Settings in profile dropdown moved to first option: ⬜
-7) Set-Up Wizard improvements (rounded boxes; multi-region; region-filtered platforms; load more; teams loading bug): ⬜
-8) Taste Engine buttons + explanation notes (Export/Import/Discovery Contract/Universal Queue): ⬜
-9) Time-To-Delight preset order + updated durations; replace AI icons with placeholder + add image drop path: ⬜
-10) Context Presets/Modes/Remote Scenes/Connect Ladder/Live Pulse/Why This Pick integration into Taste Engine layout: ⬜
-11) Trust & Privacy moved to settings dropdown: ⬜
-12) Family Profiles integration (Profile Settings + Switch Profiles + Setup Wizard flow): ⬜
-13) App Store filtering (only non-installed) + add install/subscription prompt during wizard: ⬜
-14) TV Connection & Add Device combined dropdown labeled “Add Device” + industry connection methods: ⬜
-15) Virtual TV Emulator live; CC button highlights; language translator option for streams without CC languages: ⬜
-16) QWERTY board behavior (appear on focus, subtle animation): ⬜
-17) Voice Command in Header (more conversational + voice response + multiple voices): ⬜
-18) Mobile View – Favorites footer sticky Clear/Save buttons: ⬜
-19) NCAA Conferences setup help + integrate provided logos into wizard options: ⬜
-20) Pricing updates (Pro/Premium/Family/Ala-Carte/Solo/Family Add-On): ⬜
-21) Game Day Sports Betting plan + Betting Companion feature set: ⬜
-22) public/assets consistent file naming and folder rules: ⬜
 
+2) Power-On video behavior & duration: ✅ DONE (verified) — Verified on /prototype; request is /assets/boot/power_on.mp4 and it plays 10s.
+
+3) Premium “Taste Engine” upgrades layout update to match mockups: ⬜
+
+4) Kid Mode dropdown logic for Kids profiles: ⬜
+
+5) Switch Profile dropdown (names from Setup Wizard; new profiles route to wizard; PIN confirm rules): ⬜
+
+6) Profile Settings in profile dropdown moved to first option: ⬜
+
+7) Set-Up Wizard improvements (rounded boxes; multi-region; region-filtered platforms; load more; teams loading bug): ⬜
+
+8) Taste Engine buttons + explanation notes (Export/Import/Discovery Contract/Universal Queue): ⬜
+
+9) Time-To-Delight preset order + updated durations; replace AI icons with placeholder + add image drop path: ⬜
+
+10) Context Presets/Modes/Remote Scenes/Connect Ladder/Live Pulse/Why This Pick integration into Taste Engine layout: ⬜
+
+11) Trust & Privacy moved to settings dropdown: ⬜
+
+12) Family Profiles integration (Profile Settings + Switch Profiles + Setup Wizard flow): ⬜
+
+13) App Store filtering (only non-installed) + add install/subscription prompt during wizard: ⬜
+
+14) TV Connection & Add Device combined dropdown labeled “Add Device” + industry connection methods: ⬜
+
+15) Virtual TV Emulator live; CC button highlights; language translator option for streams without CC languages: ⬜
+
+16) QWERTY board behavior (appear on focus, subtle animation): ⬜
+
+17) Voice Command in Header (more conversational + voice response + multiple voices): ⬜
+
+18) Mobile View – Favorites footer sticky Clear/Save buttons: ⬜
+
+19) NCAA Conferences setup help + integrate provided logos into wizard options: ⬜
+
+20) Pricing updates (Pro/Premium/Family/Ala-Carte/Solo/Family Add-On): ⬜
+
+21) Game Day Sports Betting plan + Betting Companion feature set: ⬜
+
+22) public/assets consistent file naming and folder rules: 🟡 IN PROGRESS — many /assets/... 404s observed in dev logs; running read-only audit + canonical restructure plan.
 ---
 
 # Implementation Requirements
@@ -298,3 +317,36 @@ Next, do NOT change code yet. Help me verify whether the actual file content is 
 - If the file content is wrong, we will replace the file rather than changing code.
 Stop after verification steps.
 Notes: Observed many /assets/... 404s in dev server logs while loading /prototype (likely mismatched filenames/paths).
+## Canonical Asset Structure (Proposed)
+
+public/assets/
+  boot/
+    power_on.mp4
+
+  brand/
+    ampere-long.png
+    ampere-short.png
+
+  icons/
+    header/
+    footer/
+
+  genres/
+    <genre-slug>.png
+
+  leagues/
+    <league-slug>.png
+
+  conferences/
+    ncaa/
+      <conference-slug>.png
+
+  teams/
+    <league-slug>/
+      <team-slug>.png
+Rules:
+- All folder names lowercase.
+- Hyphenated slugs only (no spaces).
+- No uppercase folders.
+- Conferences are metadata, not parent folders of teams.
+- Teams are grouped by sport/league only.
