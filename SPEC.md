@@ -1,17 +1,23 @@
-# SPEC: Ampere Two – Implementation Plan (Safe / Branch-only)
-2) Power-On video behavior & duration (10s, correct asset): ✅ DONE (verified) — Verified on http://localhost:3000/prototype: loads /assets/boot/power_on.mp4 and duration is 10s.
-## Guardrails (Do Not Break These)
-1. Work only on a new git branch (no direct commits to `main`).
-2. Before changing any feature, first verify whether it is already complete.
-3. If an item is already completed, mark it as **DONE (verified)** and do not touch its code, assets, or UI unless explicitly reopened.
-4. Prefer additive changes and minimal diffs. Avoid broad refactors unless required by this spec.
-5. All work must pass: `npm run build` (and `npm run lint` / `npm test` if present).
-6. Use Vercel Preview deployments for validation. Do not deploy to production until approved.
+# SPEC: AMPÈRE (Ampere Two) — Comprehensive Implementation Plan (Safe / Branch-only)
+
+> IMPORTANT:
+> - Work only on a new git branch (no direct commits to `main`).
+> - Before changing any feature, verify whether it is already complete.
+> - If an item is already completed, mark it as **DONE (verified)** and do not touch it unless explicitly reopened.
+> - Prefer additive changes and minimal diffs. Avoid broad refactors unless required by this spec.
+> - All work must pass: `npm run build` (and `npm run lint` / `npm test` if present).
+> - Use Vercel Preview deployments for validation. Do not deploy to production until approved.
+
+---
 
 ## Environments
 - Local: `http://localhost:3000`
+- App demo route: `http://localhost:3000/prototype`
+- Website route: `http://localhost:3000/`
 - Production: `https://ampere-two.vercel.app/`
-- Target for safe testing: Vercel Preview URLs (per PR)
+- Safe testing: Vercel Preview URLs (per PR)
+
+---
 
 ## Project Commands (verify in package.json)
 - Dev: `npm run dev`
@@ -19,334 +25,613 @@
 - Lint: `npm run lint` (if present)
 - Test: `npm test` (if present)
 
+---
+
 ## Status Legend
 - ✅ DONE (verified) — confirmed working in local + preview; do not modify further
 - 🟡 IN PROGRESS — partially implemented; can be modified to complete
 - ⬜ TODO — not implemented yet
 
-> IMPORTANT: At the start of work, create a “Status Pass” section below and assign each item a status.
-
 ---
 
-## Status Pass (to be filled before coding)
-Fill each line with ✅ / 🟡 / ⬜ and a short verification note (where/how verified).
+## STATUS PASS (must be filled BEFORE coding)
+For every item below:
+- Verify in local (`localhost`) and in a Vercel Preview (per PR).
+- If already complete, mark ✅ DONE (verified) and do not touch.
 
+### Core App Roadmap Todos (from prior SPEC)
 1) Sign-In / Sign-Up (Google, Email, typical options): ⬜
-
-2) Power-On video behavior & duration: ✅ DONE (verified) — Verified on /prototype; request is /assets/boot/power_on.mp4 and it plays 10s.
-
+2) Power-On video behavior & duration (10s, correct asset): ✅ DONE (verified)
 3) Premium “Taste Engine” upgrades layout update to match mockups: ⬜
-
 4) Kid Mode dropdown logic for Kids profiles: ⬜
-
 5) Switch Profile dropdown (names from Setup Wizard; new profiles route to wizard; PIN confirm rules): ⬜
-
 6) Profile Settings in profile dropdown moved to first option: ⬜
-
 7) Set-Up Wizard improvements (rounded boxes; multi-region; region-filtered platforms; load more; teams loading bug): ⬜
-
 8) Taste Engine buttons + explanation notes (Export/Import/Discovery Contract/Universal Queue): ⬜
-
 9) Time-To-Delight preset order + updated durations; replace AI icons with placeholder + add image drop path: ⬜
-
 10) Context Presets/Modes/Remote Scenes/Connect Ladder/Live Pulse/Why This Pick integration into Taste Engine layout: ⬜
-
 11) Trust & Privacy moved to settings dropdown: ⬜
-
 12) Family Profiles integration (Profile Settings + Switch Profiles + Setup Wizard flow): ⬜
-
 13) App Store filtering (only non-installed) + add install/subscription prompt during wizard: ⬜
-
 14) TV Connection & Add Device combined dropdown labeled “Add Device” + industry connection methods: ⬜
-
 15) Virtual TV Emulator live; CC button highlights; language translator option for streams without CC languages: ⬜
-
 16) QWERTY board behavior (appear on focus, subtle animation): ⬜
-
 17) Voice Command in Header (more conversational + voice response + multiple voices): ⬜
-
 18) Mobile View – Favorites footer sticky Clear/Save buttons: ⬜
-
 19) NCAA Conferences setup help + integrate provided logos into wizard options: ⬜
-
 20) Pricing updates (Pro/Premium/Family/Ala-Carte/Solo/Family Add-On): ⬜
-
 21) Game Day Sports Betting plan + Betting Companion feature set: ⬜
+22) public/assets consistent file naming and folder rules: 🟡 IN PROGRESS
 
-22) public/assets consistent file naming and folder rules: 🟡 IN PROGRESS — many /assets/... 404s observed in dev logs; running read-only audit + canonical restructure plan.
+### March UPDATED Requests (additional UI + UX changes)  (source: March UPDATED Requests_.docx)
+23) All Pill Buttons (every screen + dropdown):
+   - Electric blue glow when user selects option
+   - Allow more than one to glow where multi-select applies
+   - If already implemented anywhere, mark DONE and apply consistently only where missing: ⬜
+
+24) Voice Button (header):
+   - Implement AI logical response
+   - App reacts naturally to request
+   - Optional/placeholder integration to “Dreamer AI” LLM (do not hardcode secrets): ⬜
+
+25) ALL QWERTY Boards:
+   - Consistent look across screens
+   - Text box glows when user types: ⬜
+
+26) Settings Dropdown restructuring:
+   - Premium Hub section combined into “Pricing” dropdown section, then removed from dropdown
+   - Make “Pricing Section” its own option in Settings dropdown
+   - “Add Device” dropdown combined logically with “Connect Platforms”
+   - Remove Pricing Plans from “Connect Platforms” dropdown and move into “Pricing Section”
+   - If any duplicates exist with prior pricing/settings tasks, mark duplicate and continue: ⬜
+
+27) Pricing Dropdown UI updates:
+   - Each plan container proportionate
+   - Add scroll options so user can see all info
+   - À La Carte & Add-Ons section should be active
+   - Color changes (all remain opaque):
+     - Basic: seafoam green
+     - Pro: ocean blue
+     - Family: lavender
+     - Premium: silver
+     - Solo: cotton blue
+     - Family Add-On: light canary yellow
+     - Game Day Sports Betting: lighter green
+   - If plan labels already updated elsewhere, do not re-edit copy; only adjust presentation: ⬜
+
+28) Favorites location change:
+   - Move “Favorites” from Settings dropdown to Profile dropdown: ⬜
+
+29) Logos in Favorites and Live:
+   - Connect Team logo images to pill buttons
+   - Add League Logo image next to League name + count
+     - Example: NFL (logo) 32; NBA (logo) 30: ⬜
+
+30) Favorites selection controls:
+   - Add “Select All” and “Deselect All” pill buttons on opposite corner (right corner): ⬜
+
+31) Favorites footer container:
+   - Clear button far left
+   - Save Favorites far right
+   - Container absolute bottom, no gap at bottom
+   - Container styling mirrors header container that contains “Favorites” text: ⬜
+
+32) Home Footer Screen — Preview Cards density:
+   - For You / Live Now / Continue Watching / Trending show 2–3 preview cards per row
+   - Add “Load More” per section to avoid overwhelming user: ⬜
+
+33) Home Section — View Toggle:
+   - Add View button/toggle
+   - Add alternative “Guide” view
+   - Guide view:
+     - Top row time slots (sticky header)
+     - Rows show Channel | League logo left
+     - Program text middle
+     - Preview card per platform/program appears above Guide as user scrolls
+     - Guide view divided by sections:
+       - Live Now, For You, Continue Watching, Trending: ⬜
+
+34) Favs Footer Screen:
+   - Favorite Genres & Platforms: connect logo images to pill buttons
+   - For You section preview cards currently only two; size should adjust by viewport (mobile/tablet/desktop)
+   - Likely fix: add additional preview cards in:
+     - For You, Live Now, Continue Watching, Trending
+   - Add View toggle + Guide view (same spec as Home): ⬜
+
+35) Live Footer Screen:
+   - Each section (Genre, Platform, League) should start with two rows of options
+   - Add “Load More” on following row if applicable
+   - League section: connect all logo images to pill buttons
+   - Add View toggle + Guide view (same spec as Home): ⬜
+
+36) Search Footer Screen:
+   - Move Search section above Genre section
+   - QWERTY board:
+     - Text box should only appear when user begins typing in box (i.e., not visible by default): ⬜
+
 ---
 
-# Implementation Requirements
+# IMPLEMENTATION REQUIREMENTS (Grouped)
 
-## A) Sign-In / Sign-Up
-### Goal
-Add Google + Email + typical sign-in/sign-up registration options.
-### Acceptance Criteria
-- User can sign up/sign in with Email.
-- User can sign in with Google.
-- Error states shown clearly (invalid email, wrong password, cancelled OAuth).
-- Auth state persists across refresh.
-- No secrets are exposed to the client (server-side keys only).
+## A) Auth — Sign-In / Sign-Up
+Goal:
+- Add Google + Email + typical sign-in/sign-up.
 
-## B) Power-On Video Fix
-### Issues
-- Not working at `http://localhost:3000/prototype`
-- Old video loads in production
-- Must be 10 seconds long
-- Correct file: `public/assets/boot/power_on.mp4`
-### Acceptance Criteria
-- `prototype` route always uses `public/assets/boot/power_on.mp4`
-- Production serves the correct file (cache-safe)
-- Playback duration is 10 seconds (clip or playback control if source differs)
-- No broken paths; no stale caching after deploy
+Acceptance Criteria:
+- Email sign-up/sign-in works.
+- Google sign-in works.
+- Clear error states.
+- Auth persists across refresh.
+- No secrets exposed client-side.
 
-## C) Taste Engine Premium Layout (match mockups)
-### Goal
-Arrange “Taste Engine” upgrades into a logical layout similar to provided mockups.
-### Acceptance Criteria
-- Layout is consistent and readable
-- If dropdowns should be removed, the function is integrated into the layout
-- No regressions to existing features already marked DONE
+Agent checks:
+- Verify env vars are configured safely.
+- Ensure build passes and no server/client boundary mistakes.
 
-## D) Kid Mode Dropdown Section
-### Goal
-Kid Mode activates for any profile labeled as kids.
-### Rules
-- Only Kids Genre is active for Kids Profile.
-### Acceptance Criteria
-- Switching to Kids profile automatically filters/locks genres to Kids only
-- Non-kids profiles unaffected
+---
 
-## E) Switch Profile Dropdown + Setup Wizard Integration
-### Requirements
-- Each profile has a name pulled from Setup Wizard results
-- Creating a new profile routes user into Setup Wizard
-- PIN confirmation required for each profile except Kids and Guest
-- “Profile Settings” must be first option in Profile dropdown
-### Acceptance Criteria
-- Profile list shows correct names
-- New profile creation reliably starts wizard
-- PIN confirm appears and validates
-- Kids/Guest bypass PIN confirm
+## B) Power-On Video Fix (LOCKED: already DONE)
+Status: ✅ DONE (verified) — Verified on `/prototype`; request uses `/assets/boot/power_on.mp4` and duration is 10s.
 
-## F) Set-Up Wizard Improvements
-1) Back/Next background boxes have rounded corners like buttons
-2) Allow selecting more than one region
-3) Only show streaming platforms/channels available in chosen region(s)
-4) Steps 3 & 4: start with 3 rows + “Load more”
-5) Step 5: leagues teams bug (shows “14 selected” but no teams list)
-### Acceptance Criteria
-- UI matches rounding requirement
-- Multi-region selection works and filters platform list
-- Load-more prevents overwhelming UI
-- Step 5 team list reliably renders for selected leagues
+Rules:
+- Do NOT change code/assets for this unless explicitly reopened.
+- If any verification fails later, replace the file (not code) unless forced.
+
+---
+
+## C) Taste Engine Premium Layout
+Goal:
+- Arrange Taste Engine upgrades into a logical layout matching mockups.
+
+Acceptance Criteria:
+- Consistent hierarchy, scannable layout.
+- If dropdowns need removal, functions remain available in layout.
+- No regressions to DONE items.
+
+Agent checks:
+- Verify no duplicated controls.
+- Verify mobile layout remains usable.
+
+---
+
+## D) Kid Mode
+Rules:
+- Activates for any profile labeled Kids.
+- Only Kids Genre active for Kids profile.
+
+Acceptance Criteria:
+- Switching to Kids profile locks genres to Kids only.
+- Other profiles unaffected.
+
+---
+
+## E) Switch Profile + Setup Wizard Integration
+Requirements:
+- Profile names come from Setup Wizard.
+- New profile creation routes to Setup Wizard.
+- PIN confirmation required for each profile except Kids and Guest.
+- “Profile Settings” must be first option in Profile dropdown.
+
+Acceptance Criteria:
+- Profile list shows correct names.
+- New profile creation always enters wizard.
+- PIN confirm validates and is skipped for Kids/Guest.
+
+---
+
+## F) Setup Wizard Improvements
+1) Back/Next background box rounded corners like buttons.
+2) Multi-region selection (choose more than one).
+3) Only show platforms/channels available in selected region(s).
+4) Steps 3 & 4 of 6: start with three rows + “Load more”.
+5) Step 5: leagues teams bug (shows “14 selected” but list empty).
+
+Acceptance Criteria:
+- UI matches rounding.
+- Multi-region filter works.
+- Load-more prevents overwhelm.
+- Step 5 teams reliably render.
+
+---
 
 ## G) Taste Engine: Export/Import + Explanations
-### Requirements
-- Export Taste button works (define behavior)
-- Import Taste: clarify purpose; if importing from file, implement
-- Add brief explanation notes:
+Requirements:
+- Export Taste button works.
+- Import Taste clarified and functional.
+- Brief explanation notes:
   - Import/Export
-  - Discovery Contract (explain functional purpose)
-  - Universal Queue (explain how it works)
-### Acceptance Criteria
-- Export downloads a file (or copies to clipboard) with user taste config
-- Import accepts that file and updates taste config safely
-- UI includes short explanatory text tooltips or inline notes
+  - Discovery Contract (what it does)
+  - Universal Queue (how it works)
+
+Acceptance Criteria:
+- Export downloads config file.
+- Import accepts file and updates safely.
+- Inline notes/tooltips exist.
+
+---
 
 ## H) Time-To-Delight
-### Requirements
-- Context presets ordered low minutes → high minutes
-- Rename durations:
-  - “Lunch Break” = 30m
-  - “Quick Commute” = 20m
-  - “I’m cooking” = 60m
-  - “Background Noise” = 80m
-- Remove AI icons; replace with blank placeholder rounded square
-- Provide folder path + filename pattern for placeholder images
-### Acceptance Criteria
-- Preset list is ordered correctly
-- Updated labels/durations match
-- Placeholder icons show consistently
-- Documented asset drop location:
+Requirements:
+- Context presets ordered low minutes → high minutes.
+- Durations:
+  - Quick Commute = 20m
+  - Lunch Break = 30m
+  - I’m cooking = 60m
+  - Background Noise = 80m
+- Remove AI icons; replace with blank placeholder rounded square.
+- Document asset drop path + naming pattern:
   - `public/assets/placeholders/context/`
-  - naming pattern: `context_<slug>.png` (or `.svg`)
+  - `context_<slug>.png` (or `.svg`)
 
-## I) Integrate features into Taste Engine layout
-Integrate into overall Taste Engine layout:
+Acceptance Criteria:
+- Ordered list correct.
+- Labels/durations correct.
+- Placeholders appear consistently.
+
+---
+
+## I) Integrate into Taste Engine Layout
+Integrate:
 - Context Modes
 - Remote Scenes
 - Connect Ladder
 - Live Pulse
 - “Why This Pick?”
-### Acceptance Criteria
-- Features accessible from Taste Engine without awkward navigation
-- Consistent layout hierarchy and spacing
-- No duplicated controls
+
+Acceptance Criteria:
+- Accessible inside Taste Engine.
+- No awkward navigation.
+- No duplicated controls.
+
+---
 
 ## J) Trust & Privacy
-Move to settings dropdown.
-### Acceptance Criteria
-- Present in Settings dropdown
-- Works on desktop + mobile
+Move to Settings dropdown.
+
+Acceptance Criteria:
+- In Settings dropdown.
+- Works on desktop + mobile.
+
+---
 
 ## K) Family Profiles
 Integrate with:
 - Profile Settings
 - Switch Profiles
 - Setup Wizard per user
-### Acceptance Criteria
-- Family profile management is coherent and connected to wizard flow
-- Each user profile can complete its own setup wizard
 
-## L) App Store
-### Requirements
-- Only show apps not already installed OR already offered on home screen
-- In setup wizard: prompt user if they want to download/subscribe to platforms matching favorites
-### Acceptance Criteria
-- App store list is filtered correctly
-- Setup wizard includes install prompt and respects region/platform availability
-
-## M) TV Connection & Add Device
-### Requirements
-- Combine into one dropdown section labeled “Add Device”
-- Include current industry connection methods (where applicable)
-### Acceptance Criteria
-- One unified entry point
-- Options list is sensible and not misleading (only show what is supported)
-
-## N) Virtual TV Emulator
-### Requirements
-- Make emulator function live
-- CC button should visually indicate active state
-- Add language translator option for streams/platforms lacking CC languages
-### Acceptance Criteria
-- Emulator works in preview
-- CC toggles on/off with UI state
-- Translator option exists (MVP: UI + explanatory note if no backend yet)
-
-## O) QWERTY Board
-### Requirements
-- Appears only when text box focused
-- Subtle animation on appearance
-### Acceptance Criteria
-- Not visible by default
-- Appears on focus with animation
-- Works on mobile view
-
-## P) Voice Command in Header
-### Requirements
-- Make more conversational
-- Add voice response option
-- Provide voice options: male/female/ambiguous
-### Acceptance Criteria
-- User can choose voice type
-- Voice response plays (or mock implemented with clear UI if MVP)
-
-## Q) Mobile View – Favorites Sticky Footer
-### Requirements
-- “Clear” and “Save Favorites” sticky and always visible when scrolling
-### Acceptance Criteria
-- Buttons remain accessible on mobile scroll
-
-## R) NCAA Conferences (Setup Wizard options)
-### Requirements
-- Help define logical setup structure for NCAA conferences
-- Integrate added logos for conferences and teams into wizard options
-### Acceptance Criteria
-- Wizard shows conferences cleanly
-- Teams map to conferences correctly (or documented fallback if incomplete dataset)
-
-## S) Pricing Updates
-### Requirements
-- Update plan texts:
-  - Pro: up to 3 user profiles
-  - Premium: unlimited regional streaming options + additional Ampère features free for a year
-  - Family: $0.99/mo per additional profile + multi-profile + two regions
-  - Ala-Carte label
-  - Solo: $2.99/mo 1 profile + everything in Pro
-  - Family Add-On: $0.99/mo per additional profile
-- Add “Game Day Sports Betting” plan and feature bullets
-### Acceptance Criteria
-- Pricing UI displays accurately and consistently
-- No broken layout in mobile
-
-## T) Betting Companion (No partnerships; manual tracking only)
-### Guardrails
-- Manual bet tracking only (no sportsbook linking, no wager placement APIs)
-- Feature flag: `BETTING_COMPANION_ENABLED` toggle per environment
-### MVP Scope
-- Local storage persistence with schema versioning + migration stub
-- Bets Provider context with CRUD, selectors, P/L calculations
-- Bets Drawer UI with badge, filters, add/paste/import/export (JSON+CSV)
-- Add Bet from game cards with prefilled event context
-- Overlay showing active bets for event while browsing/watching
-- In-app alerts MVP (optional browser notifications if permission granted)
-- Pricing UI demo gating (“Ultimate: Betting Companion” add-on)
-### Acceptance Criteria
-- Works fully in preview with no backend dependency
-- No build errors; strict TypeScript correctness
-- Manual test script passes:
-  - add bet → drawer → overlay → clone → settle → export → sportsbook deep link
-
-## U) public/assets Consistent File Naming
-### Goal
-Implement consistent file names in `public/assets/*`.
-### Proposed Convention
-- lowercase
-- kebab-case
-- no spaces
-- stable folder grouping by feature
-### Acceptance Criteria
-- No mixed naming styles
-- References updated safely (no broken images/videos)
-- Add a short `ASSETS.md` doc with naming rules + examples
+Acceptance Criteria:
+- Profile management coherent.
+- Each profile can run its own setup wizard.
 
 ---
 
-# Definition of Done (DoD)
-- All updated items implemented per acceptance criteria
-- `npm run build` passes
-- Preview deployment link shared for validation
-- Minimal diffs; no changes to items marked ✅ DONE Status Pass update: On http://localhost:3000/prototype, the boot video request is:
-http://localhost:3000/assets/boot/power_on.mp4?v=4
+## L) App Store
+Requirements:
+- Only show apps not installed OR not offered on home screen.
+- Setup wizard prompt: offer download/subscribe to platforms matching favorites.
 
-Next, do NOT change code yet. Help me verify whether the actual file content is correct:
-- Confirm file exists at public/assets/boot/power_on.mp4
-- Check its duration (needs 10s)
-- If the file content is wrong, we will replace the file rather than changing code.
-Stop after verification steps.
-Notes: Observed many /assets/... 404s in dev server logs while loading /prototype (likely mismatched filenames/paths).
-## Canonical Asset Structure (Proposed)
+Acceptance Criteria:
+- Filtered list correct.
+- Wizard includes prompt and respects regions.
 
+---
+
+## M) TV Connection & Add Device
+Requirements:
+- One unified dropdown labeled “Add Device”.
+- Include current industry connection methods where applicable.
+
+Acceptance Criteria:
+- One entry point.
+- No misleading claims; only supported or clearly labeled as roadmap.
+
+---
+
+## N) Virtual TV Emulator
+Requirements:
+- Emulator live.
+- CC button highlights when active.
+- Language translator option for platforms lacking CC languages (MVP: UI + note ok).
+
+Acceptance Criteria:
+- Emulator functions in preview.
+- CC toggle has visible active state.
+- Translator option present.
+
+---
+
+## O) QWERTY Boards (Consolidated)
+Requirements:
+- Not visible by default; appears on focus / typing.
+- Subtle animation.
+- Consistent look across app.
+- Text box glows when user types.
+
+Acceptance Criteria:
+- Works on mobile + desktop.
+- Same component/styles reused across screens.
+
+---
+
+## P) Voice Command in Header (Consolidated)
+Requirements:
+- More conversational behavior.
+- Add voice response option.
+- Voice options: male / female / ambiguous.
+- Implement AI logical response; app reacts naturally.
+- Optional “Dreamer AI” LLM hookup:
+  - MUST be behind env vars
+  - MUST have safe stub behavior if not configured
+
+Acceptance Criteria:
+- User can choose voice type.
+- Response can be spoken (or UI mock clearly labeled).
+- No secrets committed.
+
+---
+
+## Q) Favorites UI/IA Changes (Consolidated)
+Requirements:
+- Move Favorites from Settings dropdown → Profile dropdown.
+- League + team logos connected to pill buttons.
+- League rows show logo + name + count.
+- Add Select All / Deselect All on right corner.
+- Sticky footer container:
+  - Clear left, Save right
+  - absolute bottom, no gap
+  - styling matches header container on Favorites screen
+
+Acceptance Criteria:
+- Logos load (no 404).
+- Footer always visible on scroll.
+- Selection controls work.
+
+---
+
+## R) Preview Card Density + Load More (Home/Favs/Live)
+Requirements:
+- For You / Live Now / Continue Watching / Trending show 2–3 cards per row.
+- Add “Load More” per section.
+
+Acceptance Criteria:
+- Responsive across breakpoints.
+- Load More expands without layout breaking.
+
+---
+
+## S) Guide View Toggle (Home/Favs/Live)
+Requirements:
+- Add View toggle that switches current view ↔ Guide view.
+- Guide view:
+  - Sticky time-slot header row
+  - Channel | league logo left
+  - Program text middle
+  - Preview card appears above guide while scrolling
+  - Sections: Live Now / For You / Continue Watching / Trending
+
+Acceptance Criteria:
+- Toggle works.
+- Sticky header works.
+- Mobile usable.
+
+---
+
+## T) Search Screen Order + Keyboard Behavior
+Requirements:
+- Move Search section above Genre.
+- Keyboard/text box only appears when user begins typing.
+
+Acceptance Criteria:
+- Search-first layout.
+- Keyboard not visible by default.
+
+---
+
+## U) NCAA Conferences + Logos
+Requirements:
+- Define logical structure for NCAA conferences in setup wizard.
+- Integrate provided conference + team logos.
+
+Acceptance Criteria:
+- Wizard shows conferences cleanly.
+- Team mapping correct or fallback documented.
+
+---
+
+## V) Pricing Updates (Consolidated)
+Requirements (Plan text + UI):
+- Pro: up to 3 user profiles
+- Premium: unlimited regional platform/channel options + additional features free for a year
+- Family: $0.99/mo per additional profile + multi-profile + two regions
+- Ala-Carte label:
+  - Solo: $2.99/mo for 1 profile + everything in Pro
+  - Family Add-On: $0.99/mo per additional profile
+- Game Day Sports Betting plan: include feature bullets (manual tracking only)
+- Pricing UI:
+  - containers proportionate
+  - scroll options so all info visible
+  - À La Carte & Add-Ons active
+  - Opaque color changes:
+    - Basic: seafoam green
+    - Pro: ocean blue
+    - Family: lavender
+    - Premium: silver
+    - Solo: cotton blue
+    - Family Add-On: light canary yellow
+    - Game Day Sports Betting: lighter green
+
+Acceptance Criteria:
+- Correct copy and layout.
+- Mobile layout not broken.
+
+---
+
+## W) Betting Companion (Manual tracking only; no partnerships)
+Guardrails:
+- Manual bet tracking only (no sportsbook linking, no wager placement APIs)
+- Feature flag: `BETTING_COMPANION_ENABLED`
+
+MVP Scope:
+- Local storage persistence with schema versioning + migration stub
+- Bets Provider context: CRUD, selectors, P/L
+- Bets Drawer: badge, filters, add/paste/import/export JSON+CSV
+- Add Bet from game cards (prefilled event context)
+- Overlay for active bets per event
+- In-app alerts MVP (+ optional Notifications API)
+- Pricing demo gating (“Ultimate: Betting Companion” add-on)
+
+Acceptance Criteria:
+- Works in preview without backend.
+- Strict TypeScript correctness.
+- Manual test:
+  - add bet → drawer → overlay → clone → settle → export → deep link
+
+---
+
+## X) All Pill Buttons — Electric Blue Glow (Global Consistency)
+Requirements:
+- All pill buttons across screens and dropdowns:
+  - electric blue glow when selected
+  - allow multi-glow where multi-select is valid
+
+Acceptance Criteria:
+- Consistent styling.
+- Selection states correct (single-select vs multi-select).
+
+---
+
+## Y) Settings Dropdown Restructure (Consolidated)
+Requirements:
+- Premium Hub merged into Pricing section; remove Premium Hub after merge.
+- Pricing section becomes its own option in Settings dropdown.
+- Add Device combined with Connect Platforms dropdown.
+- Remove pricing plans from Connect Platforms dropdown and move into Pricing section.
+
+Acceptance Criteria:
+- Clean IA: no duplicate pricing.
+- No broken links/actions.
+
+---
+
+## Z) public/assets Naming & 404 Elimination
+Goal:
+- Eliminate asset 404 spam and standardize naming.
+Convention:
+- lowercase
+- kebab-case
+- no spaces
+- stable grouping by feature
+
+Deliverables:
+- Implement canonical structure and update references.
+- Add `docs/ASSETS.md` with rules and examples.
+
+Proposed structure:
 public/assets/
   boot/
     power_on.mp4
-
   brand/
     ampere-long.png
     ampere-short.png
-
   icons/
     header/
     footer/
-
   genres/
     <genre-slug>.png
-
   leagues/
     <league-slug>.png
-
   conferences/
     ncaa/
       <conference-slug>.png
-
   teams/
     <league-slug>/
       <team-slug>.png
-Rules:
-- All folder names lowercase.
-- Hyphenated slugs only (no spaces).
-- No uppercase folders.
-- Conferences are metadata, not parent folders of teams.
-- Teams are grouped by sport/league only.
+
+Acceptance Criteria:
+- No mixed naming.
+- No broken images/videos.
+- Minimal, safe ref updates.
+
+---
+
+# AMPÈRE WEBSITE SPEC (ampere.io) — Must Not Break /prototype
+
+## Routing
+- `/` = Marketing site (App-like theme, informational)
+- `/prototype` = App demo (must remain functional)
+- `/pricing` = Pricing detail + CTA
+- `/subscribe` = Checkout landing (Stripe-ready, can be stubbed)
+- `/support` = Support + contact
+- `/privacy` = Privacy policy
+- `/terms` = Terms
+- `/company` = Company + Digital Booty
+- `/press` (optional) = Media kit
+- `/status` (optional) = Service status stub
+
+Placement rules:
+- Marketing pages: `app/(site)/...`
+- App demo: `app/prototype/...`
+- `(site)` must not break `/prototype`.
+
+Agent checks:
+- `/prototype` still compiles and loads.
+- `/` renders site layout and is styled.
+- No shared component changes break `/prototype`.
+
+## IA / Header + Footer
+Header:
+- AMPÈRE logo + wordmark
+- Nav: Product, Taste Engine, Universal Queue, Time-to-Delight, Add Device, Pricing, Company, Support
+- CTAs: View Plans, Subscribe
+
+Footer:
+- AMPÈRE + “Powered by Digital Booty”
+- Links: Privacy, Terms, Support, Press (optional)
+- Social (optional)
+
+## Visual System
+- Dark glass + blur panels, electric blue accents
+- “Home screen” feel: tiles/rails, pill buttons, subtle animations
+- Respect reduced motion
+
+## Page requirements (minimum)
+- `/` Home: hero, signature mechanic, rails, trust section, pricing preview, FAQ preview, CTA
+- `/product`: what it is, how it works, screenshots
+- `/taste-engine`: controls, explainability, portability, roadmap labels
+- `/universal-queue`: watch later, availability ladder, notify rules
+- `/time-to-delight`: time picker, presets, explanation
+- `/add-device`: device ladder, virtual tv emulator explanation
+- `/pricing`: full plans + disclaimers
+- `/subscribe`: plan chooser + Stripe-ready stub + email capture
+- `/company`: AMPÈRE + Digital Booty
+- `/support`: help topics + contact
+- `/privacy` and `/terms`: templates for counsel
+
+SEO:
+- Titles/descriptions, OG tags, favicon
+- Sitemap + robots.txt
+
+Performance:
+- Avoid giant media on first paint
+- No 404s
+
+Deployment:
+- Vercel preview for every PR
+
+Regression checklist (every PR):
+- `npm run dev` works
+- `npm run build` passes
+- `/` loads (website)
+- `/prototype` loads (app)
+- No new console errors
+- No 404 spam
+- No broken imports/aliases
+
+---
+
+# DUPLICATION RULE
+If any task appears more than once in this spec:
+- Mark the later instance as “Duplicate of <section/item>”
+- Do not re-implement
+- Continue to the next task
